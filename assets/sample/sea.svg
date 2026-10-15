@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7B58E"/><stop offset="1" stop-color="#FBE3BC"/></linearGradient></defs>
+<rect width="400" height="500" fill="url(#g)"/>
+<circle cx="110" cy="190" r="38" fill="#FFF0CF"/>
+<rect y="260" width="400" height="240" fill="#4F8FA8"/>
+<g stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".6"><path d="M20 300 q20 -12 40 0 t40 0 t40 0"/><path d="M200 330 q20 -12 40 0 t40 0 t40 0"/><path d="M60 380 q20 -12 40 0 t40 0 t40 0 t40 0"/><path d="M230 430 q20 -12 40 0 t40 0 t40 0"/></g>
+<path d="M60 262 L340 262" stroke="#FFE6B8" stroke-width="8" opacity=".6"/><path d="M110 276 L250 276 M140 290 L220 290" stroke="#FFE6B8" stroke-width="6" opacity=".45"/>
+<path d="M250 268 L330 268 L312 292 L268 292Z" fill="#C4472F"/><path d="M290 268 V220" stroke="#3E2F3C" stroke-width="4"/><path d="M292 224 L292 262 L330 262Z" fill="#FAF3E8"/>
+<path d="M0 470 C100 440 260 450 400 420 V500 H0Z" fill="#F3DDB8"/></svg>
