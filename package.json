@@ -1,0 +1,13 @@
+{
+  "name": "little-tales",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Little Tales: turn little moments into memories.",
+  "scripts": {
+    "preview": "python3 -m http.server 8123",
+    "build:preview": "node tools/build-preview.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

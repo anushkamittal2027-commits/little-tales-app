@@ -17,6 +17,11 @@ function open() {
   }
   return dbp;
 }
+// If the browser blocks storage (some private windows do), keep everything in memory for this visit.
+const mem = { tales: new Map(), meta: new Map() };
+let memoryOnly = false;
+export const storageIsTemporary = () => memoryOnly;
+
 async function tx(store, mode, fn) {
   const db = await open();
   return new Promise((resolve, reject) => {
@@ -26,25 +31,31 @@ async function tx(store, mode, fn) {
     t.onerror = () => reject(t.error);
   });
 }
+async function safe(real, fallback) {
+  if (!memoryOnly) {
+    try { return await real(); } catch (e) { console.warn('Storage unavailable, using memory for this visit', e); memoryOnly = true; }
+  }
+  return fallback();
+}
 
 export const store = {
   tales: [],
-  async load() { this.tales = (await tx('tales', 'readonly', (s) => s.getAll())) || []; return this.tales; },
+  async load() { this.tales = (await safe(() => tx('tales', 'readonly', (s) => s.getAll()), () => [...mem.tales.values()])) || []; return this.tales; },
   async save(tale) {
-    await tx('tales', 'readwrite', (s) => s.put(tale));
+    await safe(() => tx('tales', 'readwrite', (s) => s.put(tale)), () => mem.tales.set(tale.id, tale));
     const i = this.tales.findIndex((t) => t.id === tale.id);
     if (i >= 0) this.tales[i] = tale; else this.tales.push(tale);
   },
   async remove(id) {
-    await tx('tales', 'readwrite', (s) => s.delete(id));
+    await safe(() => tx('tales', 'readwrite', (s) => s.delete(id)), () => mem.tales.delete(id));
     this.tales = this.tales.filter((t) => t.id !== id);
   },
-  async clear() { await tx('tales', 'readwrite', (s) => s.clear()); this.tales = []; },
+  async clear() { await safe(() => tx('tales', 'readwrite', (s) => s.clear()), () => mem.tales.clear()); this.tales = []; },
   async removeSamples() {
     for (const t of this.tales.filter((x) => x.sample)) await this.remove(t.id);
   },
-  async getMeta(k) { return tx('meta', 'readonly', (s) => s.get(k)); },
-  async setMeta(k, v) { return tx('meta', 'readwrite', (s) => s.put(v, k)); },
+  async getMeta(k) { return safe(() => tx('meta', 'readonly', (s) => s.get(k)), () => mem.meta.get(k)); },
+  async setMeta(k, v) { return safe(() => tx('meta', 'readwrite', (s) => s.put(v, k)), () => mem.meta.set(k, v)); },
 
   // Tales for one day, oldest first (the first one is the day's cover).
   forDate(date) {

@@ -5,7 +5,7 @@ import { stampEl, pageEl, LIGHTS } from './stamp.js';
 import { makeEditor } from './decorate.js';
 import { Recorder, MAX_SECONDS } from './recorder.js';
 import { LOGO } from './art.js';
-import { seedSamples } from './sample.js';
+import { seedSamples, samplePhoto } from './sample.js';
 
 // ---------- shared pieces ----------
 const topBar = (right) => h('div.topbar',
@@ -49,7 +49,7 @@ function canStart(date) {
 // WELCOME (first time only)
 // =====================================================
 register('welcome', () => {
-  const demo = { date: todayStr(), photo: 'assets/sample/chai.svg', light: 'golden', title: '' };
+  const demo = { date: todayStr(), photo: samplePhoto('chai'), light: 'golden', title: '' };
   return h('div.welcome',
     h('div.welcome-hero', stampEl(demo, { size: '22px' })),
     h('div.welcome-copy',
@@ -475,7 +475,7 @@ async function founderPanel() {
   const close = sheet(h('div.founder',
     h('h2', 'Founder panel'),
     h('p.muted', 'Only you see this. Tap the logo five times to open it.'),
-    h('div.stat', h('b', attempts.length), ' attempts to make a 4th tale in a day'),
+    h('div.stat', h('b', attempts.length), (attempts.length === 1 ? ' attempt' : ' attempts') + ' to make a 4th tale in a day'),
     attempts.length ? h('ul.attempts', ...attempts.slice(-8).reverse().map((a) => h('li', `${new Date(a.at).toLocaleString()} → day ${a.forDate}`))) : null,
     h('div.stack-sm',
       h('button.btn-secondary', { onClick: async () => { await store.removeSamples(); await seedSamples(); close(); toast('Sample tales reloaded'); go('calendar', {}, { replace: true }); } }, 'Reload sample tales'),

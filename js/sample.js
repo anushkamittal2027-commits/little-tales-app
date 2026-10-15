@@ -3,7 +3,8 @@ import { store } from './store.js';
 import { addDays, todayStr } from './util.js';
 import { makeChimeWav } from './recorder.js';
 
-const P = (n) => `assets/sample/${n}.svg`;
+export const samplePhoto = (n) => (window.__SAMPLES && window.__SAMPLES[n]) || `assets/sample/${n}.svg`;
+const P = samplePhoto;
 // [daysAgo, photo, title, thought, light, voice?, decorations]
 const SAMPLES = [
   [1, 'chai', 'Cardamom morning', 'First chai of the day, and the whole window smelled like cardamom.', 'golden', true,

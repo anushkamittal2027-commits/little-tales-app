@@ -11,7 +11,8 @@ const screens = {};
 export const register = (name, fn) => { screens[name] = fn; };
 
 let current = null;
-let seq = 0;
+let stack = [];          // our own record of screens, so back works even where browser history is unavailable
+let silent = 0;          // popstate events we caused ourselves
 
 function render(st) {
   current?._cleanup?.();
@@ -23,21 +24,38 @@ function render(st) {
   window.scrollTo(0, 0);
 }
 
+const tryHistory = (fn) => { try { fn(); return true; } catch { return false; } };
+
 export function go(name, params = {}, { replace = false } = {}) {
-  const st = { name, params, n: replace ? (history.state?.n || 1) : ++seq };
-  if (replace) history.replaceState(st, ''); else history.pushState(st, '');
+  const st = { name, params, n: replace ? stack.length || 1 : stack.length + 1 };
+  if (replace && stack.length) stack[stack.length - 1] = st; else stack.push(st);
+  tryHistory(() => (replace ? history.replaceState(st, '') : history.pushState(st, '')));
   render(st);
 }
 
 export function back(fallback = 'calendar') {
-  if ((history.state?.n || 1) > 1) history.back(); else go(fallback, {}, { replace: true });
+  if (stack.length > 1) {
+    stack.pop();
+    if (tryHistory(() => history.go(-1))) silent++;
+    render(stack[stack.length - 1]);
+  } else go(fallback, {}, { replace: true });
 }
 
-export function start() {
-  window.addEventListener('popstate', (e) => render(e.state || { name: 'calendar', params: {} }));
-  const st = history.state && history.state.name ? history.state : { name: 'calendar', params: {}, n: 1 };
-  seq = st.n || 1;
-  history.replaceState(st, '');
+export function start(first) {
+  window.addEventListener('popstate', (e) => {
+    if (silent) { silent--; return; }
+    const st = e.state && e.state.name ? e.state : { name: 'calendar', params: {}, n: 1 };
+    stack.length = Math.max(1, st.n || 1);
+    stack[stack.length - 1] = st;
+    render(st);
+  });
+  let st = null;
+  try { st = history.state && history.state.name ? history.state : null; } catch {}
+  st = first || st || { name: 'calendar', params: {}, n: 1 };
+  stack = [];
+  for (let i = 1; i < (st.n || 1); i++) stack.push({ name: 'calendar', params: {}, n: i });
+  stack.push(st);
+  tryHistory(() => history.replaceState(st, ''));
   render(st);
 }
 
