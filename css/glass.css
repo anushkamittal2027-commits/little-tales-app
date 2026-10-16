@@ -146,3 +146,4 @@ html, body { background: #EFE9F7; }
 .page { --pw: min(calc(var(--appw) - 64px), calc((100dvh - var(--chrome)) * .8)); }
 .thought-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(255, 79, 163, .45), 0 12px 30px rgba(180, 150, 20, .2); }
 .title-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(255, 79, 163, .4), var(--g-shadow); }
+.cam-hint { padding: 0 32px; }

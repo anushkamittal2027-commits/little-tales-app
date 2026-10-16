@@ -217,7 +217,7 @@ function plateSvg() {
 
 register('camera', (p) => {
   const edit = p.editId ? store.byId(p.editId) : null;
-  let stream, facing = 'environment';
+  let stream, facing = 'environment', demoRaf = 0;
   const mkVideo = (cls) => h('video.' + cls, { autoplay: true, playsinline: true, muted: true });
   const bgVideo = mkVideo('cam-bg'), video = mkVideo('cam-video');
   const msg = h('div.cam-msg', { hidden: true });
@@ -236,12 +236,31 @@ register('camera', (p) => {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 1920 } }, audio: false });
       video.srcObject = stream; bgVideo.srcObject = stream; msg.hidden = true;
     } catch {
+      if (window.__DEMO_CAMERA) {
+        try { const ds = demoStream(); stream = ds; video.srcObject = ds; bgVideo.srcObject = ds; msg.hidden = true; hint.textContent = 'Demo camera for this preview. Your real camera works on your own address.'; return; } catch {}
+      }
       msg.hidden = false;
       msg.replaceChildren(h('p', 'We couldn\u2019t open the camera here. You can use your phone\u2019s own camera instead.'),
         h('button.btn-primary', { onClick: () => fallback.click() }, 'Open phone camera'));
     }
   }
-  const stop = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; };
+  const stop = () => { cancelAnimationFrame(demoRaf); stream?.getTracks().forEach((t) => t.stop()); stream = null; };
+  function demoStream() {
+    const c = document.createElement('canvas'); c.width = 720; c.height = 540;
+    const g = c.getContext('2d'), img = new Image(); img.src = samplePhoto('misty-hills');
+    const t0 = performance.now();
+    const draw = () => {
+      if (img.complete && img.naturalWidth) {
+        const t = (performance.now() - t0) / 1000, zoom = 1.25 + 0.05 * Math.sin(t * 0.4);
+        const sw = img.naturalWidth / zoom, sh = sw * (c.height / c.width);
+        const sx = (img.naturalWidth - sw) * (0.5 + 0.45 * Math.sin(t * 0.35)), sy = Math.max(0, img.naturalHeight * 0.22 + 20 * Math.sin(t * 0.5));
+        g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      }
+      demoRaf = requestAnimationFrame(draw);
+    };
+    draw();
+    return c.captureStream(30);
+  }
   function snap() {
     if (!video.videoWidth) return;
     // crop the live view to exactly what shows through the stamp window
@@ -255,6 +274,7 @@ register('camera', (p) => {
     plate.classList.add('punch');
     setTimeout(() => accept(c.toDataURL('image/jpeg', 0.84)), 260);
   }
+  const hint = h('p.cam-hint', 'Line up your moment inside the stamp');
   open();
   const pct = (v, t) => (v / t * 100) + '%';
   const plate = h('div.plate',
@@ -265,7 +285,7 @@ register('camera', (p) => {
     h('button.cam-close', { 'aria-label': 'Close camera', onClick: () => back(), html: icon.close }),
     h('div.cam-title', 'Frame your ', h('em', 'stamp')),
     h('div.plate-wrap', plate),
-    h('p.cam-hint', 'Line up your moment inside the stamp'),
+    hint,
     msg,
     h('div.cam-bar',
       h('span.cam-spacer'),
