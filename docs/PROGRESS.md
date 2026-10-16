@@ -6,49 +6,33 @@ Last updated: end of the first overnight session. Stages 1 and 2 are built. I st
 
 ## FOUNDER TO-DO (do these first)
 
-**1. Try the app on your phone. Free, 5 minutes.**
-Open this link on your phone (you must be signed in to claude.ai, and only you can open it):
-https://claude.ai/artifact/E8sjX24Lg5ER3Z29wHJQS3
+**1. Open the new design on your phone. Free, 5 minutes.**
+https://claude.ai/artifact/E8sjX24Lg5ER3Z29wHJQS3 (only you can open it)
 
-Walk through it once:
-- Tap **Start my album**, then **Make today's stamp**.
-- Choose **From your gallery**, pick a photo and choose the day.
-- Type a thought, pick a light, and watch the stamping.
-- Add a few stickers and tape. Drag them, use the round corner handle to resize and turn, and tap the red X to delete.
-- Tap **Post to my calendar**.
-- Make 3 tales today, then try a 4th. You should see the gentle "You've kept 3 little tales today" message.
+Try the whole journey: Make today's stamp, then Take a photo (you'll see the 3D stamp camera with a demo scene, because claude.ai blocks the real camera in previews), pick a light, add a title, decorate, post, then try a 4th tale. Tell me what to change.
 
-What does not work in this preview link (this is a limit of the preview, not a fault in the app):
-- The **in-app camera** and **voice recording** are blocked by the claude.ai preview. In the preview, "Take a photo" opens your phone's own camera instead, and you can type your thought. Both work fully once the app is on its own web address (Stage 3 and later).
-- The preview keeps its tales only on that phone and browser.
-
-**2. Fix the GitHub connection. Free, 5 minutes. This matters.**
-Right now I cannot save the code to GitHub, so the only copies are inside the temporary cloud session and the preview link. Your repo link (`anushkamittal2027-commits/Anushka-Mittal--Little-Tales`) says "not found" for this session. The GitHub account I'm connected to is `ishanihanda1709-debug`, which is a different account, so the repo is probably private to the other account.
-
-Please do this:
+**2. Fix the GitHub connection. Free, 5 minutes. This is the one blocker for everything next.**
+I still cannot save the code to GitHub. Your repo `anushkamittal2027-commits/Anushka-Mittal--Little-Tales` says "not found" for me, and this session is connected to a different account (`ishanihanda1709-debug`).
 1. Open https://claude.ai/connect-github.
-2. Connect the GitHub account that owns the repo (`anushkamittal2027-commits`). If the page offers a choice of accounts, pick that one.
-3. If it asks, install the **Claude** GitHub App on that repo (or ask the account owner to).
-4. Start a new Claude Code session with that repo selected, and tell me. I'll push everything that exists so far. All the work is saved as files, so nothing is lost.
+2. Connect the GitHub account that owns the repo (`anushkamittal2027-commits`).
+3. Install the **Claude** GitHub App on that repo when GitHub asks.
+4. Start a new Claude Code session with that repo selected, and tell me. I will push everything that exists.
+If it is easier, tell me and I will use a new repo under the account that is already connected.
 
-If you would rather use a new repo under the `ishanihanda1709-debug` account, tell me and I'll do that instead.
+**3. Create three free accounts for Stage 3 (I will guide each click). Use hellolittletales@gmail.com for all of them.**
+- Supabase (login, database, photo and voice storage): https://supabase.com
+- Google Cloud (for "Continue with Google"): https://console.cloud.google.com
+- Cloudflare (free hosting on your own domain): https://dash.cloudflare.com/sign-up
+Do not paste passwords or secret keys into any chat. When I need a key, I will tell you where to put it safely.
 
-**3. Review the look and give feedback. Free.**
-Open the screenshots in `docs/screenshots/` (they are named in journey order, `00-welcome.png` onwards) or use the preview link. Tell me what to change: colours, wording, artwork, spacing, anything.
-
-**4. Answer the questions below.**
-
-**5. For Stage 3 (next, after your OK). Nothing to do yet.**
-When you say go, I'll ask you to create three free accounts, one step at a time, all with hellolittletales@gmail.com:
-- **Supabase** (login, database and photo storage)
-- **Google Cloud** (for "Continue with Google")
-- **Cloudflare** (hosting on your own domain)
-
-None of them costs anything to start.
+**4. Answer the open questions below.**
 
 ---
 
 ## Done
+
+**Design update (latest):** the app now uses the colourful glass redesign: cut-out postage stamps, white calendar with a big date numeral, a bright 3D stamp-cutout camera, tinted-glass buttons and panels, and smooth screen transitions. The earlier looks are kept in `docs/design-options/` and `docs/design-preview/`; the final look is in `docs/design-glass/`. Photos in the app are generated placeholders until you provide real ones.
+
 
 Everything below is built and tested on a phone-sized screen. There were no errors in the tests.
 
@@ -95,6 +79,8 @@ Everything below is built and tested on a phone-sized screen. There were no erro
 ---
 
 ## Questions for Ishani
+
+0. Is the glass strength right on the colour screens, or should they be calmer?
 
 1. Do you like the stamp, postmark and sticker artwork, or should any of it change?
 2. Is "Golden hour" a good default look for the stamp photos? It adds a warm tint.
