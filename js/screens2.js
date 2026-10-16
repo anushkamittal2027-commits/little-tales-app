@@ -140,7 +140,7 @@ register('paywall', (p) => {
   const cards = h('div.plans');
   const note = h('p.fine.gst');
   const draw = () => {
-    cards.replaceChildren(...Object.values(PLANS).map((pl) => h('button.plan' + (plan === pl.id ? '.on' : '') + (pl.best ? '.best' : ''), { 'aria-pressed': String(plan === pl.id), onClick: () => { plan = pl.id; draw(); } },
+    cards.replaceChildren(...[PLANS.yearly, PLANS.monthly].map((pl) => h('button.plan' + (plan === pl.id ? '.on' : '') + (pl.best ? '.best' : ''), { 'aria-pressed': String(plan === pl.id), onClick: () => { plan = pl.id; draw(); } },
       pl.best ? h('span.badge', 'Best value') : null,
       h('span.plan-name', pl.name),
       h('span.plan-price', rupees(pl.price), h('small', ' / ' + pl.per)),
