@@ -6,13 +6,12 @@ Written in plain words for the founder. Updated at the end of each working sessi
 
 ## FOUNDER TO-DO (in order of importance)
 
-**1. Fix the GitHub connection. This is the one blocker. Free, 5 minutes.**
-I still cannot save the code to GitHub. Your repo `anushkamittal2027-commits/Anushka-Mittal--Little-Tales` says "not found" for me, because this session is connected to a different account (`ishanihanda1709-debug`).
-1. Open https://claude.ai/connect-github.
-2. Connect the GitHub account that owns the repo (`anushkamittal2027-commits`).
-3. Install the **Claude** GitHub App on that repo when GitHub asks.
-4. Start a new Claude Code session with that repo selected, and tell me. I will push everything.
-(If easier: tell me and I will use a new repo under the account that is already connected.)
+**1. Put the code in YOUR GitHub (this is the one blocker).**
+The AI session that built this was signed in to someone else's Claude account, so it could never reach your GitHub, and nothing was pushed to any other account. The code was handed to you as a zip file with its full history.
+1. Unzip `little-tales.zip`.
+2. Install GitHub Desktop (free): https://desktop.github.com and sign in as **anushkamittal2027-commits**.
+3. In GitHub Desktop: **File, Add local repository**, pick the unzipped folder. Then **Repository, Repository settings, Remote**, check it says `https://github.com/anushkamittal2027-commits/Anushka-Mittal--Little-Tales.git`, and click **Publish / Push origin**. (Your GitHub repo must be empty: no README.)
+4. For the next stage, start a new Claude Code session from **your own** Claude account and select that repo. Give it `LITTLE_TALES_HANDOFF.md` and `docs/PROGRESS.md` so it picks up exactly where this left off.
 
 **2. Create the free accounts for going online.** Full steps are in `docs/BACKEND_PLAN.md`. All use hellolittletales@gmail.com.
 - Supabase (login, saving online, reminders): https://supabase.com. Pick the **Mumbai** region. Send me the **Project URL** and **anon public key** (both safe to share).
@@ -91,9 +90,9 @@ Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 
 7. A member who is locked can still open Account and the plans; nothing else.
 8. The founder panel and time-travel only exist on your preview and on `localhost`.
 
-## Questions for Ishani
+## Questions for the founder
 
-1. Which GitHub account owns the repo? (To-do 1.)
+1. Do you have your own Claude account and plan to continue the build in? (To-do 1, step 4.)
 2. Is the app 18 and over only? (The privacy draft assumes yes.)
 3. Business name and address for the privacy policy and terms, and a name for the grievance contact.
 4. Should the Sunday video be for members only? (Currently yes, per your brief.)

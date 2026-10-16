@@ -58,7 +58,7 @@ await p.click('.paytab >> nth=0'); await p.click('.pay-fields input'); await p.f
 await p.click('.checkout .btn-primary'); await p.waitForTimeout(250);
 ok('bad UPI id is rejected', (await p.locator('.pay-err').innerText()).length > 0);
 await shot('08-checkout');
-await p.fill('.pay-fields input', 'ishani@okbank');
+await p.fill('.pay-fields input', 'founder@okbank');
 await p.click('.checkout .btn-primary'); await p.waitForSelector('.success', { timeout: 8000 });
 await shot('09-success');
 ok('subscribed after practice payment', (await status()) === 'subscribed');
@@ -113,7 +113,7 @@ await lt('jumpTo', 'locked25'); await lt('go', 'calendar'); await p.waitForTimeo
 ok('urgent message with few days left', (await p.locator('.locked').innerText()).toLowerCase().includes('days left'));
 await shot('12-locked-urgent');
 await p.click('.locked .btn-primary'); await p.waitForTimeout(500);
-await p.click('text=Continue'); await p.waitForTimeout(500); await p.fill('.pay-fields input', 'ishani@okbank'); await p.click('.checkout .btn-primary'); await p.waitForSelector('.success', { timeout: 8000 });
+await p.click('text=Continue'); await p.waitForTimeout(500); await p.fill('.pay-fields input', 'founder@okbank'); await p.click('.checkout .btn-primary'); await p.waitForSelector('.success', { timeout: 8000 });
 await p.click('text=Back to my calendar'); await p.waitForTimeout(700);
 ok('tales come back after subscribing', (await p.locator('.cell.has').count()) > 0);
 
