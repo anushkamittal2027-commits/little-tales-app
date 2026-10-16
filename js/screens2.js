@@ -198,7 +198,7 @@ register('checkout', (p) => {
       h('div.srow', h('span', `Little Tales ${plan.name}`), h('b', rupees(plan.price))),
       account.settings.gst ? h('div.srow.sub', h('span', 'GST (18%)'), h('span', rupees(gst))) : null,
       h('div.srow.total', h('span', 'Total today'), h('b', rupees(total)))),
-    h('div.practice', h('b', 'Practice mode'), ' Nothing is charged, and nothing you type here is saved.'),
+    h('div.practice', h('b', 'Practice mode.'), ' Nothing is charged, and nothing you type here is saved.'),
     tabs, fields, err,
     h('div.bottom', payBtn));
 });

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FAF3E8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -23,7 +23,7 @@
 </head>
 <body>
 <script>try{var d=new URLSearchParams(location.search).get("design")||localStorage.getItem("lt-design");if(d){document.documentElement.dataset.design=d;localStorage.setItem("lt-design",d)}}catch(e){}</script>
-<div id="app"><main id="screen" aria-live="polite"></main></div>
+<div id="app"><main id="screen" aria-live="polite"></main><div id="splash" aria-hidden="true"><div class="splash-mark"></div><div class="splash-name">Little Tales</div></div></div>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

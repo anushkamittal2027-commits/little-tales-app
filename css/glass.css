@@ -147,3 +147,12 @@ html, body { background: #EFE9F7; }
 .thought-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(255, 79, 163, .45), 0 12px 30px rgba(180, 150, 20, .2); }
 .title-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(255, 79, 163, .4), var(--g-shadow); }
 .cam-hint { padding: 0 32px; }
+
+/* keyboard + screen reader friendliness */
+:focus-visible { outline: 3px solid rgba(255, 79, 163, .75); outline-offset: 3px; border-radius: 10px; }
+button:focus:not(:focus-visible) { outline: none; }
+#splash { position: absolute; inset: 0; z-index: 90; display: grid; place-content: center; justify-items: center; gap: 14px; background: #FBF6EE; transition: opacity .45s var(--ease), transform .45s var(--ease); }
+#splash.gone { opacity: 0; transform: scale(1.03); pointer-events: none; }
+.splash-mark { width: 74px; height: 92px; background: linear-gradient(180deg, #ff70b8, #ff40a0); border-radius: 6px; clip-path: url(#lt-stamp); box-shadow: 0 10px 30px rgba(255, 64, 160, .4); animation: floatPlate 3s ease-in-out infinite; }
+.splash-name { font: 700 22px var(--serif); color: var(--ink); }
+.screen { -webkit-overflow-scrolling: touch; }

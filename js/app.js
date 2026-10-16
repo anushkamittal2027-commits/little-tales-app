@@ -37,6 +37,7 @@ async function boot() {
   });
   if (location.hostname === 'localhost' || window.__DEMO_CAMERA) window.__lt = { account, store, jumpTo, trialInfo, go, setDayOffset };
   start(trialInfo().status === 'new' ? { name: 'welcome', params: {}, n: 1 } : null);
+  if (new URLSearchParams(location.search).get('new') === '1' && trialInfo().status !== 'new' && !['locked', 'deleted'].includes(trialInfo().status)) { history.replaceState(null, '', location.pathname); const { startToday } = await import('./screens.js'); startToday?.(); }
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }

@@ -41,10 +41,16 @@ export async function dataUrlToBytes(url) {
 }
 export const textBytes = (s) => enc.encode(s);
 
-// Save a Blob to the phone. Falls back to opening it when downloads are blocked.
-export function saveBlob(blob, filename) {
+// Save a Blob to the phone. Inside the claude.ai preview the viewer's own save prompt is used;
+// on a normal website it is a plain download.
+export async function saveBlob(blob, filename) {
+  try {
+    const d = window.claude?.use ? await window.claude.use('downloads') : null;
+    if (d) { await d.save({ filename, data: blob }); return true; }
+  } catch (e) { if (e && e.code === 'declined') return false; }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = filename; a.rel = 'noopener';
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return true;
 }

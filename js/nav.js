@@ -25,6 +25,7 @@ function render(st, dir = 'fwd') {
   document.getElementById('app').dataset.screen = st.name;
   current = el;
   window.scrollTo(0, 0);
+  const sp = document.getElementById('splash'); if (sp) { sp.classList.add('gone'); setTimeout(() => sp.remove(), 500); }
 }
 
 const tryHistory = (fn) => { try { fn(); return true; } catch { return false; } };

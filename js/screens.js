@@ -147,7 +147,7 @@ function latestStrip() {
         stampEl(t, { size: '6.2px', mini: false, postmark: false })))));
 }
 
-function startToday() {
+export function startToday() {
   if (!canStart(todayStr())) return;
   state.draft = newDraft();
   go('moment');
@@ -499,10 +499,13 @@ register('ready', () => {
     h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }), h('div.topbar-title', 'Your tale is ready')),
     h('div.page-frame', pageEl(t)),
     h('div.bottom.stack',
-      primary('Post to my calendar', async () => {
+      primary('Post to my calendar', async (ev) => {
+        const btn = ev.currentTarget; if (btn.disabled) return;
         if (store.count(t.date) >= MAX_PER_DAY) { canStart(t.date); return; }
         const saved = { ...t, createdAt: Date.now() };
-        await store.save(saved);
+        btn.disabled = true;
+        try { await store.save(saved); }
+        catch (e) { btn.disabled = false; console.error(e); toast('We couldn\u2019t save this tale. Your phone may be out of space.'); return; }
         state.justPosted = saved.id;
         const d = parseDate(saved.date); state.month = { y: d.getFullYear(), m: d.getMonth() };
         state.draft = null;
