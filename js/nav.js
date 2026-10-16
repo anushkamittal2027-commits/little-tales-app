@@ -14,11 +14,11 @@ let current = null;
 let stack = [];          // our own record of screens, so back works even where browser history is unavailable
 let silent = 0;          // popstate events we caused ourselves
 
-function render(st) {
+function render(st, dir = 'fwd') {
   current?._cleanup?.();
   const fn = screens[st.name] || screens.calendar;
   const el = fn(st.params || {});
-  el.classList.add('screen', 'fade-in');
+  el.classList.add('screen', dir === 'back' ? 'enter-back' : 'enter-fwd');
   document.getElementById('screen').replaceChildren(el);
   document.getElementById('app').dataset.screen = st.name;
   current = el;
@@ -38,7 +38,7 @@ export function back(fallback = 'calendar') {
   if (stack.length > 1) {
     stack.pop();
     if (tryHistory(() => history.go(-1))) silent++;
-    render(stack[stack.length - 1]);
+    render(stack[stack.length - 1], 'back');
   } else go(fallback, {}, { replace: true });
 }
 
@@ -48,7 +48,7 @@ export function start(first) {
     const st = e.state && e.state.name ? e.state : { name: 'calendar', params: {}, n: 1 };
     stack.length = Math.max(1, st.n || 1);
     stack[stack.length - 1] = st;
-    render(st);
+    render(st, 'back');
   });
   let st = null;
   try { st = history.state && history.state.name ? history.state : null; } catch {}

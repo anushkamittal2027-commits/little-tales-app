@@ -1,7 +1,7 @@
 import { h, icon, MAX_PER_DAY, MAX_THOUGHT, todayStr, parseDate, toDateStr, addDays, monthName, longDate, shortDate, uid, fileToPhoto, drawToJpeg } from './util.js';
 import { store } from './store.js';
 import { state, register, go, back, toast, sheet } from './nav.js';
-import { stampEl, pageEl, LIGHTS } from './stamp.js';
+import { stampEl, pageEl, LIGHTS, stampPathPx } from './stamp.js';
 import { makeEditor } from './decorate.js';
 import { Recorder, MAX_SECONDS } from './recorder.js';
 import { LOGO, artSvg } from './art.js';
@@ -110,10 +110,11 @@ register('calendar', () => {
     h('div.cal-head', logo),
     h('div.cal-sheet',
       h('div.month-nav',
-        h('button.icon-btn', { 'aria-label': 'Previous month', onClick: () => shift(-1), html: icon.back }),
-        h('h1', h('span.hl.hl-lime', monthName(m)), h('span.yr', y)),
-        h('button.icon-btn', { 'aria-label': 'Next month', onClick: () => shift(1), html: icon.chevR })),
-      h('div.weekdays', ...['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => h('span', d))),
+        h('h1', h('span.big', (state.month.y === new Date().getFullYear() && state.month.m === new Date().getMonth()) ? new Date().getDate() : 1), h('span.stack', h('span.yr', y), h('em', monthName(m)))),
+        h('div.arrows',
+          h('button.icon-btn', { 'aria-label': 'Previous month', onClick: () => shift(-1), html: icon.back }),
+          h('button.icon-btn', { 'aria-label': 'Next month', onClick: () => shift(1), html: icon.chevR }))),
+      h('div.weekdays', ...['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => h('span', d))),
       h('div.grid', ...cells)),
     latestStrip(),
     h('div.bottom',
@@ -185,12 +186,42 @@ register('moment', (p) => {
     h('div.bottom.stack', cam, gal, fileInput));
 });
 
-// ---------- in-app camera ----------
+// ---------- in-app camera: a bright live view with a 3D stamp cut-out ----------
+const PLATE = { w: 330, h: 420, hx: 50, hy: 66, hw: 230, hh: 290 };
+function platePath() {
+  const { w, h } = PLATE, r = 64;
+  return `M${r} 0 H${w - r} A${r} ${r} 0 0 1 ${w} ${r} V${h - r} A${r} ${r} 0 0 1 ${w - r} ${h} H${r} A${r} ${r} 0 0 1 0 ${h - r} V${r} A${r} ${r} 0 0 1 ${r} 0 Z`;
+}
+function plateSvg() {
+  const hole = stampPathPx(PLATE.hw, PLATE.hh, PLATE.hx, PLATE.hy);
+  const body = platePath();
+  return `<svg viewBox="0 0 ${PLATE.w} ${PLATE.h}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="pm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".28" stop-color="#dfe3ea"/><stop offset=".5" stop-color="#f7f8fb"/><stop offset=".74" stop-color="#bcc3cf"/><stop offset="1" stop-color="#eef0f5"/></linearGradient>
+    <linearGradient id="pe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#7d8696" stop-opacity=".55"/></linearGradient>
+    <pattern id="br" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 1H4" stroke="#fff" stroke-opacity=".5" stroke-width=".6"/><path d="M0 3H4" stroke="#8d95a3" stroke-opacity=".25" stroke-width=".6"/></pattern>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#2a2f45" flood-opacity=".35"/><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#2a2f45" flood-opacity=".25"/></filter>
+    <filter id="ib"><feGaussianBlur stdDeviation="3.2"/></filter>
+    <clipPath id="pc"><path d="${body}"/></clipPath>
+  </defs>
+  <g filter="url(#sh)"><path d="${body} ${hole}" fill="url(#pm)" fill-rule="evenodd"/></g>
+  <path d="${body} ${hole}" fill="url(#br)" fill-rule="evenodd" opacity=".55"/>
+  <path d="${body}" fill="none" stroke="url(#pe)" stroke-width="3"/>
+  <path d="${body}" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1" transform="translate(0 1.5)" clip-path="url(#pc)"/>
+  <path d="${hole}" fill="none" stroke="#1d2233" stroke-opacity=".55" stroke-width="7" filter="url(#ib)"/>
+  <path d="${hole}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="1.6" transform="translate(0 2.2)"/>
+  <path d="${hole}" fill="none" stroke="#5b6376" stroke-opacity=".7" stroke-width="1.2"/>
+  <path d="M30 22 C120 6 210 6 300 22" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="3" stroke-linecap="round"/>
+</svg>`;
+}
+
 register('camera', (p) => {
   const edit = p.editId ? store.byId(p.editId) : null;
   let stream, facing = 'environment';
-  const video = h('video.cam-video', { autoplay: true, playsinline: true, muted: true });
+  const mkVideo = (cls) => h('video.' + cls, { autoplay: true, playsinline: true, muted: true });
+  const bgVideo = mkVideo('cam-bg'), video = mkVideo('cam-video');
   const msg = h('div.cam-msg', { hidden: true });
+  const flash = h('div.cam-flash');
   const fallback = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, onChange: async () => {
     const f = fallback.files[0]; if (f) await accept(await fileToPhoto(f));
   } });
@@ -203,29 +234,44 @@ register('camera', (p) => {
     stop();
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 1920 } }, audio: false });
-      video.srcObject = stream; msg.hidden = true;
+      video.srcObject = stream; bgVideo.srcObject = stream; msg.hidden = true;
     } catch {
       msg.hidden = false;
-      msg.replaceChildren(h('p', 'We couldn’t open the camera here. You can use your phone’s own camera instead.'),
+      msg.replaceChildren(h('p', 'We couldn\u2019t open the camera here. You can use your phone\u2019s own camera instead.'),
         h('button.btn-primary', { onClick: () => fallback.click() }, 'Open phone camera'));
     }
   }
   const stop = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; };
   function snap() {
     if (!video.videoWidth) return;
-    accept(drawToJpeg(video, video.videoWidth, video.videoHeight));
+    // crop the live view to exactly what shows through the stamp window
+    const aspect = PLATE.hw / PLATE.hh, vw = video.videoWidth, vh = video.videoHeight;
+    let sw = vw, sh = vw / aspect; if (sh > vh) { sh = vh; sw = vh * aspect; }
+    const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+    const c = document.createElement('canvas'); const k = Math.min(1, 1280 / Math.max(sw, sh));
+    c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+    c.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+    plate.classList.add('punch');
+    setTimeout(() => accept(c.toDataURL('image/jpeg', 0.84)), 260);
   }
   open();
+  const pct = (v, t) => (v / t * 100) + '%';
+  const plate = h('div.plate',
+    h('div.plate-view', { style: { left: pct(PLATE.hx, PLATE.w), top: pct(PLATE.hy, PLATE.h), width: pct(PLATE.hw, PLATE.w), height: pct(PLATE.hh, PLATE.h) } }, video),
+    h('div.plate-art', { html: plateSvg() }));
   const el = h('div.camera',
+    bgVideo, h('div.cam-wash'),
     h('button.cam-close', { 'aria-label': 'Close camera', onClick: () => back(), html: icon.close }),
     h('div.cam-title', 'Frame your ', h('em', 'stamp')),
-    h('div.vf-wrap', h('div.stamp-shadow', h('div.stamp.vf', h('div.stamp-photo', video, h('div.vf-grid'))))),
+    h('div.plate-wrap', plate),
+    h('p.cam-hint', 'Line up your moment inside the stamp'),
     msg,
     h('div.cam-bar',
       h('span.cam-spacer'),
       h('button.shutter', { 'aria-label': 'Take photo', onClick: snap }, h('span')),
       h('button.cam-flip', { 'aria-label': 'Switch camera', onClick: () => { facing = facing === 'environment' ? 'user' : 'environment'; open(); }, html: icon.flip })),
-    fallback);
+    flash, fallback);
   el._cleanup = stop;
   return el;
 });

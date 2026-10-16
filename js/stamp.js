@@ -24,6 +24,21 @@ export function ensureStampClip() {
   document.body.prepend(svg);
 }
 
+// The same cut-out outline in plain pixels, for drawing inside an SVG (the camera plate).
+export function stampPathPx(w, h, x0 = 0, y0 = 0) {
+  const r = R * (w / SW), rx = r, ry = r * (SW / SW), f = (n) => n.toFixed(2);
+  const P = (x, y) => `${f(x0 + x)} ${f(y0 + y)}`;
+  let d = `M${P(0, 0)}`;
+  for (let i = 0; i < NX; i++) { const cx = ((i + 0.5) / NX) * w; d += ` L${P(cx - rx, 0)} A${f(rx)} ${f(ry)} 0 0 0 ${P(cx + rx, 0)}`; }
+  d += ` L${P(w, 0)}`;
+  for (let j = 0; j < NY; j++) { const cy = ((j + 0.5) / NY) * h; d += ` L${P(w, cy - ry)} A${f(rx)} ${f(ry)} 0 0 0 ${P(w, cy + ry)}`; }
+  d += ` L${P(w, h)}`;
+  for (let i = NX - 1; i >= 0; i--) { const cx = ((i + 0.5) / NX) * w; d += ` L${P(cx + rx, h)} A${f(rx)} ${f(ry)} 0 0 0 ${P(cx - rx, h)}`; }
+  d += ` L${P(0, h)}`;
+  for (let j = NY - 1; j >= 0; j--) { const cy = ((j + 0.5) / NY) * h; d += ` L${P(0, cy + ry)} A${f(rx)} ${f(ry)} 0 0 0 ${P(0, cy - ry)}`; }
+  return d + ' Z';
+}
+
 // A soft colour block behind each stamp, so every page has its own colour
 const BLOCKS = ['#FF4FA3', '#C6F135', '#25C7B7', '#FFD93D', '#6FA8FF', '#FF6B4A'];
 export const blockColor = (tale) => {
