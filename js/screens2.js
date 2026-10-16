@@ -5,6 +5,7 @@ import { state, register, go, back, toast, sheet } from './nav.js';
 import { stampEl } from './stamp.js';
 import { LOGO } from './art.js';
 import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, cancelSubscription, purgeAllTales, resetDemo, PLANS, TRIAL_DAYS, HOLD_DAYS } from './account.js';
+import { subscribePush } from './push.js';
 import { makeVideo, pickTales, videoKind, videoTitle, canMakeVideo } from './video.js';
 import { makeZip, dataUrlToBytes, textBytes, saveBlob } from './zip.js';
 
@@ -50,6 +51,7 @@ register('install', () => {
     if (ios && !isStandalone()) { toast('Add Little Tales to your Home Screen first'); return; }
     let p = 'denied'; try { p = await Notification.requestPermission(); } catch {}
     await patchAccount({ notify: { granted: p === 'granted', asked: true } });
+    if (p === 'granted') subscribePush();
     notifyBtn.textContent = p === 'granted' ? 'Reminders are on' : 'Reminders are off'; notifyBtn.classList.toggle('done', p === 'granted');
     toast(p === 'granted' ? 'Gentle nudges are on' : 'No problem. You can turn them on later in Account');
   } }, h('span.btn-ic', { html: icon.bell }), account.notify.granted ? 'Reminders are on' : 'Turn on gentle nudges');

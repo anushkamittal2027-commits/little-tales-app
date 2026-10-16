@@ -53,10 +53,10 @@ export const LIGHTS = [
 ];
 
 // size: CSS font-size for the stamp (everything inside scales with it).
-export function stampEl(tale, { size = '16px', mini = false, postmark = true, developing = false } = {}) {
+export function stampEl(tale, { size = '16px', mini = false, postmark = true, developing = false, full = false } = {}) {
   const light = tale.light || 'golden';
   const photo = tale.photo
-    ? h('img.photo', { src: tale.photo, alt: tale.title || 'Photo', draggable: 'false' })
+    ? h('img.photo', { src: full ? tale.photo : (tale.thumb || tale.photo), loading: 'lazy', decoding: 'async', alt: tale.title || 'Photo', draggable: 'false' })
     : h('div.photo-empty', { 'aria-hidden': 'true' }, h('span', '+'));
   const el = h('div.stamp-wrap' + (mini ? '.mini' : ''), { style: { fontSize: size } },
     h('div.stamp-shadow',
@@ -70,7 +70,7 @@ export function stampEl(tale, { size = '16px', mini = false, postmark = true, de
 // A full scrapbook page: stamp, title, date, thought and decorations.
 export function pageEl(tale, { developing = false, decorLayer = true } = {}) {
   const page = h('div.page');
-  const stamp = stampEl(tale, { size: 'calc(var(--pw) * .0585)', developing });
+  const stamp = stampEl(tale, { size: 'calc(var(--pw) * .0585)', developing, full: true });
   const parts = [
     h('div.page-block', { style: { background: blockColor(tale) } }),
     h('div.page-stamp', stamp),

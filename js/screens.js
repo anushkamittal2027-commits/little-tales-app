@@ -1,4 +1,4 @@
-import { h, icon, MAX_PER_DAY, MAX_THOUGHT, todayStr, parseDate, toDateStr, addDays, monthName, longDate, shortDate, uid, fileToPhoto, drawToJpeg } from './util.js';
+import { h, icon, makeThumb, buzz, MAX_PER_DAY, MAX_THOUGHT, todayStr, parseDate, toDateStr, addDays, monthName, longDate, shortDate, uid, fileToPhoto, drawToJpeg } from './util.js';
 import { store } from './store.js';
 import { state, register, go, back, toast, sheet } from './nav.js';
 import { stampEl, pageEl, LIGHTS, stampPathPx } from './stamp.js';
@@ -109,7 +109,7 @@ register('calendar', () => {
   state.justPosted = null;
 
   const todayCount = store.count(today);
-  return h('div.calendar',
+  const root = h('div.calendar',
     h('div.cal-head', logo, h('div.cal-head-right', trialPill(tinfo), h('button.icon-btn.acct', { 'aria-label': 'Account', onClick: () => go('account'), html: icon.user }))),
     sundayBanner(tinfo),
     h('div.cal-sheet',
@@ -124,6 +124,14 @@ register('calendar', () => {
     h('div.bottom',
       primary("Make today's stamp", startToday),
       h('p.hint', todayCount ? `${todayCount} of ${MAX_PER_DAY} kept today` : 'Today counts.')));
+  // swipe left or right to change month
+  let sx = 0, sy = 0;
+  root.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  root.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 45 && !e.target.closest('.latest-row')) shift(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  return root;
 });
 
 function trialPill(info) {
@@ -164,7 +172,7 @@ register('moment', (p) => {
   async function onFile() {
     const f = fileInput.files[0]; if (!f) return;
     const photo = await fileToPhoto(f);
-    if (edit) { edit.photo = photo; await store.save(edit); toast('Photo retaken'); back('calendar'); return; }
+    if (edit) { edit.photo = photo; edit.thumb = await makeThumb(photo).catch(() => undefined); await store.save(edit); toast('Photo retaken'); back('calendar'); return; }
     state.draft.photo = photo;
     chooseDay();
   }
@@ -241,7 +249,7 @@ register('camera', (p) => {
   } });
 
   async function accept(photo) {
-    if (edit) { edit.photo = photo; await store.save(edit); toast('Photo retaken'); back('calendar'); return; }
+    if (edit) { edit.photo = photo; edit.thumb = await makeThumb(photo).catch(() => undefined); await store.save(edit); toast('Photo retaken'); back('calendar'); return; }
     state.draft.photo = photo; go('thought', {}, { replace: true });
   }
   async function open() {
@@ -284,7 +292,7 @@ register('camera', (p) => {
     const c = document.createElement('canvas'); const k = Math.min(1, 1280 / Math.max(sw, sh));
     c.width = Math.round(sw * k); c.height = Math.round(sh * k);
     c.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
-    flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+    buzz(14); flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
     plate.classList.add('punch');
     setTimeout(() => accept(c.toDataURL('image/jpeg', 0.84)), 260);
   }
@@ -504,7 +512,7 @@ register('ready', () => {
         if (store.count(t.date) >= MAX_PER_DAY) { canStart(t.date); return; }
         const saved = { ...t, createdAt: Date.now() };
         btn.disabled = true;
-        try { await store.save(saved); }
+        try { saved.thumb = await makeThumb(saved.photo).catch(() => undefined); await store.save(saved); buzz(18); }
         catch (e) { btn.disabled = false; console.error(e); toast('We couldn\u2019t save this tale. Your phone may be out of space.'); return; }
         state.justPosted = saved.id;
         const d = parseDate(saved.date); state.month = { y: d.getFullYear(), m: d.getMonth() };

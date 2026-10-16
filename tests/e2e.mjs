@@ -65,6 +65,31 @@ ok('subscribed after practice payment', (await status()) === 'subscribed');
 await p.click('text=Back to my calendar'); await p.waitForTimeout(600);
 ok('member pill on calendar', (await p.locator('.pill').innerText()).includes('Member'));
 
+// ---- GST switch + Sunday video banner + month swipe
+await lt('go', 'paywall', { from: 'pill' }); await p.waitForTimeout(400);
+ok('prices flat while not GST registered', !(await p.locator('.gst').innerText()).includes('GST'));
+await p.evaluate(async () => { window.__lt.account.settings.gst = true; await window.__lt.go('paywall', { from: 'pill' }); }); await p.waitForTimeout(400);
+ok('GST note appears when the switch is on', (await p.locator('.gst').innerText()).includes('GST'));
+await p.click('.plan >> nth=1'); await p.click('text=Continue'); await p.waitForTimeout(400);
+ok('checkout shows a GST line and total with GST', (await p.locator('.checkout').innerText()).includes('GST (18%)') && (await p.locator('.srow.total').innerText()).includes('175.82'));
+await p.evaluate(() => { window.__lt.account.settings.gst = false; });
+await p.evaluate(async () => { const a = window.__lt.account; const now = new Date(); const toSun = (7 - now.getDay()) % 7; a.dayOffset = toSun; window.__lt.setDayOffset(toSun); window.__lt.go('calendar', {}, { replace: true }); });
+await p.waitForTimeout(600);
+ok('Sunday banner shows for members', (await p.locator('.banner').count()) === 1);
+await shot('09b-sunday-banner');
+await p.click('.banner'); await p.waitForTimeout(500);
+ok('Sunday video screen opens', await p.locator('.weekvideo').count() === 1);
+await p.evaluate(() => { window.__lt.account.dayOffset = 0; window.__lt.setDayOffset(0); window.__lt.go('calendar', {}, { replace: true }); }); await p.waitForTimeout(500);
+const titleBefore = await p.locator('.month-nav em').innerText();
+const box = await p.locator('.grid').boundingBox();
+await p.mouse.move(box.x + 300, box.y + 80);
+await p.evaluate(() => { const g = document.querySelector('.calendar'); const t = (x, type) => { const ev = new Event(type, { bubbles: true }); ev.touches = [{ clientX: x, clientY: 300 }]; ev.changedTouches = [{ clientX: x, clientY: 300 }]; g.dispatchEvent(ev); }; t(320, 'touchstart'); t(120, 'touchend'); });
+await p.waitForTimeout(600);
+ok('swiping left moves to the next month', (await p.locator('.month-nav em').innerText()) !== titleBefore);
+await p.evaluate(() => { const g = document.querySelector('.calendar'); const t = (x, type) => { const ev = new Event(type, { bubbles: true }); ev.touches = [{ clientX: x, clientY: 300 }]; ev.changedTouches = [{ clientX: x, clientY: 300 }]; g.dispatchEvent(ev); }; t(120, 'touchstart'); t(320, 'touchend'); });
+await p.waitForTimeout(600);
+ok('swiping right comes back', (await p.locator('.month-nav em').innerText()) === titleBefore);
+
 // ---- account + download
 await p.click('.acct'); await p.waitForTimeout(500);
 ok('account opens', await p.locator('.account').count() === 1);

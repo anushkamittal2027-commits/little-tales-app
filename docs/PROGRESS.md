@@ -1,111 +1,111 @@
-# Little Tales: Progress notes
+# Little Tales: progress notes
 
-Last updated: end of the first overnight session. Stages 1 and 2 are built. I stopped before Stage 3, as you asked.
+Written in plain words for the founder. Updated at the end of each working session.
 
 ---
 
-## FOUNDER TO-DO (do these first)
+## FOUNDER TO-DO (in order of importance)
 
-**1. Open the new design on your phone. Free, 5 minutes.**
-https://claude.ai/artifact/E8sjX24Lg5ER3Z29wHJQS3 (only you can open it)
-
-Try the whole journey: Make today's stamp, then Take a photo (you'll see the 3D stamp camera with a demo scene, because claude.ai blocks the real camera in previews), pick a light, add a title, decorate, post, then try a 4th tale. Tell me what to change.
-
-**2. Fix the GitHub connection. Free, 5 minutes. This is the one blocker for everything next.**
-I still cannot save the code to GitHub. Your repo `anushkamittal2027-commits/Anushka-Mittal--Little-Tales` says "not found" for me, and this session is connected to a different account (`ishanihanda1709-debug`).
+**1. Fix the GitHub connection. This is the one blocker. Free, 5 minutes.**
+I still cannot save the code to GitHub. Your repo `anushkamittal2027-commits/Anushka-Mittal--Little-Tales` says "not found" for me, because this session is connected to a different account (`ishanihanda1709-debug`).
 1. Open https://claude.ai/connect-github.
 2. Connect the GitHub account that owns the repo (`anushkamittal2027-commits`).
 3. Install the **Claude** GitHub App on that repo when GitHub asks.
-4. Start a new Claude Code session with that repo selected, and tell me. I will push everything that exists.
-If it is easier, tell me and I will use a new repo under the account that is already connected.
+4. Start a new Claude Code session with that repo selected, and tell me. I will push everything.
+(If easier: tell me and I will use a new repo under the account that is already connected.)
 
-**3. Create three free accounts for Stage 3 (I will guide each click). Use hellolittletales@gmail.com for all of them.**
-- Supabase (login, database, photo and voice storage): https://supabase.com
-- Google Cloud (for "Continue with Google"): https://console.cloud.google.com
-- Cloudflare (free hosting on your own domain): https://dash.cloudflare.com/sign-up
-Do not paste passwords or secret keys into any chat. When I need a key, I will tell you where to put it safely.
+**2. Create the free accounts for going online.** Full steps are in `docs/BACKEND_PLAN.md`. All use hellolittletales@gmail.com.
+- Supabase (login, saving online, reminders): https://supabase.com. Pick the **Mumbai** region. Send me the **Project URL** and **anon public key** (both safe to share).
+- Google sign-in (Google Cloud): https://console.cloud.google.com
+- Cloudflare (hosting): https://dash.cloudflare.com/sign-up
+- Resend (emails): https://resend.com
+- Razorpay (payments, test mode only for now): https://razorpay.com
+Never paste passwords or secret keys in chat. I will tell you which screen to put each one in.
 
-**4. Answer the open questions below.**
+**3. Try the app on your phone.** https://claude.ai/artifact/E8sjX24Lg5ER3Z29wHJQS3 (private, only you). Things to try:
+- Start: Start my album, the "free week" page, tick the box.
+- Tap the **Little Tales logo 5 times** to open the founder panel. Use it to jump to **Day 7 video**, **Locked**, **7 days left**, **After 30 days**, **Subscribed**, and to switch **GST** prices on or off.
+- On Day 7, tap **Make my video** and watch your week turn into a real video.
+- In the preview, the real camera and microphone are blocked by claude.ai. The camera screen shows a demo scene. Both work fully on your own address.
 
----
-
-## Done
-
-**Design update (latest):** the app now uses the colourful glass redesign: cut-out postage stamps, white calendar with a big date numeral, a bright 3D stamp-cutout camera, tinted-glass buttons and panels, and smooth screen transitions. The earlier looks are kept in `docs/design-options/` and `docs/design-preview/`; the final look is in `docs/design-glass/`. Photos in the app are generated placeholders until you provide real ones.
-
-
-Everything below is built and tested on a phone-sized screen. There were no errors in the tests.
-
-**Stage 1: look and feel**
-- Colours, fonts (Fraunces, Courier Prime, DM Sans) and the one-button-per-screen rule from the brief.
-- The classic perforated stamp, with Morning, Golden hour and After dark lights.
-- The red postmark with the date, drawn as artwork.
-- 8 original sample photos: chai on a windowsill, rooftops at sunset, balcony flowers, a bookshop, rain on a window, a small red boat, mangoes at a market, and a cat watching the moon.
-- Decoration artwork: 4 washi tapes, 8 stickers (sun, star, heart, chai cup, flower, airmail envelope, "with love" label, arrow) and 4 doodles.
-- A Home Screen icon, so the app can be added like a real app.
-
-**Stage 2: the main journey**
-1. Welcome screen (first time only): "Your camera roll forgets. Your album won't."
-2. Calendar: the first stamp of each day as the cover, dots for how many tales (●●○), today highlighted, **Make today's stamp**.
-3. Add a moment: **Take a photo** (in-app camera) or **From your gallery**, with "Which day is this from?" for gallery photos.
-4. Add a thought: hold the mic to record (live waveform), or type up to 140 characters.
-5. Frame it: pick a light, add a title, or **Skip for now**.
-6. Stamping: the photo develops and the postmark presses on, in under 2 seconds.
-7. Decorate: bottom tray with Tape, Stickers and Doodles. Drag, resize, turn and delete. **Done decorating** or **Skip for now**.
-8. Tale ready: preview, **Post to my calendar**, then the toast "Posted to your calendar".
-9. Day view (1 to 3 tales side by side) and tale view with voice player, **Decorate**, and a menu to edit the thought, edit the stamp, retake the photo or delete.
-- The **3-tales-a-day rule**: the 4th attempt shows the gentle message and does not open the camera. Deleting a tale frees the slot. Every 4th attempt is counted for you.
-- **Founder panel**: tap the Little Tales logo on the calendar 5 times. It shows the number of 4th-tale attempts and has buttons to reload or remove the sample tales and to delete everything.
-- 12 sample tales, some decorated and 3 with a sample voice note, so the calendar looks lived-in.
-- Everything is saved on the phone for now. Online saving and login come in Stage 3.
+**4. Decide.** Questions at the bottom of this file.
 
 ---
 
-## Decisions I made for you (say yes, or tell me to change them)
+## What is built and tested
 
-1. **Photos are cropped to the stamp shape** (portrait, 4 by 5, centre of the photo). A wide landscape photo loses its sides. Alternative: let people slide the photo inside the stamp. (Stage 3 or later.)
-2. **A tale can be photo-only.** A voice note or a line of text is optional, so nobody feels homework pressure.
-3. **Voice notes are up to 60 seconds.**
-4. **The calendar starts on Sunday.** I can switch it to Monday.
-5. **"Make today's stamp" takes two taps to reach the camera** (button, then Take a photo), following the journey in the brief. I can make it one tap if you prefer.
-6. **I added a welcome screen**, which was not in the brief. It uses your line "Your camera roll forgets. Your album won't."
-7. **The sample tales are there on first open** so the screens look real. I'll remove them when real accounts arrive in Stage 3.
-8. **Future days are greyed out and locked**, and gallery photos can only be tagged to today or earlier.
-9. **The 4th-tale count is stored on the phone for now**, shown only in the founder panel. In Stage 4 it moves online so you can see it across all users.
-10. **The app keeps working if the browser blocks storage**, for that visit only, so it never shows a blank screen.
-11. **Hosting for now is the private preview link.** I did not set up GitHub Pages or Cloudflare, because both need your GitHub connection (To-do 2) first.
-12. **Wording of the 4th-tale message** is exactly as in the brief: "You've kept 3 little tales today. Come back tomorrow for more."
+Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 errors** (`tests/e2e.mjs` and `tests/journey.mjs`).
+
+### The stamp journey
+- Welcome, then the calendar (pure white, big date, stamps with a cut-out edge, dots for how many tales that day).
+- Add a moment: **in-app camera** (bright live view, 3D silver plate with a stamp-shaped window) or **gallery** (with "Which day is this from?").
+- Voice note (hold the mic, live waveform) or up to 140 characters of text.
+- Frame it (Morning, Golden hour, After dark, title), the **stamping animation**, decorating (4 tapes, 8 stickers, 4 doodles; drag, resize, turn, delete), preview, post.
+- Day view (1 to 3 tales), tale view with voice player, edit thought, edit stamp, retake photo, delete.
+- **3 tales a day**: the 4th attempt shows the gentle message and is counted for you. Deleting frees the slot. A backdated gallery tale counts against the day you chose.
+
+### The business rules (all working on the phone today)
+- **Free week with consent**: a "How your free week works" page with a tick box. Day 1 is the day you start.
+- **Day 7**: opens the **"Your week" video** (a real video made on the phone with the stamp scenes, typed-out thoughts, voice snippets and a postmark). 0 tales: no video. 1 to 6: the soft version titled with the real number. 7 or more: the full one.
+- **Paywall** ("Keep your tales going."): yearly Rs 999 (about Rs 83 a month, highlighted) and monthly Rs 149. A founder-only switch shows "+ GST" when you register.
+- **Practice checkout** (UPI AutoPay or card form, nothing stored or charged).
+- **Locked screen** after day 7: "Your week is waiting. Subscribe to unlock it.", how many tales are saved and days left, warnings at 7 days and 1 day left. Every other screen is blocked while locked, except Account and the plans.
+- **30-day hold, then automatic permanent deletion.** Subscribing in the 30 days brings everything back.
+- **Account**: your plan, cancel, **download your whole scrapbook** (one file with photos, voice notes and words; subscribers only), **delete my account and tales** (always).
+- **Sunday video banner** for members.
+- **Home Screen and reminders onboarding** (Android install button, iPhone steps, notification permission).
+
+### Polish
+- Glass look across all screens, smooth screen transitions, calm animations (and they switch off for people who ask their phone for reduced motion).
+- Offline support, a splash screen, a Home Screen shortcut ("Make today's stamp"), small thumbnails for fast lists, swipe left or right to change month, a little vibration on the shutter and on posting.
+- Pinch-to-zoom is allowed, keyboard focus is visible, buttons are labelled for screen readers.
+- If the browser blocks storage, the app still works for that visit instead of showing a blank screen.
+
+### Prepared for going online (not switched on yet)
+- `supabase/migrations/001_init.sql`: database tables, the free-week rules decided on the server, **3-a-day enforced by the database**, **locked members cannot read their tales**, private photo and voice storage. Syntax checked.
+- `supabase/functions/*`: nudges at about 1pm and 8pm in each member's own time zone (skipping 8pm if they kept a tale), 7-day and 1-day warning emails, permanent deletion after 30 days, Razorpay subscription and webhook, delete-account. Syntax checked, **not yet run against a live project**.
+- `docs/legal/`: plain-words drafts of the Privacy Policy and Terms. **Drafts for a lawyer to review, not legal advice.**
+- `docs/BACKEND_PLAN.md`: exactly what I need from you and what I do with each piece.
 
 ---
+
+## What is NOT done yet, honestly
+
+| Item | Why | Needs |
+|---|---|---|
+| Login (Google and email code) and saving online across phones | Needs a server | Supabase and Google accounts |
+| Real nudges and warning emails | Needs the server jobs running | Supabase, Resend, VAPID keys |
+| Real payments | Needs Razorpay and a registered business to go live | Razorpay account; business registration later |
+| Hosting on your own address, where real camera and mic work | Needs the repo on GitHub and Cloudflare | GitHub fix, Cloudflare, domain |
+| Real photographs for the samples | I can't download stock photos from here | Your own photos, or I use the generated ones |
+| A real "AI stamp" | There is no AI step: the stamp is made by the app from the photo. An AI step would be a paid service. | Your decision |
+
+## Decisions I made for you (change any)
+
+1. Photos are cropped to the stamp's portrait shape (centre of the photo).
+2. A tale can be photo-only; voice and words are optional.
+3. Voice notes are up to 60 seconds.
+4. Calendar starts on Sunday.
+5. The Day 7 video is made when the member taps **Make my video**, takes about 25 seconds, and is kept so it opens instantly next time.
+6. The app is for 18 and over (written into the privacy and terms drafts).
+7. A member who is locked can still open Account and the plans; nothing else.
+8. The founder panel and time-travel only exist on your preview and on `localhost`.
 
 ## Questions for Ishani
 
-0. Is the glass strength right on the colour screens, or should they be calmer?
-
-1. Do you like the stamp, postmark and sticker artwork, or should any of it change?
-2. Is "Golden hour" a good default look for the stamp photos? It adds a warm tint.
-3. Should the postmark sit over the bottom corner of the stamp as it does now, or be smaller or in a different spot?
-4. Calendar: Sunday or Monday first?
-5. Should the camera really be one tap from the calendar (see decision 5)?
-6. Should the welcome screen stay?
-7. Which GitHub account owns your `littletales` repo? (See To-do 2.)
-
----
-
-## Next
-
-Once you reply (and fix GitHub), I'll:
-1. Apply your feedback on Stages 1 and 2.
-2. Push everything to your GitHub repo.
-3. Set up free hosting with Cloudflare Pages so you have a permanent link where the camera and voice recording work.
-4. Start **Stage 3: accounts and saving** (Google and email login, online storage, the Account section) and ask for your OK before moving on after each stage.
+1. Which GitHub account owns the repo? (To-do 1.)
+2. Is the app 18 and over only? (The privacy draft assumes yes.)
+3. Business name and address for the privacy policy and terms, and a name for the grievance contact.
+4. Should the Sunday video be for members only? (Currently yes, per your brief.)
+5. Do you want me to look for real, free-licence photographs for the sample tales once the repo is connected, or will you supply your own?
 
 ---
 
 ## For whoever works on this next (technical)
 
-- No build step is needed to run the app: serve the folder with any static server (`python3 -m http.server`) and open `index.html`. Plain JavaScript modules, no framework.
-- `js/store.js` is the only file that knows where tales are kept (browser storage today). Stage 3 swaps it for Supabase. The rest of the app calls the same functions.
-- `js/art.js` holds all artwork, `js/stamp.js` draws stamps and pages, `js/decorate.js` is the decorating editor, `js/screens.js` has every screen, `js/nav.js` is the router.
-- `npm install` then `npm run build:preview` makes `dist/little-tales-preview.html`, one self-contained file used for the private preview.
-- Test screenshots in `docs/screenshots/` were made with a phone-sized (390 x 844) headless browser.
+- Plain JavaScript modules, no framework. Serve the folder with any static server and open `index.html`.
+- `js/store.js` is the only file that knows where tales live (browser storage today). `js/account.js` holds the trial and subscription logic. Both switch to Supabase in Stage 3 without touching the screens.
+- `js/screens.js` (journey), `js/screens2.js` (trial, video, paywall, checkout, locked, account, onboarding), `js/video.js` (canvas + MediaRecorder), `js/zip.js` (download), `js/stamp.js` (cut-out stamp path), `js/decorate.js`, `js/nav.js` (router and guard).
+- `css/`: `styles.css` (base), `pop-bg.css` and `pop.css` (colour and stamp), `glass.css` (glass, camera, motion), `screens2.css` (new screens), `premium.css` (an optional calmer look, switched on with `?design=premium`).
+- `npm run build:preview` builds `dist/little-tales-preview.html`, a single self-contained file used for the private preview.
+- Tests: serve on port 8123 and run `node tests/e2e.mjs` and `node tests/journey.mjs` (Playwright required).

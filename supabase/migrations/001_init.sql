@@ -42,6 +42,7 @@ create table if not exists public.tales (
   light         text not null default 'golden' check (light in ('morning','golden','dark')),
   decorations   jsonb not null default '[]'::jsonb,
   photo_path    text not null,                                  -- storage: photos/<user>/<tale>.jpg
+  thumb_path    text,                                           -- storage: photos/<user>/<tale>-thumb.jpg (small, for lists)
   audio_path    text,                                           -- storage: voices/<user>/<tale>.<ext>
   audio_seconds numeric,
   created_at    timestamptz not null default now(),
