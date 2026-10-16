@@ -9,6 +9,8 @@ export const state = {
 
 const screens = {};
 export const register = (name, fn) => { screens[name] = fn; };
+let guard = null;
+export const setGuard = (fn) => { guard = fn; };
 
 let current = null;
 let stack = [];          // our own record of screens, so back works even where browser history is unavailable
@@ -28,6 +30,7 @@ function render(st, dir = 'fwd') {
 const tryHistory = (fn) => { try { fn(); return true; } catch { return false; } };
 
 export function go(name, params = {}, { replace = false } = {}) {
+  const redirect = guard?.(name); if (redirect && redirect !== name) { name = redirect; params = {}; }
   const st = { name, params, n: replace ? stack.length || 1 : stack.length + 1 };
   if (replace && stack.length) stack[stack.length - 1] = st; else stack.push(st);
   tryHistory(() => (replace ? history.replaceState(st, '') : history.pushState(st, '')));
@@ -53,6 +56,7 @@ export function start(first) {
   let st = null;
   try { st = history.state && history.state.name ? history.state : null; } catch {}
   st = first || st || { name: 'calendar', params: {}, n: 1 };
+  const rd = guard?.(st.name); if (rd && rd !== st.name) st = { name: rd, params: {}, n: 1 };
   stack = [];
   for (let i = 1; i < (st.n || 1); i++) stack.push({ name: 'calendar', params: {}, n: i });
   stack.push(st);

@@ -47,3 +47,17 @@ export async function seedSamples() {
     });
   }
 }
+
+// Founder demo: put some tales inside the free week so the Day 7 video has something to show.
+export async function seedTrialWeek(firstSignIn, total = 8) {
+  const pool = SAMPLES.slice(0, 8);
+  const chime = makeChimeWav();
+  for (let i = 0; i < total; i++) {
+    const [, photo, title, thought, light, voice, decorations] = pool[i % pool.length];
+    const day = Math.min(6, Math.floor((i / total) * 7));
+    await store.save({
+      id: `week-${firstSignIn}-${i}`, sample: true, date: addDays(firstSignIn, day), createdAt: Date.now() + i,
+      photo: samplePhoto(photo), title, thought, light, audio: voice ? chime : null, audioDur: voice ? 3 : 0, decorations,
+    });
+  }
+}

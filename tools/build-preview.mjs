@@ -6,7 +6,7 @@ import fs from 'node:fs';
 const root = new URL('../', import.meta.url).pathname;
 const js = (await build({ entryPoints: [root + 'js/app.js'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020' })).outputFiles[0].text;
 
-let css = ['fonts', 'styles', 'pop-bg', 'pop', 'glass'].map((f) => fs.readFileSync(root + `css/${f}.css`, 'utf8')).join('\n');
+let css = ['fonts', 'styles', 'pop-bg', 'pop', 'glass', 'screens2'].map((f) => fs.readFileSync(root + `css/${f}.css`, 'utf8')).join('\n');
 css = css.replace(/url\(\.\.\/assets\/fonts\/([^)]+)\)/g, (_, f) =>
   `url(data:font/woff2;base64,${fs.readFileSync(root + 'assets/fonts/' + f).toString('base64')})`);
 

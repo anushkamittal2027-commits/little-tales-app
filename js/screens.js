@@ -5,7 +5,8 @@ import { stampEl, pageEl, LIGHTS, stampPathPx } from './stamp.js';
 import { makeEditor } from './decorate.js';
 import { Recorder, MAX_SECONDS } from './recorder.js';
 import { LOGO, artSvg } from './art.js';
-import { seedSamples, samplePhoto } from './sample.js';
+import { seedSamples, samplePhoto, seedTrialWeek } from './sample.js';
+import { account, trialInfo, jumpTo, resetDemo, saveAccount, TRIAL_DAYS } from './account.js';
 
 // ---------- shared pieces ----------
 const topBar = (right) => h('div.topbar',
@@ -65,7 +66,7 @@ register('welcome', () => {
       h('div.brand-line', h('span.logo', { html: LOGO }), 'Little Tales'),
       h('h1', 'Your camera roll forgets. ', h('span.hl.hl-lime', h('em', 'Your album won\u2019t.'))),
       h('p', 'Catch a little moment, say how it felt, and watch it become a stamp in your own scrapbook.')),
-    h('div.bottom', primary('Start my album', async () => { await store.setMeta('welcomed', true); go('calendar', {}, { replace: true }); })));
+    h('div.bottom', primary('Start my album', () => go('terms'))));
 });
 
 // =====================================================
@@ -73,6 +74,8 @@ register('welcome', () => {
 // =====================================================
 register('calendar', () => {
   const today = todayStr();
+  const tinfo = trialInfo();
+  if (tinfo.status === 'day7' && !account.day7Shown) queueMicrotask(() => go('weekvideo', { mode: 'trial' }, { replace: true }));
   if (!state.month) { const d = new Date(); state.month = { y: d.getFullYear(), m: d.getMonth() }; }
   const { y, m } = state.month;
   const shift = (n) => { const d = new Date(y, m + n, 1); state.month = { y: d.getFullYear(), m: d.getMonth() }; go('calendar', {}, { replace: true }); };
@@ -107,7 +110,8 @@ register('calendar', () => {
 
   const todayCount = store.count(today);
   return h('div.calendar',
-    h('div.cal-head', logo),
+    h('div.cal-head', logo, h('div.cal-head-right', trialPill(tinfo), h('button.icon-btn.acct', { 'aria-label': 'Account', onClick: () => go('account'), html: icon.user }))),
+    sundayBanner(tinfo),
     h('div.cal-sheet',
       h('div.month-nav',
         h('h1', h('span.big', (state.month.y === new Date().getFullYear() && state.month.m === new Date().getMonth()) ? new Date().getDate() : 1), h('span.stack', h('span.yr', y), h('em', monthName(m)))),
@@ -121,6 +125,16 @@ register('calendar', () => {
       primary("Make today's stamp", startToday),
       h('p.hint', todayCount ? `${todayCount} of ${MAX_PER_DAY} kept today` : 'Today counts.')));
 });
+
+function trialPill(info) {
+  const label = { trial: `Day ${info.day} of ${TRIAL_DAYS} \u00b7 free`, day7: 'Last free day', subscribed: 'Member' }[info.status];
+  if (!label) return null;
+  return h('button.pill' + (info.status === 'day7' ? '.hot' : ''), { onClick: () => go(info.status === 'subscribed' ? 'account' : 'paywall', { from: 'pill' }) }, label);
+}
+function sundayBanner(info) {
+  if (info.status !== 'subscribed' || new Date(Date.now() + (account.dayOffset || 0) * 864e5).getDay() !== 0 || account.videos['week-' + todayStr()]) return null;
+  return h('button.banner', { onClick: () => go('weekvideo', { mode: 'sunday' }) }, h('span.banner-ic', { html: icon.film }), h('span', h('b', 'Your week is ready'), h('small', 'Tap to watch this Sunday\u2019s video')), h('span.banner-go', { html: icon.chevR }));
+}
 
 function latestStrip() {
   const list = [...store.tales].sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt)).slice(0, 7);
@@ -561,15 +575,26 @@ function confirmDelete(t) {
 // =====================================================
 async function founderPanel() {
   const attempts = (await store.getMeta('attempts')) || [];
+  const info = trialInfo();
+  const jump = (label, state2) => h('button.chip-btn', { onClick: async () => {
+    await jumpTo(state2);
+    if (state2 === 'day7' || state2 === 'locked' || state2 === 'locked25') { const inWeek = store.tales.filter((t) => t.date >= account.firstSignIn && t.date <= todayStr()).length; if (inWeek < 3) await seedTrialWeek(account.firstSignIn, 8); }
+    close(); state.month = null; toast('Jumped: ' + label); go('calendar', {}, { replace: true });
+  } }, label);
   const close = sheet(h('div.founder',
     h('h2', 'Founder panel'),
     h('p.muted', 'Only you see this. Tap the logo five times to open it.'),
     h('div.stat', h('b', attempts.length), (attempts.length === 1 ? ' attempt' : ' attempts') + ' to make a 4th tale in a day'),
-    attempts.length ? h('ul.attempts', ...attempts.slice(-8).reverse().map((a) => h('li', `${new Date(a.at).toLocaleString()} → day ${a.forDate}`))) : null,
+    attempts.length ? h('ul.attempts', ...attempts.slice(-6).reverse().map((a) => h('li', `${new Date(a.at).toLocaleString()} \u2192 day ${a.forDate}`))) : null,
+    h('div.stat', h('b', info.status), ` \u00b7 today is ${todayStr()}`, info.day ? ` (day ${info.day})` : ''),
+    h('div.label', 'Jump to a state'),
+    h('div.chips-grid', jump('Day 1', 'day1'), jump('Day 4', 'day4'), jump('Day 7 video', 'day7'), jump('Locked (day 8)', 'locked'), jump('7 days left', 'locked25'), jump('After 30 days', 'deleted'), jump('Subscribed', 'subscribed')),
+    h('div.label', 'Pricing'),
+    h('button.btn-secondary', { onClick: async () => { account.settings.gst = !account.settings.gst; await saveAccount(); close(); toast(account.settings.gst ? 'Prices now shown + GST' : 'Prices shown flat, no GST'); } }, account.settings.gst ? 'GST is ON (tap to turn off)' : 'GST is OFF (tap to turn on)'),
+    h('div.label', 'Sample data'),
     h('div.stack-sm',
       h('button.btn-secondary', { onClick: async () => { await store.removeSamples(); await seedSamples(); close(); toast('Sample tales reloaded'); go('calendar', {}, { replace: true }); } }, 'Reload sample tales'),
       h('button.btn-secondary', { onClick: async () => { await store.removeSamples(); close(); toast('Sample tales removed'); go('calendar', {}, { replace: true }); } }, 'Remove sample tales'),
       h('button.btn-secondary', { onClick: async () => { await store.setMeta('attempts', []); close(); toast('Attempt counter reset'); } }, 'Reset attempt counter'),
-      h('button.btn-danger', { onClick: async () => { if (!confirm('Delete every tale on this phone?')) return; await store.clear(); close(); toast('Everything deleted'); go('calendar', {}, { replace: true }); } }, 'Delete all tales on this phone')),
-    h('p.muted', 'Trial days, Day 7 video, paywall and locked-screen jumps arrive in Stages 4 to 7.')));
+      h('button.btn-danger', { onClick: async () => { if (!confirm('Reset everything on this phone, including the trial?')) return; await store.clear(); await resetDemo(); close(); state.month = null; go('welcome', {}, { replace: true }); } }, 'Reset the whole app on this phone'))));
 }
