@@ -2,9 +2,11 @@ import { store } from './store.js';
 import { start, go } from './nav.js';
 import './screens.js';
 import { seedSamples } from './sample.js';
+import { ensureStampClip } from './stamp.js';
 
 let firstScreen = null;
 async function boot() {
+  ensureStampClip();
   try {
     await store.load();
     const seeded = await store.getMeta('seeded');

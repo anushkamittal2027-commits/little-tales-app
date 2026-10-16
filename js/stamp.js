@@ -2,6 +2,35 @@
 import { h, dotDate, shortDate } from './util.js';
 import { postmarkSvg, artSvg } from './art.js';
 
+// ---- the cut-out stamp shape ----
+// One shared clip path. The stamp box is always 10em x 12.6em, so circles stay round at any size.
+const SW = 10, SH = 12.6, NX = 8, NY = 10, R = 0.45;
+export function ensureStampClip() {
+  if (document.getElementById('lt-stamp-defs')) return;
+  const rx = R / SW, ry = R / SH, f = (n) => n.toFixed(5);
+  let d = 'M0 0';
+  for (let i = 0; i < NX; i++) { const cx = (i + 0.5) / NX; d += ` L${f(cx - rx)} 0 A${f(rx)} ${f(ry)} 0 0 0 ${f(cx + rx)} 0`; }
+  d += ' L1 0';
+  for (let j = 0; j < NY; j++) { const cy = (j + 0.5) / NY; d += ` L1 ${f(cy - ry)} A${f(rx)} ${f(ry)} 0 0 0 1 ${f(cy + ry)}`; }
+  d += ' L1 1';
+  for (let i = NX - 1; i >= 0; i--) { const cx = (i + 0.5) / NX; d += ` L${f(cx + rx)} 1 A${f(rx)} ${f(ry)} 0 0 0 ${f(cx - rx)} 1`; }
+  d += ' L0 1';
+  for (let j = NY - 1; j >= 0; j--) { const cy = (j + 0.5) / NY; d += ` L0 ${f(cy + ry)} A${f(rx)} ${f(ry)} 0 0 0 0 ${f(cy - ry)}`; }
+  d += ' Z';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'lt-stamp-defs'; svg.setAttribute('width', '0'); svg.setAttribute('height', '0'); svg.setAttribute('aria-hidden', 'true');
+  svg.style.cssText = 'position:absolute;width:0;height:0';
+  svg.innerHTML = `<defs><clipPath id="lt-stamp" clipPathUnits="objectBoundingBox"><path d="${d}"/></clipPath></defs>`;
+  document.body.prepend(svg);
+}
+
+// A soft colour block behind each stamp, so every page has its own colour
+const BLOCKS = ['#FF4FA3', '#C6F135', '#25C7B7', '#FFD93D', '#6FA8FF', '#FF6B4A'];
+export const blockColor = (tale) => {
+  let n = 0; for (const c of String(tale.id || tale.date)) n = (n * 31 + c.charCodeAt(0)) >>> 0;
+  return BLOCKS[n % BLOCKS.length];
+};
+
 export const LIGHTS = [
   { id: 'morning', label: 'Morning' },
   { id: 'golden', label: 'Golden hour' },
@@ -28,6 +57,7 @@ export function pageEl(tale, { developing = false, decorLayer = true } = {}) {
   const page = h('div.page');
   const stamp = stampEl(tale, { size: 'calc(var(--pw) * .0585)', developing });
   const parts = [
+    h('div.page-block', { style: { background: blockColor(tale) } }),
     h('div.page-stamp', stamp),
     h('div.page-text',
       tale.title ? h('div.page-title', tale.title) : null,

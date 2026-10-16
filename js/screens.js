@@ -4,7 +4,7 @@ import { state, register, go, back, toast, sheet } from './nav.js';
 import { stampEl, pageEl, LIGHTS } from './stamp.js';
 import { makeEditor } from './decorate.js';
 import { Recorder, MAX_SECONDS } from './recorder.js';
-import { LOGO } from './art.js';
+import { LOGO, artSvg } from './art.js';
 import { seedSamples, samplePhoto } from './sample.js';
 
 // ---------- shared pieces ----------
@@ -49,12 +49,21 @@ function canStart(date) {
 // WELCOME (first time only)
 // =====================================================
 register('welcome', () => {
-  const demo = { date: todayStr(), photo: samplePhoto('chai'), light: 'golden', title: '' };
+  const mk = (photo, title, rot, size = '9.5px') => ({ el: stampEl({ date: todayStr(), photo: samplePhoto(photo), light: 'golden', title }, { size, postmark: false }), rot });
+  const c1 = mk('string-lights', '', -9), c2 = mk('skyline-dusk', '', 4, '12px'), c3 = mk('rain-bokeh', '', -3);
   return h('div.welcome',
-    h('div.welcome-hero', stampEl(demo, { size: '22px' })),
+    h('div.welcome-collage',
+      h('div.wc.wc1', { style: { '--rot': '-9deg' } }, c1.el),
+      h('div.wc.wc3', { style: { '--rot': '7deg' } }, c3.el),
+      h('div.wc.wc2', { style: { '--rot': '-3deg' } }, c2.el),
+      h('div.wc-tape.t1', { html: artSvg('tape', 'tape-dots') }),
+      h('div.wc-tape.t2', { html: artSvg('tape', 'tape-apricot') }),
+      h('div.wc-sticker.s1', { html: artSvg('stickers', 'sun') }),
+      h('div.wc-sticker.s2', { html: artSvg('stickers', 'heart') }),
+      h('div.wc-sticker.s3', { html: artSvg('stickers', 'withlove') })),
     h('div.welcome-copy',
       h('div.brand-line', h('span.logo', { html: LOGO }), 'Little Tales'),
-      h('h1', 'Your camera roll forgets. Your album won’t.'),
+      h('h1', 'Your camera roll forgets. ', h('span.hl.hl-lime', h('em', 'Your album won\u2019t.'))),
       h('p', 'Catch a little moment, say how it felt, and watch it become a stamp in your own scrapbook.')),
     h('div.bottom', primary('Start my album', async () => { await store.setMeta('welcomed', true); go('calendar', {}, { replace: true }); })));
 });
@@ -102,14 +111,26 @@ register('calendar', () => {
     h('div.cal-sheet',
       h('div.month-nav',
         h('button.icon-btn', { 'aria-label': 'Previous month', onClick: () => shift(-1), html: icon.back }),
-        h('h1', `${monthName(m)} ${y}`),
+        h('h1', h('span.hl.hl-lime', monthName(m)), h('span.yr', y)),
         h('button.icon-btn', { 'aria-label': 'Next month', onClick: () => shift(1), html: icon.chevR })),
       h('div.weekdays', ...['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => h('span', d))),
       h('div.grid', ...cells)),
+    latestStrip(),
     h('div.bottom',
       primary("Make today's stamp", startToday),
       h('p.hint', todayCount ? `${todayCount} of ${MAX_PER_DAY} kept today` : 'Today counts.')));
 });
+
+function latestStrip() {
+  const list = [...store.tales].sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt)).slice(0, 7);
+  if (!list.length) return null;
+  const rots = [-4, 3, -2, 5, -5, 2, -3];
+  return h('div.latest',
+    h('div.latest-title', 'Latest ', h('em', 'tales')),
+    h('div.latest-row', ...list.map((t, i) =>
+      h('button.latest-card', { 'aria-label': t.title || shortDate(t.date), style: { '--rot': rots[i % rots.length] + 'deg' }, onClick: () => go('tale', { id: t.id }) },
+        stampEl(t, { size: '6.2px', mini: false, postmark: false })))));
+}
 
 function startToday() {
   if (!canStart(todayStr())) return;
@@ -196,8 +217,9 @@ register('camera', (p) => {
   }
   open();
   const el = h('div.camera',
-    video,
     h('button.cam-close', { 'aria-label': 'Close camera', onClick: () => back(), html: icon.close }),
+    h('div.cam-title', 'Frame your ', h('em', 'stamp')),
+    h('div.vf-wrap', h('div.stamp-shadow', h('div.stamp.vf', h('div.stamp-photo', video, h('div.vf-grid'))))),
     msg,
     h('div.cam-bar',
       h('span.cam-spacer'),
@@ -320,7 +342,7 @@ register('frame', (p) => {
   draw();
   const chips = h('div.chips');
   const drawChips = () => chips.replaceChildren(...LIGHTS.map((l) =>
-    h('button.chip' + (t.light === l.id ? '.on' : ''), { onClick: () => { t.light = l.id; draw(); drawChips(); } }, l.label)));
+    h('button.chip.lt-' + l.id + (t.light === l.id ? '.on' : ''), { onClick: () => { t.light = l.id; draw(); drawChips(); } }, l.label)));
   drawChips();
   const title = h('input.title-input', { type: 'text', maxlength: 32, placeholder: 'Give it a little title', 'aria-label': 'Title' });
   title.value = t.title || '';

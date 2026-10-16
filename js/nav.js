@@ -20,6 +20,7 @@ function render(st) {
   const el = fn(st.params || {});
   el.classList.add('screen', 'fade-in');
   document.getElementById('screen').replaceChildren(el);
+  document.getElementById('app').dataset.screen = st.name;
   current = el;
   window.scrollTo(0, 0);
 }
