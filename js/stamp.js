@@ -44,7 +44,7 @@ export function pageEl(tale, { developing = false, decorLayer = true } = {}) {
 }
 
 export function decoEl(d) {
-  const el = h('div.deco', { html: artSvg(d.kind, d.id) });
+  const el = h('div.deco.k-' + d.kind, { html: artSvg(d.kind, d.id) });
   placeDeco(el, d);
   return el;
 }

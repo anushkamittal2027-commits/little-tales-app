@@ -2,6 +2,8 @@
   --cream: #FAF3E8; --red: #C4472F; --plum: #3E2F3C; --apricot: #F2A66B; --kraft: #B98B5E;
   --paper: #FFFBF3; --plum-soft: #6d5b6a; --line: rgba(185, 139, 94, .35);
   --appw: min(100vw, 430px);
+  --stamp-paper: #FFFBF3; --page-bg: var(--paper); --page-ink: var(--plum); --postmark-blend: multiply;
+  --grain: url(../assets/texture/paper.png); --wood: url(../assets/texture/wood.jpg); --kraftbg: url(../assets/texture/kraft.jpg);
   --serif: 'Fraunces', Georgia, serif; --mono: 'Courier Prime', 'Courier New', monospace; --sans: 'DM Sans', system-ui, sans-serif;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -40,7 +42,7 @@ p { margin: 0; }
 /* ---------- the stamp ---------- */
 .stamp-wrap { position: relative; width: 10em; display: block; font-size: 16px; }
 .stamp-shadow { filter: drop-shadow(0 .12em .28em rgba(62, 47, 60, .28)); }
-.stamp { --r: .38em; --s: .95em; position: relative; width: 100%; padding: .9em .9em 0; background: var(--paper);
+.stamp { --r: .3em; --s: .8em; position: relative; width: 100%; padding: .9em .9em 0; background-color: var(--stamp-paper); background-image: var(--grain); background-blend-mode: multiply;
   -webkit-mask:
     linear-gradient(#000 0 0) center / calc(100% - 2 * var(--r)) calc(100% - 2 * var(--r)) no-repeat,
     radial-gradient(circle at 50% 0, #0000 var(--r), #000 calc(var(--r) + .5px)) top / var(--s) var(--r) round no-repeat,
@@ -54,7 +56,7 @@ p { margin: 0; }
     radial-gradient(circle at 0 50%, #0000 var(--r), #000 calc(var(--r) + .5px)) left top / var(--r) var(--s) no-repeat repeat,
     radial-gradient(circle at 100% 50%, #0000 var(--r), #000 calc(var(--r) + .5px)) right top / var(--r) var(--s) no-repeat repeat;
 }
-.stamp-photo { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #e8dccb; outline: .06em solid rgba(185, 139, 94, .35); }
+.stamp-photo { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #e8dccb; outline: .06em solid rgba(60, 40, 30, .25); box-shadow: inset 0 0 .5em rgba(0, 0, 0, .25); }
 .stamp-photo .photo, .stamp-photo .photo-empty { width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; -webkit-user-drag: none; }
 .photo-empty { display: grid; place-items: center; background: repeating-linear-gradient(135deg, #f1e5d2 0 .5em, #ebdcc6 .5em 1em); }
 .photo-empty span { font-family: var(--serif); font-size: 3em; color: var(--kraft); opacity: .7; }
@@ -66,7 +68,7 @@ p { margin: 0; }
 .light-dark .photo { filter: brightness(.74) contrast(1.08) saturate(.9); }
 .light-dark .light-overlay { background: linear-gradient(180deg, rgba(40, 30, 80, .38), rgba(20, 15, 50, .3)); mix-blend-mode: multiply; }
 .stamp-foot { white-space: nowrap; height: 1.9em; display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: .5em; letter-spacing: .06em; color: var(--kraft); font-weight: 700; padding: 0 .2em; }
-.postmark { position: absolute; width: 10.6em; right: -3.1em; bottom: -1.3em; transform: rotate(-9deg); mix-blend-mode: multiply; opacity: .85; pointer-events: none; }
+.postmark { position: absolute; width: 10.6em; right: -3.1em; bottom: -1.3em; transform: rotate(-9deg); mix-blend-mode: var(--postmark-blend); opacity: .85; pointer-events: none; }
 .postmark svg { display: block; width: 100%; height: auto; }
 .stamp-wrap.mini .stamp { --r: .34em; --s: .9em; }
 .stamp-wrap.mini .stamp-foot { display: none; }
@@ -84,7 +86,7 @@ p { margin: 0; }
 /* ---------- scrapbook page ---------- */
 .page-frame { display: grid; place-items: center; padding: 4px 0 8px; --chrome: 270px; }
 .decorate .page-frame, .ready .page-frame { --chrome: 380px; }
-.page { --pw: min(calc(var(--appw) - 32px), calc((100dvh - var(--chrome)) * .8)); position: relative; width: var(--pw); aspect-ratio: 4 / 5; background: var(--paper); border-radius: 6px; box-shadow: 0 1px 0 var(--line), 0 10px 28px rgba(62, 47, 60, .13); overflow: hidden; container-type: inline-size; }
+.page { --pw: min(calc(var(--appw) - 32px), calc((100dvh - var(--chrome)) * .8)); position: relative; width: var(--pw); aspect-ratio: 4 / 5; background-color: var(--page-bg); background-image: var(--grain); background-blend-mode: multiply; color: var(--page-ink); border-radius: 4px; box-shadow: 0 1px 1px rgba(40, 25, 20, .18), 0 3px 6px rgba(40, 25, 20, .12), 0 14px 30px rgba(40, 25, 20, .16); overflow: hidden; container-type: inline-size; }
 .page-stamp { position: absolute; left: 50%; top: 6.4%; transform: translateX(-50%) rotate(-2deg); }
 .page-text { position: absolute; left: 10%; right: 10%; top: 78.4%; text-align: center; }
 .page-title { font-family: var(--serif); font-weight: 600; font-size: 5.6cqw; line-height: 1.15; margin-bottom: .8cqw; }
@@ -263,3 +265,13 @@ p { margin: 0; }
 .stack-sm { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* ---------- shared depth: printed stickers, glossy tape ---------- */
+.deco.k-stickers { filter: drop-shadow(.6px 0 0 #fff) drop-shadow(-.6px 0 0 #fff) drop-shadow(0 .6px 0 #fff) drop-shadow(0 -.6px 0 #fff) drop-shadow(0 1.5px 2px rgba(30, 18, 20, .38)); }
+.deco.k-stickers svg * { stroke-width: 2.1; }
+.deco.k-stickers svg { filter: saturate(.88) contrast(.98); }
+.deco.k-tape { filter: drop-shadow(0 1px 1.2px rgba(30, 18, 20, .28)); opacity: .94; }
+.deco.k-doodles { opacity: .92; }
+.deco.selected { filter: none; }
+.page::before { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 38%, rgba(0, 0, 0, .05)); pointer-events: none; z-index: 1; }
+.decor-layer { z-index: 2; }
