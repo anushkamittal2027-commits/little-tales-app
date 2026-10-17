@@ -1,11 +1,8 @@
 // Runs once a day. Warns locked members with 7 days and 1 day left, and permanently deletes tales after 30 days locked.
-import { admin, isScheduler, json, localParts, firstTime, sendEmail } from '../_shared/common.ts';
+import { admin, isScheduler, json, localParts, firstTime, sendEmail, removeAllFiles } from '../_shared/common.ts';
 
 async function wipe(userId: string) {
-  for (const bucket of ['photos', 'voices', 'videos']) {
-    const { data: files } = await admin.storage.from(bucket).list(userId, { limit: 1000 });
-    if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${userId}/${f.name}`));
-  }
+  for (const bucket of ['photos', 'voices', 'videos']) await removeAllFiles(bucket, userId);
   await admin.from('week_videos').delete().eq('user_id', userId);
   await admin.from('tales').delete().eq('user_id', userId);
 }
@@ -27,7 +24,7 @@ Deno.serve(async (req) => {
     if (st?.status !== 'locked' || !m.email || !m.notify_email) continue;
     const left = st.hold_left as number;
     if (left !== 7 && left !== 1) continue;
-    const { date } = localParts(m.tz);
+    let date: string; try { ({ date } = localParts(m.tz)); } catch { continue; }
     if (!(await firstTime(m.id, `hold-${left}`, date))) continue;
     const w = warning(left);
     if (await sendEmail(m.email, w.subject, w.html)) out.warned++;

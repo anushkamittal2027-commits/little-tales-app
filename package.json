@@ -5,9 +5,14 @@
   "description": "Little Tales: turn little moments into memories.",
   "scripts": {
     "preview": "python3 -m http.server 8123",
-    "build:preview": "node tools/build-preview.mjs"
+    "build:preview": "node tools/build-preview.mjs",
+    "build:site": "node tools/build-site.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"
-  }
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "type": "module"
 }

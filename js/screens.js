@@ -3,10 +3,15 @@ import { store } from './store.js';
 import { state, register, go, back, toast, sheet } from './nav.js';
 import { stampEl, pageEl, LIGHTS, stampPathPx } from './stamp.js';
 import { makeEditor } from './decorate.js';
-import { Recorder, MAX_SECONDS } from './recorder.js';
+import { Recorder, MAX_SECONDS, micMessage, Dictation, dictationSupported, playChime, playParty, playStamp } from './recorder.js';
 import { LOGO, artSvg } from './art.js';
 import { seedSamples, samplePhoto, seedTrialWeek } from './sample.js';
-import { account, trialInfo, jumpTo, resetDemo, saveAccount, TRIAL_DAYS } from './account.js';
+import { logAttemptOnline, isFounder, syncState } from './sync.js';
+import { APP_VERSION } from './config.js';
+import { account, trialInfo, jumpTo, resetDemo, saveAccount, patchAccount, TRIAL_DAYS } from './account.js';
+import { prepareShare, shareTale } from './share.js';
+import { computeStreak, MILESTONES } from './streak.js';
+import { celebrateFirst, celebrateStreak } from './delight.js';
 
 // ---------- shared pieces ----------
 const topBar = (right) => h('div.topbar',
@@ -23,7 +28,7 @@ function dots(n, max = MAX_PER_DAY) {
 
 const newDraft = (date = todayStr()) => ({
   id: uid(), date, createdAt: Date.now(), photo: null, thought: '', audio: null, audioDur: 0,
-  title: '', light: 'golden', decorations: [],
+  title: '', light: 'none', decorations: [],
 });
 
 // ---------- the 3-a-day rule ----------
@@ -31,6 +36,7 @@ async function logAttempt(date) {
   const list = (await store.getMeta('attempts')) || [];
   list.push({ at: new Date().toISOString(), forDate: date });
   await store.setMeta('attempts', list);
+  logAttemptOnline(date);
 }
 // Returns true if a new tale may be started for this day.
 function canStart(date) {
@@ -66,7 +72,7 @@ register('welcome', () => {
       h('div.brand-line', h('span.logo', { html: LOGO }), 'Little Tales'),
       h('h1', 'Your camera roll forgets. ', h('span.hl.hl-lime', h('em', 'Your album won\u2019t.'))),
       h('p', 'Catch a little moment, say how it felt, and watch it become a stamp in your own scrapbook.')),
-    h('div.bottom', primary('Start my album', () => go('terms'))));
+    h('div.bottom', primary('Start my album', () => go('signin')), h('p.fine.ver', 'Little Tales ' + APP_VERSION)));
 });
 
 // =====================================================
@@ -83,7 +89,7 @@ register('calendar', () => {
   let taps = 0, tapTimer;
   const logo = h('button.brand', { 'aria-label': 'Little Tales', onClick: () => {
     taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => (taps = 0), 1200);
-    if (taps >= 5) { taps = 0; founderPanel(); }
+    if (taps >= 5) { taps = 0; if (isFounder()) founderPanel(); }
   } }, h('span.logo', { html: LOGO }), 'Little Tales');
 
   const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
@@ -102,7 +108,7 @@ register('calendar', () => {
       },
     },
       tales.length
-        ? [h('div.cover' + (state.justPosted && tales.some((t) => t.id === state.justPosted) ? '.new' : ''), stampEl(tales[0], { size: '8.2cqw', mini: true })), h('span.num', d), dots(tales.length)]
+        ? [h('div.cover' + (state.justPosted && tales.some((t) => t.id === state.justPosted) ? '.new' : ''), stampEl(tales[0], { size: '9.8cqw', mini: true })), h('span.num', d), dots(tales.length)]
         : [h('span.num', d), isToday ? dots(0) : null]);
     cells.push(cell);
   }
@@ -122,7 +128,6 @@ register('calendar', () => {
       h('div.grid', ...cells)),
     latestStrip(),
     h('div.bottom',
-      primary("Make today's stamp", startToday),
       h('p.hint', todayCount ? `${todayCount} of ${MAX_PER_DAY} kept today` : 'Today counts.')));
   // swipe left or right to change month
   let sx = 0, sy = 0;
@@ -134,25 +139,25 @@ register('calendar', () => {
   return root;
 });
 
-function trialPill(info) {
+export function trialPill(info) {
   const label = { trial: `Day ${info.day} of ${TRIAL_DAYS} \u00b7 free`, day7: 'Last free day', subscribed: 'Member' }[info.status];
   if (!label) return null;
   return h('button.pill' + (info.status === 'day7' ? '.hot' : ''), { onClick: () => go(info.status === 'subscribed' ? 'account' : 'paywall', { from: 'pill' }) }, label);
 }
-function sundayBanner(info) {
+export function sundayBanner(info) {
   if (info.status !== 'subscribed' || new Date(Date.now() + (account.dayOffset || 0) * 864e5).getDay() !== 0 || account.videos['week-' + todayStr()]) return null;
   return h('button.banner', { onClick: () => go('weekvideo', { mode: 'sunday' }) }, h('span.banner-ic', { html: icon.film }), h('span', h('b', 'Your week is ready'), h('small', 'Tap to watch this Sunday\u2019s video')), h('span.banner-go', { html: icon.chevR }));
 }
 
 function latestStrip() {
   const list = [...store.tales].sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt)).slice(0, 7);
-  if (!list.length) return null;
+  if (!list.length) return syncState.pulling ? h('div.latest', h('div.latest-title', 'Latest ', h('em', 'tales')), h('div.latest-row', ...[0, 1, 2].map(() => h('div.sk-stamp', { 'aria-hidden': 'true' })))) : null;
   const rots = [-4, 3, -2, 5, -5, 2, -3];
   return h('div.latest',
     h('div.latest-title', 'Latest ', h('em', 'tales')),
     h('div.latest-row', ...list.map((t, i) =>
       h('button.latest-card', { 'aria-label': t.title || shortDate(t.date), style: { '--rot': rots[i % rots.length] + 'deg' }, onClick: () => go('tale', { id: t.id }) },
-        stampEl(t, { size: '6.2px', mini: false, postmark: false })))));
+        stampEl(t, { size: '8.6px', mini: false, postmark: false })))));
 }
 
 export function startToday() {
@@ -241,7 +246,9 @@ register('camera', (p) => {
   const edit = p.editId ? store.byId(p.editId) : null;
   let stream, facing = 'environment', demoRaf = 0;
   const mkVideo = (cls) => h('video.' + cls, { autoplay: true, playsinline: true, muted: true });
-  const bgVideo = mkVideo('cam-bg'), video = mkVideo('cam-video');
+  const bgCanvas = h('canvas.cam-bg', { 'aria-hidden': 'true', width: 48, height: 64 }), video = mkVideo('cam-src');
+  const view = h('canvas.cam-view', { 'aria-hidden': 'true' });
+  let drawing = 0;
   const msg = h('div.cam-msg', { hidden: true });
   const flash = h('div.cam-flash');
   const fallback = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, onChange: async () => {
@@ -256,17 +263,17 @@ register('camera', (p) => {
     stop();
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 1920 } }, audio: false });
-      video.srcObject = stream; bgVideo.srcObject = stream; msg.hidden = true;
+      video.srcObject = stream; msg.hidden = true; if (!drawing) paint();
     } catch {
       if (window.__DEMO_CAMERA) {
-        try { const ds = demoStream(); stream = ds; video.srcObject = ds; bgVideo.srcObject = ds; msg.hidden = true; hint.textContent = 'Demo camera for this preview. Your real camera works on your own address.'; return; } catch {}
+        try { const ds = demoStream(); stream = ds; video.srcObject = ds; msg.hidden = true; if (!drawing) paint(); hint.textContent = 'Demo camera for this preview. Your real camera works on your own address.'; return; } catch {}
       }
       msg.hidden = false;
       msg.replaceChildren(h('p', 'We couldn\u2019t open the camera here. You can use your phone\u2019s own camera instead.'),
         h('button.btn-primary', { onClick: () => fallback.click() }, 'Open phone camera'));
     }
   }
-  const stop = () => { cancelAnimationFrame(demoRaf); stream?.getTracks().forEach((t) => t.stop()); stream = null; };
+  const stop = () => { cancelAnimationFrame(demoRaf); try { video.cancelVideoFrameCallback ? video.cancelVideoFrameCallback(drawing) : cancelAnimationFrame(drawing); } catch {} drawing = 0; stream?.getTracks().forEach((t) => t.stop()); stream = null; };
   function demoStream() {
     const c = document.createElement('canvas'); c.width = 720; c.height = 540;
     const g = c.getContext('2d'), img = new Image(); img.src = samplePhoto('misty-hills');
@@ -283,12 +290,28 @@ register('camera', (p) => {
     draw();
     return c.captureStream(30);
   }
-  function snap() {
-    if (!video.videoWidth) return;
-    // crop the live view to exactly what shows through the stamp window
+  // The part of the camera frame that shows through the stamp window. The preview and the saved photo both use exactly this crop,
+  // and both come from the raw camera frame, so what you see is what you get (the browser's own video element is never shown).
+  function cropBox() {
     const aspect = PLATE.hw / PLATE.hh, vw = video.videoWidth, vh = video.videoHeight;
     let sw = vw, sh = vw / aspect; if (sh > vh) { sh = vh; sw = vh * aspect; }
-    const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+    return { sx: (vw - sw) / 2, sy: (vh - sh) / 2, sw, sh };
+  }
+  function paint() {
+    if (video.videoWidth && video.readyState >= 2) {
+      const { sx, sy, sw, sh } = cropBox();
+      const w = Math.max(2, Math.round(view.clientWidth * Math.min(2, devicePixelRatio || 1))), hgt = Math.round(w * sh / sw);
+      if (view.width !== w || view.height !== hgt) { view.width = w; view.height = hgt; }
+      view.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, view.width, view.height);
+      // the soft colour wash behind the stamp comes from the same raw frame, so nothing on screen is flipped
+      const bw = Math.min(video.videoWidth, video.videoHeight * 0.75), bh = bw / 0.75;
+      bgCanvas.getContext('2d').drawImage(video, (video.videoWidth - bw) / 2, (video.videoHeight - bh) / 2, bw, bh, 0, 0, bgCanvas.width, bgCanvas.height);
+    }
+    drawing = (video.requestVideoFrameCallback ? video.requestVideoFrameCallback(paint) : requestAnimationFrame(paint));
+  }
+  function snap() {
+    if (!video.videoWidth) return;
+    const { sx, sy, sw, sh } = cropBox();
     const c = document.createElement('canvas'); const k = Math.min(1, 1280 / Math.max(sw, sh));
     c.width = Math.round(sw * k); c.height = Math.round(sh * k);
     c.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
@@ -300,10 +323,10 @@ register('camera', (p) => {
   open();
   const pct = (v, t) => (v / t * 100) + '%';
   const plate = h('div.plate',
-    h('div.plate-view', { style: { left: pct(PLATE.hx, PLATE.w), top: pct(PLATE.hy, PLATE.h), width: pct(PLATE.hw, PLATE.w), height: pct(PLATE.hh, PLATE.h) } }, video),
+    h('div.plate-view', { style: { left: pct(PLATE.hx, PLATE.w), top: pct(PLATE.hy, PLATE.h), width: pct(PLATE.hw, PLATE.w), height: pct(PLATE.hh, PLATE.h) } }, view, video),
     h('div.plate-art', { html: plateSvg() }));
   const el = h('div.camera',
-    bgVideo, h('div.cam-wash'),
+    bgCanvas, h('div.cam-wash'),
     h('button.cam-close', { 'aria-label': 'Close camera', onClick: () => back(), html: icon.close }),
     h('div.cam-title', 'Frame your ', h('em', 'stamp')),
     h('div.plate-wrap', plate),
@@ -355,12 +378,16 @@ register('thought', (p) => {
   if (!t || (!edit && !t.photo)) return redirectHome();
 
   const voiceArea = h('div.voice-area');
-  let rec, holding = false, recording = false, el;
+  let rec, recording = false, el;
 
   const ta = h('textarea.thought-input', { rows: 3, maxlength: MAX_THOUGHT, placeholder: 'Or write a line… (up to 140 characters)', 'aria-label': 'Your thought' });
   ta.value = t.thought || '';
   const count = h('span.count', `${ta.value.length}/${MAX_THOUGHT}`);
   ta.addEventListener('input', () => { t.thought = ta.value; count.textContent = `${ta.value.length}/${MAX_THOUGHT}`; });
+
+  const status = h('p.mic-status', { role: 'status', 'aria-live': 'polite' });
+  const say = (msg, bad = false) => { status.textContent = msg || ''; status.classList.toggle('bad', !!bad); };
+  let dict = null, dictating = false;
 
   function renderVoice(note) {
     voiceArea.replaceChildren();
@@ -369,35 +396,63 @@ register('thought', (p) => {
       return;
     }
     const wave = h('div.wave', ...Array.from({ length: 24 }, () => h('i')));
-    const label = h('div.mic-label', note || (recording ? '0:00' : 'Hold to record'));
-    const mic = h('button.mic' + (recording ? '.rec' : ''), { 'aria-label': 'Hold to record a voice note', html: icon.mic });
-    mic.addEventListener('contextmenu', (e) => e.preventDefault());
-    mic.addEventListener('pointerdown', async (e) => {
-      e.preventDefault(); mic.setPointerCapture(e.pointerId);
-      holding = true;
-      rec = new Recorder((lvl, secs) => {
-        wave.querySelectorAll('i').forEach((b, i) => { b.style.height = Math.max(8, Math.min(100, lvl * 130 * (0.5 + Math.abs(Math.sin(i * 1.3 + secs * 6))))) + '%'; });
-        label.textContent = fmtDur(secs);
-        if (secs >= MAX_SECONDS) finish();
-      });
-      try { await rec.start(); }
-      catch { holding = false; renderVoice('Microphone is off. You can type instead.'); return; }
-      if (!holding) { rec.cancel(); renderVoice('Microphone is ready. Hold to record.'); return; }
-      recording = true; mic.classList.add('rec'); wave.classList.add('live');
-    });
-    const finish = async () => {
-      holding = false;
+    const label = h('div.mic-label', note || (recording ? 'Recording\u2026 tap to stop' : 'Tap to record a voice note'));
+    const mic = h('button.mic' + (recording ? '.rec' : ''), { 'aria-label': recording ? 'Stop recording' : 'Record a voice note', html: icon.mic });
+    if (recording) wave.classList.add('live');
+    const stopRec = async () => {
       if (!recording) return;
       recording = false;
       const r = await rec.stop();
-      if (!r || r.duration < 0.7) { renderVoice('Hold a little longer'); return; }
-      t.audio = r.blob; t.audioDur = r.duration; renderVoice();
+      if (!r || r.duration < 0.7) { say('That was very short. Tap and speak a little longer.', true); renderVoice(); return; }
+      say(''); t.audio = r.blob; t.audioDur = r.duration; renderVoice();
     };
-    mic.addEventListener('pointerup', finish);
-    mic.addEventListener('pointercancel', finish);
+    const startRec = async () => {
+      if (dictating) { dict?.stop(); }
+      say('Starting the microphone\u2026');
+      rec = new Recorder((lvl, secs) => {
+        wave.querySelectorAll('i').forEach((b, i) => { b.style.height = Math.max(8, Math.min(100, lvl * 130 * (0.5 + Math.abs(Math.sin(i * 1.3 + secs * 6))))) + '%'; });
+        label.textContent = fmtDur(secs) + ' \u00b7 tap to stop';
+        if (secs >= MAX_SECONDS) stopRec();
+      });
+      try { await rec.start(); }
+      catch (e) { say(micMessage(e), true); renderVoice(); return; }
+      recording = true; say('Recording. Tap the mic again when you are done.'); renderVoice();
+      // keep the live meter going on the freshly drawn controls
+      voiceArea.querySelector('.wave')?.classList.add('live');
+      rec.onLevel = (lvl, secs) => {
+        const w = voiceArea.querySelectorAll('.wave i'); w.forEach((b, i) => { b.style.height = Math.max(8, Math.min(100, lvl * 130 * (0.5 + Math.abs(Math.sin(i * 1.3 + secs * 6))))) + '%'; });
+        const l = voiceArea.querySelector('.mic-label'); if (l) l.textContent = fmtDur(secs) + ' \u00b7 tap to stop';
+        if (secs >= MAX_SECONDS) stopRec();
+      };
+    };
+    mic.addEventListener('click', () => (recording ? stopRec() : startRec()));
     voiceArea.append(h('div.mic-wrap', wave, mic, label));
   }
   renderVoice();
+
+  // Speak instead of typing: the words appear in the box and stay editable.
+  const dictBtn = h('button.dictate', { type: 'button' }, h('span.btn-ic', { html: icon.mic }), h('span.dl', 'Speak instead of typing'));
+  const setDict = (on) => { dictating = on; dictBtn.classList.toggle('on', on); dictBtn.querySelector('.dl').textContent = on ? 'Listening\u2026 tap to stop' : 'Speak instead of typing'; };
+  // Reliable fallback: every phone keyboard has its own microphone key that types into any text box. If in-page voice typing is unavailable or
+  // fails, we put the cursor in the box and say exactly where that key is.
+  const keyboardFallback = (why) => {
+    ta.focus();
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    say((why ? why + ' ' : '') + (ios ? 'Tap the microphone key at the bottom right of your keyboard and speak.' : 'Tap the microphone icon on your keyboard and speak.'), !!why);
+  };
+  dictBtn.addEventListener('click', () => {
+    if (dictating) { dict?.stop(); return; }
+    if (recording) { say('Finish your voice note first, then you can dictate.', true); return; }
+    if (!dictationSupported()) { keyboardFallback(''); return; }
+    say('');
+    dict = new Dictation({
+      max: MAX_THOUGHT,
+      onText: (txt) => { ta.value = txt; t.thought = txt; count.textContent = `${txt.length}/${MAX_THOUGHT}`; },
+      onState: (st) => { setDict(st === 'listening'); if (st === 'listening') { say('Listening. Speak now, then tap again to stop.'); } else if (!dict?.failed) say(ta.value ? 'Done. You can edit the words above.' : ''); },
+      onError: (ev) => { setDict(false); keyboardFallback(micMessage(ev)); },
+    });
+    dict.start(ta.value);
+  });
 
   const heroTale = edit ? t : state.draft;
   el = h('div.thought',
@@ -405,17 +460,17 @@ register('thought', (p) => {
     h('div.thought-hero', stampEl(heroTale, { size: '10px', postmark: false })),
     h('h1', 'What were you thinking?'),
     voiceArea,
-    h('div.text-wrap', ta, count),
+    h('div.text-wrap', ta, count), dictBtn, status,
     h('div.bottom', primary(edit ? 'Save changes' : 'Make it a stamp', async () => {
       if (recording) return;
       if (edit) { edit.thought = t.thought; edit.audio = t.audio; edit.audioDur = t.audioDur; await store.save(edit); toast('Saved'); back('calendar'); }
       else go('frame');
     })));
-  el._cleanup = () => { holding = false; if (recording) rec?.cancel(); };
+  el._cleanup = () => { if (recording) rec?.cancel(); try { dict?.stop(); } catch {} };
   return el;
 });
 
-const redirectHome = () => { queueMicrotask(() => go('calendar', {}, { replace: true })); return h('div'); };
+const redirectHome = () => { queueMicrotask(() => go('home', {}, { replace: true })); return h('div'); };
 
 // =====================================================
 // FRAME IT (also used to edit the stamp)
@@ -430,7 +485,7 @@ register('frame', (p) => {
   draw();
   const chips = h('div.chips');
   const drawChips = () => chips.replaceChildren(...LIGHTS.map((l) =>
-    h('button.chip.lt-' + l.id + (t.light === l.id ? '.on' : ''), { onClick: () => { t.light = l.id; draw(); drawChips(); } }, l.label)));
+    h('button.chip.lt-' + l.id + (t.light === l.id ? '.on' : ''), { onClick: () => { t.light = (t.light === l.id && l.id !== 'none') ? 'none' : l.id; draw(); drawChips(); } }, l.label)));
   drawChips();
   const title = h('input.title-input', { type: 'text', maxlength: 32, placeholder: 'Give it a little title', 'aria-label': 'Title' });
   title.value = t.title || '';
@@ -444,7 +499,7 @@ register('frame', (p) => {
     topBar(),
     heroBox,
     h('div.frame-controls',
-      h('div.label', 'Pick a light'), chips,
+      h('div.label', 'Pick a light (or keep it original)'), chips,
       h('div.label', 'Title (optional)'), title),
     h('div.bottom.stack', primary(edit ? 'Save' : 'Stamp it', next), edit ? null : linkBtn('Skip for now', next)));
 });
@@ -456,6 +511,7 @@ register('stamping', () => {
   const t = state.draft;
   if (!t || !t.photo) return redirectHome();
   const stamp = stampEl(t, { size: '23px', developing: true });
+  if (account.settings.sound !== false) setTimeout(playStamp, 700);
   const el = h('div.stamping', h('div.stamping-stage', stamp), h('p.stamping-text', 'Stamping…'));
   let done = false;
   const next = () => { if (!done) { done = true; go('decorate', {}, { replace: true }); } };
@@ -500,6 +556,28 @@ register('decorate', (p) => {
 // =====================================================
 // TALE READY (preview + post)
 // =====================================================
+// After a post: a first-tale celebration, a streak milestone, or just a quiet toast. Never allowed to break posting.
+async function celebrate(saved) {
+  const loud = account.settings.sound !== false;
+  try {
+    const real = store.tales.filter((t) => !t.sample);
+    if (!account.celebratedFirst && real.length === 1) {
+      await patchAccount({ celebratedFirst: true });
+      if (loud) playParty();
+      setTimeout(() => celebrateFirst(saved), 350); return;
+    }
+    if (!account.celebratedFirst) await patchAccount({ celebratedFirst: true });
+    const { count } = computeStreak(real, todayStr());
+    if (MILESTONES.includes(count) && !(account.milestones || []).includes(count)) {
+      await patchAccount({ milestones: [...(account.milestones || []), count] });
+      if (loud) playParty();
+      setTimeout(() => celebrateStreak(count, saved), 350); return;
+    }
+  } catch (e) { console.warn('Celebration skipped', e); }
+  if (loud) playChime();
+  toast('Posted to your calendar');
+}
+
 register('ready', () => {
   const t = state.draft;
   if (!t || !t.photo) return redirectHome();
@@ -512,13 +590,13 @@ register('ready', () => {
         if (store.count(t.date) >= MAX_PER_DAY) { canStart(t.date); return; }
         const saved = { ...t, createdAt: Date.now() };
         btn.disabled = true;
-        try { saved.thumb = await makeThumb(saved.photo).catch(() => undefined); await store.save(saved); buzz(18); }
+        try { saved.thumb = await makeThumb(saved.photo).catch(() => undefined); await store.save(saved); buzz([18, 50, 18]); }
         catch (e) { btn.disabled = false; console.error(e); toast('We couldn\u2019t save this tale. Your phone may be out of space.'); return; }
         state.justPosted = saved.id;
         const d = parseDate(saved.date); state.month = { y: d.getFullYear(), m: d.getMonth() };
         state.draft = null;
         go('calendar', {}, { replace: true });
-        toast('Posted to your calendar');
+        celebrate(saved);
       }),
       linkBtn('Back to decorating', () => back())));
 });
@@ -530,13 +608,17 @@ register('day', (p) => {
   const tales = store.forDate(p.date);
   if (!tales.length) return redirectHome();
   const isToday = p.date === todayStr();
+  const n = tales.length;
+  // every tale of the day is shown together, as big as the screen allows (several tales overlap a little, like a pile of stamps)
+  const em = n === 1 ? 'calc(min(100vw, 460px) * .07)' : 'calc((min(100vw, 460px) - 4px) / 20.4)';
+  const row = h('div.day-row.n' + n, ...tales.map((t) =>
+    h('button.day-card', { onClick: () => go('tale', { id: t.id }) },
+      stampEl(t, { size: em }),
+      t.title ? h('div.day-title', t.title) : null)));
   return h('div.day',
     topBar(),
-    h('div.day-head', h('div.day-kicker', isToday ? 'Today' : 'A day to remember'), h('h1', longDate(p.date)), dots(tales.length)),
-    h('div.day-row.n' + tales.length, ...tales.map((t) =>
-      h('button.day-card', { onClick: () => go('tale', { id: t.id }) },
-        stampEl(t, { size: tales.length === 1 ? '17px' : tales.length === 2 ? '11.5px' : '8.2px' }),
-        t.title ? h('div.day-title', t.title) : null))),
+    h('div.day-head', h('div.day-kicker', isToday ? 'Today' : 'A day to remember'), h('h1', longDate(p.date)), dots(n)),
+    row,
     tales.length < MAX_PER_DAY && isToday
       ? h('div.bottom', primary('Add another tale', () => { if (!canStart(p.date)) return; state.draft = newDraft(p.date); go('moment'); }))
       : null);
@@ -554,7 +636,15 @@ register('tale', (p) => {
       h('div.topbar-right', h('button.icon-btn', { 'aria-label': 'More', onClick: () => taleMenu(t), html: icon.more }))),
     h('div.page-frame', pageEl(t)),
     pill ? h('div.tale-voice', pill) : null,
-    h('div.bottom', h('button.btn-secondary', { onClick: () => go('decorate', { id: t.id }) }, 'Decorate')));
+    h('div.bottom.stack',
+      h('button.btn-primary', { onClick: async (ev) => {
+        const b = ev.currentTarget; if (b.disabled) return; b.disabled = true; b.classList.add('busy');
+        try { if (await shareTale(t) === 'saved') toast('Saved as a picture'); }
+        catch (e) { console.warn(e); toast('We couldn\u2019t make the picture. Please try again.'); }
+        b.disabled = false; b.classList.remove('busy');
+      } }, h('span.btn-ic', { html: icon.share }), 'Share as a picture'),
+      h('button.btn-secondary', { onClick: () => go('decorate', { id: t.id }) }, 'Decorate')));
+  setTimeout(() => { if (el.isConnected) prepareShare(t).catch(() => {}); }, 600);   // get the picture ready so sharing opens instantly
   el._cleanup = () => pill?._stop();
   return el;
 });
@@ -584,7 +674,7 @@ function confirmDelete(t) {
 // =====================================================
 // FOUNDER PANEL (hidden: tap the logo five times)
 // =====================================================
-async function founderPanel() {
+export async function founderPanel() {
   const attempts = (await store.getMeta('attempts')) || [];
   const info = trialInfo();
   const jump = (label, state2) => h('button.chip-btn', { onClick: async () => {

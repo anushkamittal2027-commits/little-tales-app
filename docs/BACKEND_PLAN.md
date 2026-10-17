@@ -25,8 +25,8 @@ The database file has been checked for correct syntax. It has not been run on a 
 
 ## What I need from you, in order
 
-### 1. GitHub (blocks everything else)
-Connect the account that owns your repo at https://claude.ai/connect-github, install the Claude GitHub App on it, and start a new session with the repo selected.
+### 1. GitHub: not needed for building
+The app is built in this session. To keep your own copy on GitHub, copy the project folder into your GitHub Desktop repo and push (see PROGRESS.md). Cloudflare Pages can later build straight from that repo.
 
 ### 2. Supabase (login, saving, reminders). Free plan. Use hellolittletales@gmail.com.
 1. Go to https://supabase.com and sign up. Create a new project. Pick the region **Mumbai (ap-south-1)** so it is fast in India. Save the database password in your own password manager.
@@ -43,7 +43,7 @@ Connect the account that owns your repo at https://claude.ai/connect-github, ins
 Sign up at https://resend.com, create an API key, and store it as a Supabase secret named `RESEND_API_KEY` (I will show you the screen). You will need your own domain before emails can come from your name; until then Resend can send test emails to yourself only.
 
 ### 5. Hosting (Cloudflare Pages). Free.
-Sign up at https://dash.cloudflare.com/sign-up. After GitHub is connected, I will give you the three clicks to connect the repo. Build command: none. Output folder: the repo root.
+Sign up at https://dash.cloudflare.com/sign-up. After GitHub is connected, Connect your GitHub repo in Cloudflare Pages. **Build command: `npm run build:site`. Build output directory: `dist/site`.** (Details in `docs/FOUNDER_TESTING.md`.)
 
 ### 6. Reminders (phone notifications)
 I will generate a pair of reminder keys. The public one goes into the app. The private one goes into Supabase as a secret (`VAPID_PRIVATE_KEY`), never in chat.

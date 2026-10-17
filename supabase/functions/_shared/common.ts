@@ -7,7 +7,7 @@ export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('S
 export const isScheduler = (req: Request) => req.headers.get('Authorization') === `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
 
 export const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' } });
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } });
 
 // A member's local date (YYYY-MM-DD) and hour, from their own time zone.
 export function localParts(tz: string, at = new Date()) {
@@ -27,7 +27,17 @@ export async function sendEmail(to: string, subject: string, html: string) {
   if (!key) return false;
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: Deno.env.get('MAIL_FROM') ?? 'Little Tales <hello@littletales.example>', to, subject, html }),
+    body: JSON.stringify({ from: Deno.env.get('MAIL_FROM') ?? 'Little Tales <hello@littletales.me>', to, subject, html }),
   });
   return r.ok;
+}
+
+// Remove every file a member has in one storage bucket, however many there are (the list call returns at most 1000 at a time).
+export async function removeAllFiles(bucket: string, userId: string) {
+  for (let round = 0; round < 100; round++) {
+    const { data: files } = await admin.storage.from(bucket).list(userId, { limit: 1000 });
+    if (!files?.length) return;
+    await admin.storage.from(bucket).remove(files.map((f: { name: string }) => `${userId}/${f.name}`));
+    if (files.length < 1000) return;
+  }
 }

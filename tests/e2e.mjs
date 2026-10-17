@@ -14,26 +14,34 @@ const shot = async (n, w = 450) => { await p.waitForTimeout(w); await p.screensh
 const lt = (fn, ...a) => p.evaluate(([f, args]) => window.__lt[f](...args), [fn, a]);
 const status = () => p.evaluate(() => window.__lt.trialInfo().status);
 
-await p.goto(URL); await p.waitForTimeout(1200);
+await p.addInitScript(() => { window.__DEMO_AUTH = true; }); await p.goto(URL); await p.waitForTimeout(1200);
 // ---- first run
 ok('starts on welcome', await p.locator('.welcome').count() === 1);
 await p.click('text=Start my album'); await p.waitForTimeout(500);
+ok('sign-in screen shown', await p.locator('.signin').count() === 1);
+await p.fill('.signin input[type=email]', 'me@example.com'); await p.click('text=Email me a code'); await p.waitForTimeout(500);
+ok('code screen shown', await p.locator('.code-input').count() >= 1);
+await p.fill('.code-input', '00000000'); await p.waitForTimeout(900);
+ok('wrong code stays on code screen', await p.locator('.code-input').count() >= 1 && await p.locator('.terms').count() === 0);
+await p.fill('.code-input', '12345678'); await p.waitForTimeout(1200);
 ok('terms screen shown', await p.locator('.terms').count() === 1);
 await shot('01-terms');
 ok('start button disabled until ticked', await p.locator('.terms .btn-primary').isDisabled());
 await p.click('.check'); await p.waitForTimeout(250);
 ok('start button enabled after tick', !(await p.locator('.terms .btn-primary').isDisabled()));
 await p.click('text=Start my free week'); await p.waitForTimeout(500);
-ok('install screen shown', await p.locator('.install').count() === 1);
-await shot('02-install');
-await p.click('text=Turn on gentle nudges'); await p.waitForTimeout(500);
-await p.click('text=Continue'); await p.waitForTimeout(600);
-ok('calendar after onboarding', await p.locator('.calendar').count() === 1);
+ok('welcome tour shown, no install screen', await p.locator('.intro').count() === 1 && await p.locator('.install').count() === 0);
+await shot('02-intro');
+await p.click('text=Next'); await p.click('text=Next'); await p.click('text=Let’s begin'); await p.waitForTimeout(600);
+ok('home after the tour', await p.locator('.home').count() === 1 && await p.locator('#tabbar').count() === 1);
+await shot('02-home');
+await p.click('#tabbar >> text=Calendar'); await p.waitForTimeout(500);
+ok('calendar from the tab bar', await p.locator('.calendar').count() === 1);
 ok('status is trial', (await status()) === 'trial');
 ok('trial pill says Day 1 of 7', (await p.locator('.pill').innerText()).includes('Day 1 of 7'));
 await shot('03-calendar-day1');
 await p.reload(); await p.waitForTimeout(1200);
-ok('reload keeps you in (no welcome again)', await p.locator('.calendar').count() === 1);
+ok('reload keeps you in (no welcome again)', await p.locator('.home').count() === 1);
 
 // ---- day 7 video + paywall + checkout
 await lt('jumpTo', 'day7');

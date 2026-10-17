@@ -21,11 +21,16 @@ Deno.serve(async (req) => {
   const periodEnd = sub.current_end ? new Date(sub.current_end * 1000).toISOString() : null;
   const base = { user_id: userId, plan, razorpay_subscription_id: sub.id, razorpay_customer_id: sub.customer_id ?? null, current_period_end: periodEnd, updated_at: new Date().toISOString() };
   if (['subscription.activated', 'subscription.charged', 'subscription.resumed'].includes(evt.event)) {
-    await admin.from('subscriptions').upsert({ ...base, status: 'active' });
-  } else if (['subscription.cancelled', 'subscription.completed', 'subscription.expired'].includes(evt.event)) {
+    await admin.from('subscriptions').upsert({ ...base, status: 'active' });          // the newest paid subscription is the current one
+    return json({ ok: true });
+  }
+  // Anything else is only about the subscription we currently have on file. A late message about an OLDER subscription must not lock a paying member.
+  const { data: current } = await admin.from('subscriptions').select('razorpay_subscription_id').eq('user_id', userId).maybeSingle();
+  if (current?.razorpay_subscription_id && current.razorpay_subscription_id !== sub.id) return json({ ok: true, ignored: 'older subscription' });
+  if (['subscription.cancelled', 'subscription.completed', 'subscription.expired'].includes(evt.event)) {
     await admin.from('subscriptions').upsert({ ...base, status: 'cancelled' });
-  } else if (['subscription.halted', 'subscription.pending'].includes(evt.event)) {
-    await admin.from('subscriptions').upsert({ ...base, status: 'past_due' });
+  } else if (evt.event === 'subscription.halted') {
+    await admin.from('subscriptions').upsert({ ...base, status: 'past_due' });         // Razorpay has given up collecting. ("pending" only means it is still retrying, so we change nothing.)
   }
   return json({ ok: true });
 });

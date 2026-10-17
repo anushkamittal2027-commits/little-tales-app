@@ -1,11 +1,16 @@
 // Trial, video, paywall, checkout, locked screen, account and onboarding.
 import { h, icon, todayStr, addDays, longDate, shortDate } from './util.js';
 import { store } from './store.js';
-import { state, register, go, back, toast, sheet } from './nav.js';
+import { state, register, go, back, toast, sheet, currentName } from './nav.js';
 import { stampEl } from './stamp.js';
 import { LOGO } from './art.js';
 import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, cancelSubscription, purgeAllTales, resetDemo, PLANS, TRIAL_DAYS, HOLD_DAYS } from './account.js';
 import { subscribePush } from './push.js';
+import { deleteAccountOnline, pendingCount } from './sync.js';
+import { payOnline, cancelOnline } from './pay.js';
+import { addToHomeScreen, canOfferInstall } from './install.js';
+import { CODE_LENGTH } from './config.js';
+import { auth, signInWithGoogle, sendEmailCode, verifyEmailCode, signOut, DEMO_CODE } from './auth.js';
 import { makeVideo, pickTales, videoKind, videoTitle, canMakeVideo } from './video.js';
 import { makeZip, dataUrlToBytes, textBytes, saveBlob } from './zip.js';
 
@@ -17,11 +22,82 @@ const rupees = (n) => 'Rs ' + (Number.isInteger(n) ? n : n.toFixed(2));
 const withGst = (n) => (account.settings.gst ? Math.round(n * 1.18 * 100) / 100 : n);
 
 // =====================================================
+// SIGN IN
+// =====================================================
+const GOOGLE_G = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
+const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim());
+// After signing in: new members read the free-week page; returning members go to their calendar.
+const afterSignIn = () => go(trialInfo().status === 'new' ? 'terms' : 'home', {}, { replace: true });
+register('signin', (p) => {
+  const email = h('input', { type: 'email', inputmode: 'email', autocomplete: 'email', placeholder: 'you@example.com', 'aria-label': 'Email address' });
+  const err = h('p.pay-err', p?.error || auth.error || '');
+  let sending = false;
+  const go2 = async () => {
+    if (sending) return;
+    const v = email.value.trim();
+    if (!validEmail(v)) { err.textContent = 'Enter an email like you@example.com'; return; }
+    err.textContent = ''; sending = true; mail.disabled = true; mail.textContent = 'Sending\u2026';
+    // Go to the code screen right away; the email is sent while the person is already looking at where to type the code.
+    const pending = sendEmailCode(v);
+    pending.catch(() => {});
+    go('code', { email: v, pending });
+    sending = false; mail.disabled = false; mail.textContent = 'Email me a code';
+  };
+  email.addEventListener('keydown', (e) => { if (e.key === 'Enter') go2(); });
+  const mail = primary('Email me a code', go2);
+  const google = h('button.google', { onClick: async () => {
+    try { const u = await signInWithGoogle(); if (u) afterSignIn(); }
+    catch (e) { err.textContent = e.message || 'Google sign-in didn\u2019t work. Try the email code.'; }
+  } }, h('span.g-ic', { html: GOOGLE_G }), 'Continue with Google');
+  return h('div.signin',
+    h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back('welcome'), html: icon.back })),
+    h('div.signin-hero', h('span.logo.big', { html: LOGO }), h('h1', 'Welcome ', h('em', 'in')), h('p.lead', 'Sign in to keep your tales safe and see them on any phone.')),
+    isStandalone() && /iphone|ipad|ipod/i.test(navigator.userAgent) ? h('p.demo-note', h('b', 'Tip.'), ' On iPhone the email code keeps you inside this app and is the most reliable here. You only need to sign in once.') : null,
+    h('div.signin-card.glass-card', google,
+      h('div.or', h('span', 'or')),
+      h('label', 'Email', email), err, mail),
+    auth.provider === 'demo' ? h('p.demo-note', h('b', 'Demo mode.'), ` Real sign-in switches on when the server is connected. Any email works, and the code is ${DEMO_CODE}.`) : null,
+    auth.provider === 'supabase' ? h('details.diag', h('summary', 'Trouble signing in? Show details'), h('pre', ['Version: 2 (home screen)', ...auth.diag].join('\n'))) : null,
+    h('p.fine', 'We only use your email to sign you in and send important account messages. By continuing you agree to the ', h('a', { href: 'terms.html', target: '_blank', rel: 'noopener' }, 'Terms'), ' and ', h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener' }, 'Privacy Policy'), '.'));
+});
+register('code', (p) => {
+  const email = p.email || '';
+  const note = h('p.sending-note', p.pending ? 'Sending your code\u2026' : '');
+  p.pending?.then(() => { note.textContent = 'Code sent. It usually arrives within a few seconds (check Spam too).'; })
+    
+    .catch((e) => { if (currentName() !== 'code') return; go('signin', { error: (e && e.message) || 'We couldn\u2019t send the code. Please try again.' }, { replace: true }); });
+  const input = h('input.code-input', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: CODE_LENGTH, placeholder: '\u2022'.repeat(CODE_LENGTH), 'aria-label': `${CODE_LENGTH} digit code from your email` });
+  const err = h('p.pay-err');
+  const btn = primary('Continue', async () => {
+    const c = input.value.replace(/\D/g, '');
+    if (c.length !== CODE_LENGTH) { err.textContent = `Enter the ${CODE_LENGTH} digit code from your email`; return; }
+    btn.disabled = true; btn.textContent = 'Checking\u2026'; err.textContent = '';
+    try { await verifyEmailCode(email, c); afterSignIn(); }
+    catch (e) { err.textContent = e.message || 'That code didn\u2019t work.'; btn.disabled = false; btn.textContent = 'Continue'; input.select(); }
+  });
+  input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, CODE_LENGTH); if (input.value.length === CODE_LENGTH && !btn.disabled) btn.click(); });
+  let left = 30; const resend = h('button.link', { disabled: true }, 'Resend in 30s');
+  const tick = setInterval(() => { left--; if (left <= 0) { clearInterval(tick); resend.disabled = false; resend.textContent = 'Send a new code'; } else resend.textContent = `Resend in ${left}s`; }, 1000);
+  let resending = false;
+  resend.addEventListener('click', async () => { if (resending) return; resending = true; setTimeout(() => { resending = false; }, 30000); try { await sendEmailCode(email); toast('A new code is on its way'); } catch { toast('Couldn\u2019t send a code'); } });
+  const el = h('div.signin',
+    h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back('signin'), html: icon.back })),
+    h('div.signin-hero', h('div.mail-ic', { html: icon.mail }), h('h1', 'Check your ', h('em', 'email')), h('p.lead', `We sent a ${CODE_LENGTH} digit code to `, h('b', email), '.')),
+    h('div.signin-card.glass-card', input, err),
+    note,
+    auth.provider === 'demo' ? h('p.demo-note', h('b', 'Demo mode.'), ` The code is ${DEMO_CODE}.`) : null,
+    h('div.bottom', btn, resend));
+  el._cleanup = () => clearInterval(tick);
+  setTimeout(() => input.focus(), 350);
+  return el;
+});
+
+// =====================================================
 // HOW YOUR FREE WEEK WORKS (with consent)
 // =====================================================
 register('terms', () => {
   let ticked = false;
-  const btn = primary('Start my free week', async () => { if (!ticked) return; await startTrial(); go('install', {}, { replace: true }); }, { disabled: true });
+  const btn = primary('Start my free week', async () => { if (!ticked) return; await startTrial(); go('intro', {}, { replace: true }); }, { disabled: true });
   const box = h('button.check', { role: 'checkbox', 'aria-checked': 'false', onClick: () => {
     ticked = !ticked; box.setAttribute('aria-checked', String(ticked)); box.classList.toggle('on', ticked); btn.disabled = !ticked;
   } }, h('span.box', { html: icon.check }),
@@ -40,33 +116,19 @@ register('terms', () => {
 });
 
 // =====================================================
-// ONBOARDING: Home Screen + gentle nudges
+// Gentle nudges (browser notifications). Optional, asked for from Account.
 // =====================================================
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone;
-register('install', () => {
-  const ios = isIOS();
-  const notifyBtn = h('button.btn-secondary', { onClick: async () => {
-    if (!('Notification' in window)) { toast('Reminders aren’t available in this browser'); return; }
-    if (ios && !isStandalone()) { toast('Add Little Tales to your Home Screen first'); return; }
-    let p = 'denied'; try { p = await Notification.requestPermission(); } catch {}
-    await patchAccount({ notify: { granted: p === 'granted', asked: true } });
-    if (p === 'granted') subscribePush();
-    notifyBtn.textContent = p === 'granted' ? 'Reminders are on' : 'Reminders are off'; notifyBtn.classList.toggle('done', p === 'granted');
-    toast(p === 'granted' ? 'Gentle nudges are on' : 'No problem. You can turn them on later in Account');
-  } }, h('span.btn-ic', { html: icon.bell }), account.notify.granted ? 'Reminders are on' : 'Turn on gentle nudges');
-  const steps = ios
-    ? [['Tap', 'the Share button', icon.share], ['Choose', '“Add to Home Screen”', null], ['Tap', '“Add”', null]]
-    : [['Tap', 'the ⋮ menu in your browser', null], ['Choose', '“Install app” or “Add to Home screen”', null], ['Tap', '“Install”', null]];
-  const installNow = window.__installPrompt ? secondary('Install Little Tales', async () => { const e = window.__installPrompt; e.prompt(); try { await e.userChoice; } catch {} window.__installPrompt = null; }) : null;
-  return h('div.install',
-    h('div.install-hero', stampEl({ date: todayStr(), photo: null, light: 'golden' }, { size: '8px', postmark: false })),
-    h('h1', 'Keep it ', h('em', 'one tap'), ' away'),
-    h('p.lead', 'Add Little Tales to your Home Screen so you can catch a moment in seconds, and get a gentle nudge around 1pm and 8pm.'),
-    h('div.steps.glass-card', ...steps.map(([a, b, ic], i) => h('div.step', h('span.step-n', i + 1), h('span', h('b', a), ' ', b), ic ? h('span.step-ic', { html: ic }) : null))),
-    h('div.install-actions', installNow, notifyBtn),
-    h('div.bottom', primary('Continue', async () => { await patchAccount({ installHinted: true }); go('calendar', {}, { replace: true }); }), linkBtn('Skip for now', async () => { await patchAccount({ installHinted: true }); go('calendar', {}, { replace: true }); })));
-});
+async function turnOnNudges() {
+  if (!('Notification' in window)) { toast('Reminders aren\u2019t available in this browser'); return false; }
+  if (isIOS() && !isStandalone()) { toast('iPhone only allows reminders for sites kept on the Home Screen. Everything else works in the browser.'); return false; }
+  let p = 'denied'; try { p = await Notification.requestPermission(); } catch {}
+  await patchAccount({ notify: { granted: p === 'granted', asked: true } });
+  if (p === 'granted') subscribePush();
+  toast(p === 'granted' ? 'Gentle nudges are on' : 'Reminders are blocked. You can allow them in your browser\u2019s site settings.');
+  return p === 'granted';
+}
 
 // =====================================================
 // "YOUR WEEK" VIDEO
@@ -162,7 +224,7 @@ register('paywall', (p) => {
     h('div.bottom',
       primary('Continue', () => go('checkout', { plan })),
       day7 ? linkBtn('Maybe later', () => go('calendar', {}, { replace: true })) : null,
-      h('p.fine', 'Cancel any time. Practice mode: no real payment is taken yet.')));
+      h('p.fine', auth.provider === 'supabase' ? 'Cancel any time from your Account.' : 'Cancel any time. Practice mode: no real payment is taken yet.')));
 });
 
 register('checkout', (p) => {
@@ -172,6 +234,12 @@ register('checkout', (p) => {
   const fields = h('div.pay-fields');
   const err = h('p.pay-err');
   const payBtn = primary(`Pay ${rupees(total)}`, async () => {
+    if (real) {
+      payBtn.disabled = true; payBtn.textContent = 'Opening…'; err.textContent = '';
+      try { const r = await payOnline(plan.id); if (r === 'paid') go('success', { plan: plan.id }, { replace: true }); }
+      catch (e) { err.textContent = e.message; }
+      payBtn.disabled = false; payBtn.textContent = `Pay ${rupees(total)}`; return;
+    }
     const f = fields.querySelectorAll('input');
     if (method === 'upi') { if (!/^[\w.\-]{2,}@[a-z]{2,}$/i.test(f[0].value.trim())) { err.textContent = 'Enter a UPI ID like name@bank'; return; } }
     else {
@@ -184,7 +252,9 @@ register('checkout', (p) => {
     await subscribe(plan.id); // nothing typed above is stored or sent anywhere
     go('success', { plan: plan.id }, { replace: true });
   });
+  const real = auth.provider === 'supabase';
   const draw = () => {
+    if (real) { fields.replaceChildren(h('p.fine', 'You’ll pay in a secure window by UPI AutoPay or card. We never see or store your card or UPI details.')); return; }
     fields.replaceChildren(...(method === 'upi'
       ? [h('label', 'UPI ID', h('input', { type: 'text', inputmode: 'email', autocomplete: 'off', placeholder: 'name@bank', 'aria-label': 'UPI ID' })), h('p.fine', 'You’ll approve the monthly or yearly auto-pay in your UPI app.')]
       : [h('label', 'Card number', h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: '1234 5678 9012 3456', 'aria-label': 'Card number' })),
@@ -192,7 +262,8 @@ register('checkout', (p) => {
   };
   const tabs = h('div.paytabs');
   const drawTabs = () => tabs.replaceChildren(...[['upi', 'UPI AutoPay'], ['card', 'Card']].map(([k, l]) => h('button.paytab' + (method === k ? '.on' : ''), { onClick: () => { method = k; err.textContent = ''; drawTabs(); draw(); } }, l)));
-  drawTabs(); draw();
+  if (real) tabs.hidden = true; else drawTabs();
+  draw();
   return h('div.checkout',
     topBar(),
     h('h1', 'Almost ', h('em', 'there')),
@@ -200,7 +271,7 @@ register('checkout', (p) => {
       h('div.srow', h('span', `Little Tales ${plan.name}`), h('b', rupees(plan.price))),
       account.settings.gst ? h('div.srow.sub', h('span', 'GST (18%)'), h('span', rupees(gst))) : null,
       h('div.srow.total', h('span', 'Total today'), h('b', rupees(total)))),
-    h('div.practice', h('b', 'Practice mode.'), ' Nothing is charged, and nothing you type here is saved.'),
+    real ? null : h('div.practice', h('b', 'Practice mode.'), ' Nothing is charged, and nothing you type here is saved.'),
     tabs, fields, err,
     h('div.bottom', payBtn));
 });
@@ -238,7 +309,9 @@ register('locked', () => {
         urgent ? h('p.urgent', urgent) : null,
         h('div.meter', h('i', { style: { width: Math.max(4, (left / HOLD_DAYS) * 100) + '%' } }))],
     h('div.bottom', deleted
-      ? primary('Start a new album', async () => { await resetDemo(); go('welcome', {}, { replace: true }); })
+      ? (auth.provider === 'supabase'
+        ? primary('See plans', () => go('paywall', { from: 'locked' }))                // your old tales are gone; subscribing lets you start filling a new album
+        : primary('Start a new album', async () => { await resetDemo(); go('welcome', {}, { replace: true }); }))
       : primary('Subscribe to unlock', () => go('paywall', { from: 'locked' })),
     deleted ? null : linkBtn('Account', () => go('account'))));
 });
@@ -271,20 +344,28 @@ register('account', () => {
   const row = (ic, label, sub2, right, onClick) => h('button.arow', { onClick }, h('span.arow-ic', { html: ic }), h('span.arow-t', h('b', label), sub2 ? h('small', sub2) : null), right || null);
   return h('div.account',
     topBar(),
-    h('div.profile', h('div.avatar', (account.name || 'L').slice(0, 1).toUpperCase()), h('div', h('h1', 'Your account'), h('p', 'Signed in on this phone'))),
+    h('div.profile', h('div.avatar', ((auth.user?.name || auth.user?.email || 'L')[0]).toUpperCase()), h('div', h('h1', 'Your account'), h('p', auth.user?.email || 'Signed in'))),
     h('div.plan-card.glass-card',
       h('div.kicker', 'Your plan'), h('h2', status),
       info.status === 'subscribed' ? h('p', `Since ${longDate(sub.since)}`) : info.status === 'trial' || info.status === 'day7' ? h('p', 'Everything is unlocked during your free week.') : null,
       info.status === 'subscribed'
-        ? secondary('Cancel subscription', () => confirmSheet('Cancel your subscription?', 'You can subscribe again any time. If your calendar locks, your tales are kept for 30 days.', 'Cancel subscription', async () => { await cancelSubscription(); toast('Subscription cancelled'); go('account', {}, { replace: true }); }))
+        ? secondary('Cancel subscription', () => confirmSheet('Cancel your subscription?', 'You can subscribe again any time. If your calendar locks, your tales are kept for 30 days.', 'Cancel subscription', async () => { if (auth.provider === 'supabase') { try { await cancelOnline(); } catch (e) { toast(e.message); return; } } else await cancelSubscription(); toast(auth.provider === 'supabase' ? 'Renewals stopped. You keep access until your plan ends.' : 'Subscription cancelled'); go('account', {}, { replace: true }); }))
         : secondary('See plans', () => go('paywall', { from: 'account' }))),
     h('div.alist.glass-card',
-      row(icon.download, 'Download my scrapbook', canDownload ? 'Photos, voice notes and words in one file' : 'Available while you’re subscribed', null, canDownload ? downloadScrapbook : () => toast('Subscribe to download your scrapbook')),
-      row(icon.bell, 'Gentle nudges', account.notify.granted ? 'On, around 1pm and 8pm' : 'Off. Tap to set up', null, () => go('install')),
-      row(icon.share, 'Add to Home Screen', 'Open Little Tales in one tap', null, () => go('install'))),
+      row(icon.download, 'Download my scrapbook', canDownload ? 'Photos, voice notes and words in one file' : 'Available while you’re subscribed', null, canDownload ? downloadScrapbook : subscribeToDownload),
+      row(icon.bell, 'Sound and vibration', account.settings.sound !== false ? 'On. Soft chime, little buzz on taps' : 'Off', null, async () => { account.settings.sound = account.settings.sound === false; await saveAccount(); go('account', {}, { replace: true }); }),
+      canOfferInstall() ? row(icon.share, 'Add to Home Screen', 'A shortcut icon that opens full screen', null, addToHomeScreen) : null,
+      row(icon.bell, 'Gentle nudges', account.notify.granted ? 'On, around 1pm and 8pm' : 'Off. Tap to turn on', null, async () => { if (await turnOnNudges()) go('account', {}, { replace: true }); })),
     h('p.fine.priv', 'Private by default. Your photos, voice notes and thoughts are never used for ads and are never shared.'),
-    h('div.bottom', h('button.btn-danger-ghost', { onClick: () => confirmSheet('Delete your account and all tales?', 'Everything is removed from this phone for good. This can’t be undone.', 'Delete everything', async () => { await purgeAllTales(); await resetDemo(); state.month = null; go('welcome', {}, { replace: true }); toast('Your account was deleted'); }) }, 'Delete my account and tales')));
+    h('div.bottom', h('button.link', { onClick: async () => { const doIt = async () => { await signOut(); state.month = null; go('welcome', {}, { replace: true }); toast('Signed out'); }; const n = await pendingCount(); if (!n) return doIt(); confirmSheet(n === 1 ? 'One tale hasn\u2019t been saved online yet' : `${n} tales haven\u2019t been saved online yet`, 'They are waiting for an internet connection. If you sign out now they will be lost. Connect to the internet, wait a moment, then try again.', 'Sign out anyway', doIt); } }, 'Sign out'), h('button.btn-danger-ghost', { onClick: () => confirmSheet('Delete your account and all tales?', 'Everything is removed from this phone for good. This can’t be undone.', 'Delete everything', async () => { try { await deleteAccountOnline(); } catch (e) { toast('Couldn’t reach the server. Try again when you are online.'); return; } await purgeAllTales(); await resetDemo(); state.month = null; go('welcome', {}, { replace: true }); toast('Your account was deleted'); }) }, 'Delete my account and tales')));
 });
+
+function subscribeToDownload() {
+  const close = sheet(h('div.confirm', h('h2', 'Download is for members'),
+    h('p', 'Subscribers can download their whole scrapbook any time: photos, voice notes and words in one file.'),
+    primary('See plans', () => { close(); go('paywall', { from: 'account' }); }),
+    linkBtn('Not now', () => close())));
+}
 
 function confirmSheet(title, body, action, run) {
   const close = sheet(h('div.confirm', h('h2', title), h('p', body),

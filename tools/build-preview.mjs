@@ -3,10 +3,11 @@
 import { build } from 'esbuild';
 import fs from 'node:fs';
 
-const root = new URL('../', import.meta.url).pathname;
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../', import.meta.url));
 const js = (await build({ entryPoints: [root + 'js/app.js'], bundle: true, format: 'iife', minify: true, write: false, target: 'es2020' })).outputFiles[0].text;
 
-let css = ['fonts', 'styles', 'pop-bg', 'pop', 'glass', 'screens2'].map((f) => fs.readFileSync(root + `css/${f}.css`, 'utf8')).join('\n');
+let css = ['fonts', 'styles', 'pop-bg', 'pop', 'glass', 'screens2', 'decor'].map((f) => fs.readFileSync(root + `css/${f}.css`, 'utf8')).join('\n');
 css = css.replace(/url\(\.\.\/assets\/fonts\/([^)]+)\)/g, (_, f) =>
   `url(data:font/woff2;base64,${fs.readFileSync(root + 'assets/fonts/' + f).toString('base64')})`);
 
@@ -18,7 +19,7 @@ for (const f of fs.readdirSync(root + 'assets/photos')) {
 const html = `<title>Little Tales</title>
 <style>${css}</style>
 <div id="app"><main id="screen" aria-live="polite"></main></div>
-<script>window.__SAMPLES=${JSON.stringify(samples)};window.__DEMO_CAMERA=true;</script>
+<script>window.__SAMPLES=${JSON.stringify(samples)};window.__DEMO_CAMERA=true;window.__DEMO_AUTH=true;</script>
 <script>${js.replace(/<\/script/g, '<\\/script')}</script>
 `;
 fs.mkdirSync(root + 'dist', { recursive: true });

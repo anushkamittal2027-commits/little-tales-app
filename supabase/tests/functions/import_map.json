@@ -1,0 +1,1 @@
+{ "imports": { "npm:@supabase/supabase-js@2": "./stub_supabase.ts", "npm:web-push@3.6.7": "./stub_webpush.ts" } }

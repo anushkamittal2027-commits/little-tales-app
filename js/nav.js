@@ -12,6 +12,7 @@ export const register = (name, fn) => { screens[name] = fn; };
 let guard = null;
 export const setGuard = (fn) => { guard = fn; };
 
+export const currentName = () => stack[stack.length - 1]?.name;
 let current = null;
 let stack = [];          // our own record of screens, so back works even where browser history is unavailable
 let silent = 0;          // popstate events we caused ourselves
@@ -20,12 +21,30 @@ function render(st, dir = 'fwd') {
   current?._cleanup?.();
   const fn = screens[st.name] || screens.calendar;
   const el = fn(st.params || {});
-  el.classList.add('screen', dir === 'back' ? 'enter-back' : 'enter-fwd');
+  el.classList.add('screen'); if (dir !== 'none') el.classList.add(dir === 'back' ? 'enter-back' : 'enter-fwd');
   document.getElementById('screen').replaceChildren(el);
   document.getElementById('app').dataset.screen = st.name;
   current = el;
+  drawTabs(st.name);
   window.scrollTo(0, 0);
   const sp = document.getElementById('splash'); if (sp) { sp.classList.add('gone'); setTimeout(() => sp.remove(), 500); }
+}
+
+// ---- bottom tab bar (Home, Calendar, New, Studio, Me) ----
+const TAB_SCREENS = ['home', 'calendar', 'studio', 'account', 'day'];
+const TABS = [['home', 'Home', 'home'], ['calendar', 'Calendar', 'calendar'], ['new', 'New', 'plus'], ['studio', 'Studio', 'sticker'], ['account', 'Me', 'user']];
+let onNew = null;
+export const setNewAction = (fn) => { onNew = fn; };
+function drawTabs(name) {
+  const app = document.getElementById('app');
+  let bar = document.getElementById('tabbar');
+  const show = TAB_SCREENS.includes(name);
+  app.dataset.tabs = show ? '1' : '0';
+  if (!show) { bar?.remove(); return; }
+  if (!bar) { bar = h('nav', { id: 'tabbar', 'aria-label': 'Main' }); app.append(bar); }
+  bar.replaceChildren(...TABS.map(([key, label, ic]) => key === 'new'
+    ? h('button.tab-new', { 'aria-label': 'Make a new memory', onClick: () => onNew?.(), html: icon.plus })
+    : h('button.tab-item' + (name === key || (key === 'calendar' && name === 'day') ? '.on' : ''), { 'aria-label': label, 'aria-current': name === key ? 'page' : null, onClick: () => { if (name !== key) go(key, {}, { replace: true }); } }, h('span.ti', { html: icon[ic] }), h('span', label))));
 }
 
 const tryHistory = (fn) => { try { fn(); return true; } catch { return false; } };
@@ -36,6 +55,12 @@ export function go(name, params = {}, { replace = false } = {}) {
   if (replace && stack.length) stack[stack.length - 1] = st; else stack.push(st);
   tryHistory(() => (replace ? history.replaceState(st, '') : history.pushState(st, '')));
   render(st);
+}
+
+// Draw the current screen again (for when background work, like syncing, has new things to show).
+export function refresh() {
+  const st = stack[stack.length - 1]; if (!st) return;
+  render(st, 'none');
 }
 
 export function back(fallback = 'calendar') {

@@ -15,23 +15,23 @@ const today = new Date(); const pad = (n) => String(n).padStart(2, '0'); const T
 const nToday = () => p.evaluate((d) => window.__lt.store.tales.filter((t) => t.date === d).length, TODAY);
 const gallery = process.env.GALLERY || '/home/user/LittleTales/assets/photos/skyline-dusk.jpg';
 
-await p.goto(URL); await p.waitForTimeout(1000);
-await p.click('text=Start my album'); await p.click('.check'); await p.click('text=Start my free week'); await p.waitForTimeout(400); await p.click('text=Skip for now'); await p.waitForTimeout(500);
+await p.addInitScript(() => { window.__DEMO_AUTH = true; }); await p.goto(URL); await p.waitForTimeout(1000);
+await p.click('text=Start my album'); await p.click('.google'); await p.waitForTimeout(800); await p.click('.check'); await p.click('text=Start my free week'); await p.waitForTimeout(400); await p.click('.intro-top .link'); await p.waitForTimeout(500);
 await p.evaluate(() => window.__lt.store.removeSamples()); await p.evaluate(() => window.__lt.go('calendar', {}, { replace: true })); await p.waitForTimeout(500);
 ok('starts with no tales today', (await nToday()) === 0);
 
 async function makeTale(label, { camera = true, voice = false, skipDeco = true } = {}) {
-  await p.click("text=Make today's stamp"); await p.waitForTimeout(300);
+  await p.click('#tabbar .tab-new'); await p.waitForTimeout(300);
   if (await p.locator('.limit').count()) return false;
   if (camera) { await p.click('text=Take a photo'); await p.waitForTimeout(1300); await p.click('.shutter'); await p.waitForTimeout(900); }
   else { await p.click('text=From your gallery'); await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700); await p.click('.daypick .btn-primary'); await p.waitForTimeout(500); }
-  if (voice) { const m = await p.locator('.mic').boundingBox(); await p.mouse.move(m.x + m.width / 2, m.y + m.height / 2); await p.mouse.down(); await p.waitForTimeout(1200); await p.mouse.up(); await p.waitForTimeout(700); }
+  if (voice) { await p.click('.mic'); await p.waitForTimeout(1500); await p.click('.mic'); await p.waitForTimeout(800); }
   await p.fill('.thought-input', label); await p.click('text=Make it a stamp'); await p.waitForTimeout(300);
   await p.fill('.title-input', label.slice(0, 20)); await p.click('text=Stamp it');
   await p.waitForSelector('.decorate', { timeout: 6000 });
   if (!skipDeco) { await p.click('.tray-item >> nth=0'); await p.waitForTimeout(300); }
   if (skipDeco) await p.click('text=Skip for now'); else await p.click('text=Done decorating');
-  await p.waitForTimeout(400); await p.click('text=Post to my calendar'); await p.waitForTimeout(3300); return true;
+  await p.waitForTimeout(400); await p.click('text=Post to my calendar'); await p.waitForTimeout(1200); await p.locator('.celebrate .link').click({ timeout: 800 }).catch(() => {}); await p.waitForTimeout(2200); return true;
 }
 
 ok('tale 1 via camera + voice + sticker', await makeTale('Camera tale one', { camera: true, voice: true, skipDeco: false }));
@@ -41,7 +41,7 @@ await p.screenshot({ path: OUT + '/after-first-tale.png' });
 ok('tale 2 via gallery', await makeTale('Gallery tale two', { camera: false }));
 ok('tale 3 via camera, no decoration', await makeTale('Camera tale three'));
 ok('three tales today', (await nToday()) === 3);
-await p.click("text=Make today's stamp"); await p.waitForTimeout(500);
+await p.click('#tabbar .tab-new'); await p.waitForTimeout(500);
 ok('4th attempt shows the gentle message', (await p.locator('.limit').innerText()).includes('3 little tales'));
 await p.screenshot({ path: OUT + '/fourth-attempt.png' });
 ok('camera did not open', await p.locator('.camera').count() === 0);
@@ -66,7 +66,7 @@ await p.click('text=Add another tale'); await p.waitForTimeout(300); await p.cli
 await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700);
 const y = new Date(today.getTime() - 3 * 864e5); const YD = `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`;
 await p.fill('.daypick input[type=date]', YD); await p.click('.daypick .btn-primary'); await p.waitForTimeout(500);
-await p.fill('.thought-input', 'From three days ago'); await p.click('text=Make it a stamp'); await p.click('text=Stamp it'); await p.waitForSelector('.decorate'); await p.click('text=Skip for now'); await p.click('text=Post to my calendar'); await p.waitForTimeout(3300);
+await p.fill('.thought-input', 'From three days ago'); await p.click('text=Make it a stamp'); await p.click('text=Stamp it'); await p.waitForSelector('.decorate'); await p.click('text=Skip for now'); await p.click('text=Post to my calendar'); await p.waitForTimeout(1200); await p.locator('.celebrate .link').click({ timeout: 800 }).catch(() => {}); await p.waitForTimeout(2200);
 ok('backdated tale counts against its own day', await p.evaluate((d) => window.__lt.store.tales.filter((t) => t.date === d).length === 1, YD));
 ok('today still has 2', (await nToday()) === 2);
 await p.screenshot({ path: OUT + '/calendar-final.png' });

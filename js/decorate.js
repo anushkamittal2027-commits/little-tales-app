@@ -1,9 +1,10 @@
-// The decorating editor: tray of tape / stickers / doodles + drag, resize, rotate, delete.
+// The decorating editor: tray of stickers / tape / paper / doodles + drag, resize, rotate, delete.
 import { h, icon } from './util.js';
-import { TRAYS, DEFAULT_WIDTH, artSvg } from './art.js';
+import { TRAYS, DEFAULT_WIDTH, STICKER_GROUPS, artSvg } from './art.js';
 import { decoEl, placeDeco } from './stamp.js';
 
-const TABS = [['tape', 'Tape'], ['stickers', 'Stickers'], ['doodles', 'Doodles']];
+const TABS = [['stickers', 'Stickers'], ['tape', 'Tape'], ['paper', 'Paper'], ['doodles', 'Doodles']];
+const COLS = { stickers: 4, tape: 2, paper: 4, doodles: 3 };
 const MAX_ITEMS = 30;
 
 // pageEl: the .page element; list: the tale's decorations array (edited in place).
@@ -90,19 +91,52 @@ export function makeEditor(pageEl, list, onChange) {
     onChange();
   }
 
-  // The bottom tray
-  let tab = 'stickers';
+  // The bottom tray. Every tab's items are built once, the first time it is opened;
+  // switching tabs or sticker groups afterwards only shows / hides what already exists.
+  let tab = 'stickers', group = 'All';
   const tray = h('div.tray');
-  const tabs = h('div.tray-tabs', { role: 'tablist' });
-  const grid = h('div.tray-grid');
-  function renderTray() {
-    tabs.replaceChildren(...TABS.map(([k, label]) =>
-      h('button.tab' + (k === tab ? '.on' : ''), { role: 'tab', 'aria-selected': k === tab, onClick: () => { tab = k; renderTray(); } }, label)));
-    grid.className = 'tray-grid cols-' + (tab === 'doodles' || tab === 'tape' ? 2 : 4);
-    grid.replaceChildren(...TRAYS[tab].map((a) =>
-      h('button.tray-item.' + tab, { 'aria-label': 'Add ' + a.name, onClick: () => add(tab, a.id), html: artSvg(tab, a.id) })));
+  const tabs = h('div.tray-tabs', { role: 'tablist', 'aria-label': 'Decoration types' });
+  const chips = h('div.group-chips', { role: 'group', 'aria-label': 'Sticker groups' });
+  const grids = {};
+  const tabBtns = {}, chipBtns = {};
+
+  function gridFor(k) {
+    if (grids[k]) return grids[k];
+    const g = h('div.tray-grid.cols-' + COLS[k], { role: 'tabpanel', 'aria-label': k });
+    g.append(...TRAYS[k].map((a) => {
+      const b = h('button.tray-item.' + k, { type: 'button', 'aria-label': 'Add ' + a.name, title: a.name, onClick: () => add(k, a.id), html: artSvg(k, a.id) });
+      b.dataset.group = a.group || '';
+      return b;
+    }));
+    grids[k] = g;
+    return g;
   }
-  renderTray();
-  tray.append(tabs, grid);
+  function applyGroup() {
+    const g = grids.stickers; if (!g) return;
+    g.querySelectorAll('.tray-item').forEach((b) => { b.hidden = group !== 'All' && b.dataset.group !== group; });
+    grid.scrollTop = 0;
+    for (const n in chipBtns) { const on = n === group; chipBtns[n].classList.toggle('on', on); chipBtns[n].setAttribute('aria-pressed', on); }
+  }
+  function showTab(k) {
+    tab = k;
+    for (const t in tabBtns) { const on = t === k; tabBtns[t].classList.toggle('on', on); tabBtns[t].setAttribute('aria-selected', on); tabBtns[t].tabIndex = on ? 0 : -1; }
+    chips.hidden = k !== 'stickers';
+    tray.dataset.tab = k;
+    const g = gridFor(k);
+    if (grid.firstChild !== g) grid.replaceChildren(g);
+    grid.scrollTop = 0;
+    if (k === 'stickers') applyGroup();
+  }
+  const grid = h('div.tray-body');
+  TABS.forEach(([k, label]) => {
+    tabBtns[k] = h('button.tab', { type: 'button', role: 'tab', onClick: () => showTab(k) }, label);
+    tabs.append(tabBtns[k]);
+  });
+  ['All', ...STICKER_GROUPS].forEach((n) => {
+    chipBtns[n] = h('button.group-chip', { type: 'button', 'aria-label': n === 'All' ? 'Show all stickers' : 'Show ' + n + ' stickers', onClick: () => { group = n; applyGroup(); chipBtns[n].scrollIntoView?.({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } }, n);
+    chips.append(chipBtns[n]);
+  });
+  tray.append(tabs, chips, grid);
+  showTab('stickers');
   return { tray, deselect: () => select(null) };
 }

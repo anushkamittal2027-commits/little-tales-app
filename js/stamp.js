@@ -47,6 +47,7 @@ export const blockColor = (tale) => {
 };
 
 export const LIGHTS = [
+  { id: 'none', label: 'Original' },
   { id: 'morning', label: 'Morning' },
   { id: 'golden', label: 'Golden hour' },
   { id: 'dark', label: 'After dark' },
@@ -58,10 +59,15 @@ export function stampEl(tale, { size = '16px', mini = false, postmark = true, de
   const photo = tale.photo
     ? h('img.photo', { src: full ? tale.photo : (tale.thumb || tale.photo), loading: 'lazy', decoding: 'async', alt: tale.title || 'Photo', draggable: 'false' })
     : h('div.photo-empty', { 'aria-hidden': 'true' }, h('span', '+'));
+  const box = h('div.stamp-photo', photo, h('div.light-overlay'));
+  if (tale.photo) {                                 // a soft shimmer until the picture has arrived
+    const done = () => box.classList.remove('loading');
+    if (photo.complete && photo.naturalWidth) { /* already there */ } else { box.classList.add('loading'); photo.addEventListener('load', done, { once: true }); photo.addEventListener('error', done, { once: true }); }
+  }
   const el = h('div.stamp-wrap' + (mini ? '.mini' : ''), { style: { fontSize: size } },
     h('div.stamp-shadow',
       h('div.stamp.light-' + light + (developing ? '.developing' : ''),
-        h('div.stamp-photo', photo, h('div.light-overlay')),
+        box,
         h('div.stamp-foot', h('span', 'LITTLE TALES'), h('span', dotDate(tale.date))))),
     postmark && !mini ? h('div.postmark' + (developing ? '.pending' : ''), { html: postmarkSvg(tale.date) }) : null);
   return el;

@@ -41,14 +41,23 @@ async function safe(real, fallback) {
 export const store = {
   tales: [],
   async load() { this.tales = (await safe(() => tx('tales', 'readonly', (s) => s.getAll()), () => [...mem.tales.values()])) || []; return this.tales; },
-  async save(tale) {
+  hooks: {},                      // online saving plugs in here (js/sync.js)
+  async save(tale, { local = false } = {}) {
     await safe(() => tx('tales', 'readwrite', (s) => s.put(tale)), () => mem.tales.set(tale.id, tale));
     const i = this.tales.findIndex((t) => t.id === tale.id);
     if (i >= 0) this.tales[i] = tale; else this.tales.push(tale);
+    if (!local) this.hooks.save?.(tale);
   },
-  async remove(id) {
+  async remove(id, { local = false } = {}) {
+    const gone = this.byId(id);
     await safe(() => tx('tales', 'readwrite', (s) => s.delete(id)), () => mem.tales.delete(id));
     this.tales = this.tales.filter((t) => t.id !== id);
+    if (!local) this.hooks.remove?.(gone);
+  },
+  // Wipes everything on this phone (tales and settings). Used when someone signs out.
+  async clearAll() {
+    await safe(async () => { await tx('tales', 'readwrite', (s) => s.clear()); await tx('meta', 'readwrite', (s) => s.clear()); }, () => { mem.tales.clear(); mem.meta.clear(); });
+    this.tales = [];
   },
   async clear() { await safe(() => tx('tales', 'readwrite', (s) => s.clear()), () => mem.tales.clear()); this.tales = []; },
   async removeSamples() {

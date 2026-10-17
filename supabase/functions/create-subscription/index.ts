@@ -1,7 +1,7 @@
 // The app calls this when a member taps "Continue" on a plan. It creates a Razorpay subscription
 // (UPI AutoPay or card) and returns what the checkout needs. Prices (and GST) live in the Razorpay plans.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { json } from '../_shared/common.ts';
+import { admin, json } from '../_shared/common.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return json({});
@@ -11,6 +11,9 @@ Deno.serve(async (req) => {
   if (!user) return json({ error: 'sign in first' }, 401);
   const { plan } = await req.json().catch(() => ({}));
   if (!['monthly', 'yearly'].includes(plan)) return json({ error: 'unknown plan' }, 400);
+
+  const { data: have } = await admin.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle();
+  if (have?.status === 'active') return json({ error: 'You are already subscribed.' }, 409);   // never charge twice
 
   const keyId = Deno.env.get('RAZORPAY_KEY_ID')!, secret = Deno.env.get('RAZORPAY_KEY_SECRET')!;
   const planId = Deno.env.get(plan === 'monthly' ? 'RAZORPAY_PLAN_MONTHLY' : 'RAZORPAY_PLAN_YEARLY')!;

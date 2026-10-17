@@ -17,7 +17,10 @@ const DEFAULT = {
   videos: {},                    // key -> true when watched
   notify: { granted: false, asked: false },
   installHinted: false,
-  settings: { gst: false },      // founder-only: show "+ GST" prices once registered
+  introSeen: false,
+  celebratedFirst: false,        // the first-tale celebration has been shown
+  milestones: [],                // streak milestones already celebrated
+  settings: { gst: false, sound: true },      // founder-only: show "+ GST" prices once registered
   dayOffset: 0,                  // founder-only time travel
 };
 export const account = { ...structuredClone(DEFAULT) };
@@ -32,10 +35,12 @@ export async function loadAccount() {
 export async function saveAccount() { await store.setMeta('account', JSON.parse(JSON.stringify(account))); }
 export async function patchAccount(p) { Object.assign(account, p); await saveAccount(); }
 
+export const hooks = {};   // online saving plugs in here (js/sync.js)
 export async function startTrial() {
   if (!account.firstSignIn) account.firstSignIn = todayStr();
   account.consented = true;
   await saveAccount();
+  await hooks.startTrial?.();   // online: the server decides the dates (and may correct them)
 }
 
 // What state is this member in today?
@@ -74,6 +79,11 @@ export async function jumpTo(state) {
     setDayOffset(delta);
     if (state === 'day7') account.day7Shown = false;
   }
+  await saveAccount();
+}
+export async function resetAccountLocal() {
+  Object.assign(account, structuredClone(DEFAULT));
+  setDayOffset(0);
   await saveAccount();
 }
 export async function resetDemo() {

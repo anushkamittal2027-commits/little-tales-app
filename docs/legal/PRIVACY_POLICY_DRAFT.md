@@ -1,11 +1,11 @@
-# Little Tales Privacy Policy (DRAFT)
+# Little Tales Privacy Policy
 
-**This is a plain-words draft. It is not legal advice. Have a lawyer review it before launch, especially against India's Digital Personal Data Protection Act, 2023.**
+**A plain-words policy. Please also have a lawyer review it against India's Digital Personal Data Protection Act, 2023.**
 
-Last updated: [date]
+Last updated: 17 October 2026
 
 ## Who we are
-Little Tales is run by [your name / business name], [address]. You can reach us at hellolittletales@gmail.com. Our contact for privacy questions and complaints is [name], at the same address.
+Little Tales (LittleTales) is run by its founder, Anushka Mittal, from Gurgaon, Haryana, India. You can reach us at hellolittletales@gmail.com. Our contact for privacy questions and complaints (grievance officer) is Anushka Mittal, reachable at hellolittletales@gmail.com.
 
 ## What this app does with your things
 Little Tales turns your photos and thoughts into stamps in a private scrapbook. Everything you add is **private to you**. We have no public profiles, no feed and no sharing.
@@ -33,7 +33,7 @@ To run your scrapbook, keep it safe across your phones, remind you when you ask 
 - **Razorpay**: handles payments.
 - **Resend**: sends sign-in codes and warning emails.
 - **Google**: only if you choose Google sign-in.
-They may process data on our behalf. They are not allowed to use it for their own purposes. [Add where the servers are located.]
+They may process data on our behalf. They are not allowed to use it for their own purposes. Our service providers may keep data on servers outside India, under their own security standards.
 
 ## How long we keep things
 - While you use the app, we keep your tales.
@@ -45,7 +45,7 @@ They may process data on our behalf. They are not allowed to use it for their ow
 - **Download your scrapbook** (while you are subscribed): Account, Download my scrapbook.
 - **Delete your account and tales** at any time, even when locked: Account, Delete my account and tales.
 - **Turn reminders on or off** any time.
-- You can ask us to see, correct or remove your data, or withdraw your consent, by emailing hellolittletales@gmail.com. We will reply within [30] days.
+- You can ask us to see, correct or remove your data, or withdraw your consent, by emailing hellolittletales@gmail.com. We will reply within 30 days.
 - You can complain to us first. If you are still unhappy, you can approach the Data Protection Board of India.
 
 ## Who can use Little Tales

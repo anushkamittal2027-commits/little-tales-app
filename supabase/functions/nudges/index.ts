@@ -15,7 +15,8 @@ Deno.serve(async (req) => {
   const { data: members } = await admin.from('profiles').select('id, tz').eq('notify_push', true);
   let sent = 0;
   for (const m of members ?? []) {
-    const { date, hour } = localParts(m.tz);
+    let date: string, hour: number;
+    try { ({ date, hour } = localParts(m.tz)); } catch { continue; }          // an unknown time zone name: skip this member
     const kind = hour === 13 ? 'nudge-13' : hour === 20 ? 'nudge-20' : null;
     if (!kind) continue;
     const { data: st } = await admin.rpc('account_status', { uid: m.id });

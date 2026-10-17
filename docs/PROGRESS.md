@@ -54,6 +54,45 @@ Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 
 - **Sunday video banner** for members.
 - **Home Screen and reminders onboarding** (Android install button, iPhone steps, notification permission).
 
+### Stay signed in, and steps for every phone (round 4)
+- **Staying signed in:** the app now opens straight from the phone's saved sign-in with no waiting for the network. The Supabase library renews it in the background and keeps it on a weak signal (this used to be able to leave a blank screen). If the login is ever revoked the member is sent to sign in with a plain message. `tests/persist.mjs` runs the real library against a pretend server: reload, expired token, and a failing refresh all keep the member in.
+- **One address:** visitors arriving on the old free `littletales.pages.dev` address are moved to `https://littletales.me`, because the saved sign-in belongs to one address.
+- **Add to Home Screen steps now match the phone:** iPhone Safari, iPhone Chrome/Edge/Firefox, iPad, Android Chrome (one-tap install button when the browser offers it), Samsung Internet, Android Firefox, desktop, and in-app browsers (Instagram, WhatsApp and so on, which cannot add shortcuts: it tells people to open in the browser).
+
+### Home screen shortcut and bigger day view (round 3)
+- A real website cannot make the live "widget" tiles (that needs an App Store or Play Store app). It now makes a proper **home screen shortcut**: new brand icon (regular, maskable and Apple touch icon), full-screen standalone mode, a dismissible "Add to Home Screen" card on Home and a row in Account with the exact steps for iPhone and Android.
+- iPhone note: the icon opens in its own storage, so the member signs in **once** inside it; after that the session is kept (and the phone is asked to protect it from clearing).
+- Day view: all of the day's stamps are shown together (no swiping): one tale about 285 px wide, two or three about 200 px, overlapping slightly like a pile of stamps.
+
+### Phone-testing fixes (round 2)
+- **Calendar cut off on iPhone:** the grid columns could grow wider than the phone (Safari), pushing Saturday off-screen. Columns are now fixed to the phone width, and the experimental render-skipping rule that triggered it was removed. Tested at 320 to 430 px wide.
+- **"Stamp on the wrong date":** the date logic was audited and tested in India, US Pacific and New Zealand around midnight: stamps are always kept on the local day. What happened on the phone is that Saturday (today) was the hidden column; the visible stamp was yesterday's.
+- **Front camera preview:** the stamp window now shows a canvas of the raw camera frame, the same frame and crop that is saved, so the preview and the photo can never differ in orientation. Tested by comparing the two.
+- **Voice typing:** clear reasons per failure (phone dictation switched off, browser blocking microphone, no speech support) and a built-in fallback that puts the cursor in the box and points to the keyboard's own microphone key. Real iPhone behaviour still needs your confirmation.
+- **Pick a light:** a new "Original" choice (no effect) sits first, and tapping the chosen light again clears it. Needs `004_light_none.sql` in Supabase.
+- **Decorate and Ready screens:** the stamp is the hero (about 55 to 75% of the height); the tools are a compact dock with one swipeable row.
+- **Posting:** soft chime (follows the silent switch) and a little buzz, with an on/off switch in Account.
+- **Sign-in speed:** the code screen opens instantly while the email is sent; after the code, only the tiny account lookup is awaited (two requests in parallel) and photos download in the background. Real email delivery time still depends on Gmail (a few seconds) until Resend is set up.
+- Tests: `tests/fixes.mjs`.
+
+### Feedback round 1 (done)
+- **Mobile web app only**: the "install" screen and the "Add to Home Screen" row are gone. It runs in the browser. Notifications are an optional switch in Account.
+- **Home screen** (new): greeting, make today's stamp, your memories, tiles for Calendar, Scrapbook studio, Your week, Settings. A bottom tab bar (Home, Calendar, New, Studio, Me). First-time members see a 3-card welcome tour; returning members land on Home.
+- **Subscription**: "Download my scrapbook" now opens a clear "See plans" step instead of a dead end.
+- **Speed**: the app opens from the phone's own copy and syncs in the background (it used to wait for the server before showing anything); lighter glass effects and shorter screen transitions.
+- **Microphone**: tap to start and tap to stop (the old hold-to-record gesture broke when the browser asked for permission). New **"Speak instead of typing"** button turns speech into editable text (Chrome and Safari). Clear messages when the microphone is blocked, missing or in use.
+- **Sign-in errors** from Google or Supabase are now shown on the sign-in screen instead of silently sending you back. A Google return also signs you in even if the page loaded before the session was ready.
+- Tests: `tests/e2e.mjs`, `tests/journey.mjs`, `tests/online.mjs`, `tests/voice.mjs`.
+
+### Online saving and real sign-in (built, waiting for your first live test)
+- `js/sync.js`: every tale, photo, voice note and the free-week dates are saved on the phone first, then sent to Supabase when there is a connection (an "outbox" retries if offline). A new phone signs in and gets everything back. Deleting removes the files online too. A different person signing in on the same phone never sees the previous person's tales. Sign out clears the phone.
+- Tested against a pretend Supabase (`tests/online.mjs`, 17 checks, including 3-a-day enforced by the "server", offline-then-online, new phone, sign out). **Not yet tried against your real Supabase** (this build session cannot reach it): your first real sign-in is the live test.
+- `npm run build:site` makes the real website in `dist/site` (for Cloudflare Pages), including `/privacy` and `/terms` pages made from the drafts in `docs/legal/` (drafts: placeholders like [date] and [address] must be filled and a lawyer should review).
+- Your Supabase project is connected (`js/config.js`); database files `001_init.sql` and `003_grants.sql` were run successfully.
+
+### Sign-in (practice mode)
+- Welcome, then **Sign in** (Google button, or email and a 8-digit code), then the free-week page. Account shows your email and **Sign out**. Until Supabase is connected it runs in practice mode: any email works and the code is 123456. `js/auth.js` switches to real Supabase login once the keys are in `js/config.js`.
+
 ### Polish
 - Glass look across all screens, smooth screen transitions, calm animations (and they switch off for people who ask their phone for reduced motion).
 - Offline support, a splash screen, a Home Screen shortcut ("Make today's stamp"), small thumbnails for fast lists, swipe left or right to change month, a little vibration on the shutter and on posting.
@@ -61,7 +100,7 @@ Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 
 - If the browser blocks storage, the app still works for that visit instead of showing a blank screen.
 
 ### Prepared for going online (not switched on yet)
-- `supabase/migrations/001_init.sql`: database tables, the free-week rules decided on the server, **3-a-day enforced by the database**, **locked members cannot read their tales**, private photo and voice storage. Syntax checked.
+- `supabase/migrations/001_init.sql`: database tables, the free-week rules decided on the server, **3-a-day enforced by the database**, **locked members cannot read their tales**, private photo and voice storage. **Tested on a real PostgreSQL 16 with 31 checks** (`supabase/tests/run.sh`): 3-a-day, future dates, privacy between members, free week, lock, 30-day hold, subscribe and restore, private files, account deletion. It has not yet run on a live Supabase project, which needs your Supabase account.
 - `supabase/functions/*`: nudges at about 1pm and 8pm in each member's own time zone (skipping 8pm if they kept a tale), 7-day and 1-day warning emails, permanent deletion after 30 days, Razorpay subscription and webhook, delete-account. Syntax checked, **not yet run against a live project**.
 - `docs/legal/`: plain-words drafts of the Privacy Policy and Terms. **Drafts for a lawyer to review, not legal advice.**
 - `docs/BACKEND_PLAN.md`: exactly what I need from you and what I do with each piece.
@@ -72,7 +111,7 @@ Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 
 
 | Item | Why | Needs |
 |---|---|---|
-| Login (Google and email code) and saving online across phones | Needs a server | Supabase and Google accounts |
+| REAL login (Google and email code) and saving online across phones | The sign-in screens are built and work in practice mode (any email, code 12345678). Real login needs a server | Supabase and Google accounts |
 | Real nudges and warning emails | Needs the server jobs running | Supabase, Resend, VAPID keys |
 | Real payments | Needs Razorpay and a registered business to go live | Razorpay account; business registration later |
 | Hosting on your own address, where real camera and mic work | Needs the repo on GitHub and Cloudflare | GitHub fix, Cloudflare, domain |
@@ -108,3 +147,11 @@ Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 
 - `css/`: `styles.css` (base), `pop-bg.css` and `pop.css` (colour and stamp), `glass.css` (glass, camera, motion), `screens2.css` (new screens), `premium.css` (an optional calmer look, switched on with `?design=premium`).
 - `npm run build:preview` builds `dist/little-tales-preview.html`, a single self-contained file used for the private preview.
 - Tests: serve on port 8123 and run `node tests/e2e.mjs` and `node tests/journey.mjs` (Playwright required).
+
+## Delight round (v11)
+
+- Softer touches: a tiny buzz on taps (follows Me > "Sound and vibration"), shimmer placeholders on Home and Calendar while tales arrive, a shimmer on each photo until it loads, gentler screen changes and a soft press-in on buttons and tiles. All of it calms down for people who ask their phone for reduced motion.
+- First-tale celebration: confetti plus a warm card with a Share button, shown once per account (`account.celebratedFirst`).
+- Streaks: `js/streak.js`. A flame chip on Home from 2 days in a row; it stays alive until the end of the day after the last post. Milestones at 3, 7, 14, 30, 60 and 100 days celebrate once each (`account.milestones`).
+- Share as a picture: `js/share.js` draws a 1080x1920 picture (page, stamp, postmark, stickers, signature). Opens the phone's share sheet (WhatsApp, Instagram Stories...) and saves the picture where sharing is not available. Button on the tale screen and inside the celebration.
+- Tests: `node tests/delight.mjs`. Journey test now closes the first-tale card.
