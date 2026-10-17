@@ -38,6 +38,19 @@ await p.evaluate(() => { const k = Object.keys(localStorage).find((x) => x.inclu
 await p.reload(); await p.waitForTimeout(4000);
 const last = await p.evaluate(() => document.getElementById('app').dataset.screen); const kept = await p.evaluate(() => !!localStorage.getItem(Object.keys(localStorage).find((x) => x.includes('auth-token')) || 'x'));
 console.log('after reload, expired token AND refresh failing (503):', last, 'sign-in kept:', kept);
+// the phone clears its small saved-sign-in note but our own backup copy survives: the member is still signed in
+failRefresh = false;
+await p.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.includes('auth-token')) localStorage.removeItem(k); });
+await p.reload(); await p.waitForTimeout(3000);
+const restored = await p.evaluate(() => document.getElementById('app').dataset.screen); const back = await p.evaluate(() => Object.keys(localStorage).some((x) => x.includes('auth-token')));
+console.log('after the saved note was wiped (backup copy used):', restored, 'note restored:', back);
+if (restored !== 'home' || !back) { console.log('FAIL: backup copy should keep the member signed in'); process.exitCode = 1; } else console.log('PASS: backup copy restores the sign-in');
+// a real sign-out must NOT be undone by the backup
+await p.click('#tabbar .tab-item >> nth=3'); await p.waitForTimeout(500); await p.click('text=Sign out'); await p.waitForTimeout(500); await p.locator('.sheet >> text=Sign out anyway').click({ timeout: 1500 }).catch(() => {});
+await p.waitForTimeout(800); await p.reload(); await p.waitForTimeout(2500);
+const afterOut = await p.evaluate(() => document.getElementById('app').dataset.screen);
+console.log('after sign-out and reload:', afterOut);
+if (afterOut === 'home') { console.log('FAIL: signed-out member came back in'); process.exitCode = 1; } else console.log('PASS: sign-out stays signed out');
 const good = [['after code', 'home'], ['after reload 1', 'home']];
 if (last !== 'home' || !kept) { console.log('FAIL: a weak connection must not sign the member out'); process.exitCode = 1; } else console.log('PASS: weak connection keeps the member in');
 await b.close();

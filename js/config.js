@@ -16,3 +16,6 @@ export const CODE_LENGTH = 8;
 export const FOUNDER_EMAILS = ['hellolittletales@gmail.com'];
 // The one real address of the app. Visitors who arrive on the old free address are moved here, so everyone shares one saved sign-in.
 export const CANONICAL_ORIGIN = 'https://littletales.me';
+// Google's "Client ID" (public, ends in .apps.googleusercontent.com). When filled in, the sign-in screen shows Google's own button, which says "Little Tales"
+// instead of the supabase.co address. Leave empty to keep the old redirect button.
+export const GOOGLE_CLIENT_ID = '';

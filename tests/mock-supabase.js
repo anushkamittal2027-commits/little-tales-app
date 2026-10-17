@@ -53,6 +53,7 @@
         if (token !== '12345678') return { data: null, error: { message: 'Token has expired or is invalid' } };
         const d = db(); d.session = { id: 'u-' + email, email, user_metadata: {} }; save(d); return { data: { user: d.session }, error: null };
       },
+      async signInWithIdToken({ token, nonce }) { if (token !== 'good-google-token' || !nonce) return { data: null, error: { message: 'Invalid token' } }; const d = db(); d.session = { id: 'u-gid', email: 'gid@example.com', user_metadata: { full_name: 'Gid Member' } }; save(d); window.__idTokenNonce = nonce; return { data: { user: d.session }, error: null }; },
       async signOut() { const d = db(); d.session = null; save(d); return { error: null }; },
     },
     from: q,

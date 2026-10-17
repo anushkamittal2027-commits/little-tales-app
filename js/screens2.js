@@ -10,7 +10,8 @@ import { deleteAccountOnline, pendingCount } from './sync.js';
 import { payOnline, cancelOnline } from './pay.js';
 import { addToHomeScreen, canOfferInstall } from './install.js';
 import { CODE_LENGTH } from './config.js';
-import { auth, signInWithGoogle, sendEmailCode, verifyEmailCode, signOut, DEMO_CODE } from './auth.js';
+import { auth, signInWithGoogle, sendEmailCode, verifyEmailCode, signOut, DEMO_CODE, authLogText, googleButtonAvailable, signInWithGoogleToken } from './auth.js';
+import { renderGoogleButton } from './google.js';
 import { makeVideo, pickTales, videoKind, videoTitle, canMakeVideo } from './video.js';
 import { makeZip, dataUrlToBytes, textBytes, saveBlob } from './zip.js';
 
@@ -49,15 +50,27 @@ register('signin', (p) => {
     try { const u = await signInWithGoogle(); if (u) afterSignIn(); }
     catch (e) { err.textContent = e.message || 'Google sign-in didn\u2019t work. Try the email code.'; }
   } }, h('span.g-ic', { html: GOOGLE_G }), 'Continue with Google');
+  // Google's own button (shows "Little Tales"); the older redirect button stays as the backup if Google's button cannot load.
+  const slot = h('div.gsi-slot', { style: { display: 'none' } });
+  const trouble = h('button.link.gsi-trouble', { style: { display: 'none' }, onClick: () => { slot.style.display = 'none'; trouble.style.display = 'none'; google.style.display = ''; } }, 'Google button not working? Try another way');
+  if (googleButtonAvailable()) {
+    google.style.display = 'none';
+    renderGoogleButton(slot, async (token, nonce) => {
+      err.textContent = '';
+      try { await signInWithGoogleToken(token, nonce); afterSignIn(); }
+      catch (e) { err.textContent = 'Google sign-in didn\u2019t work. ' + (e.message || '') + ' Try the email code.'; }
+    }).then(() => { slot.style.display = ''; trouble.style.display = ''; })
+      .catch(() => { google.style.display = ''; });
+  }
   return h('div.signin',
     h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back('welcome'), html: icon.back })),
     h('div.signin-hero', h('span.logo.big', { html: LOGO }), h('h1', 'Welcome ', h('em', 'in')), h('p.lead', 'Sign in to keep your tales safe and see them on any phone.')),
     isStandalone() && /iphone|ipad|ipod/i.test(navigator.userAgent) ? h('p.demo-note', h('b', 'Tip.'), ' On iPhone the email code keeps you inside this app and is the most reliable here. You only need to sign in once.') : null,
-    h('div.signin-card.glass-card', google,
+    h('div.signin-card.glass-card', slot, trouble, google,
       h('div.or', h('span', 'or')),
       h('label', 'Email', email), err, mail),
     auth.provider === 'demo' ? h('p.demo-note', h('b', 'Demo mode.'), ` Real sign-in switches on when the server is connected. Any email works, and the code is ${DEMO_CODE}.`) : null,
-    auth.provider === 'supabase' ? h('details.diag', h('summary', 'Trouble signing in? Show details'), h('pre', ['Version: 2 (home screen)', ...auth.diag].join('\n'))) : null,
+    auth.provider === 'supabase' ? h('details.diag', h('summary', 'Trouble signing in? Show details'), h('pre', ['Version: 3 (home screen)', ...auth.diag, authLogText() ? '--- recent sign-in events ---\n' + authLogText() : ''].join('\n'))) : null,
     h('p.fine', 'We only use your email to sign you in and send important account messages. By continuing you agree to the ', h('a', { href: 'terms.html', target: '_blank', rel: 'noopener' }, 'Terms'), ' and ', h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener' }, 'Privacy Policy'), '.'));
 });
 register('code', (p) => {

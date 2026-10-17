@@ -155,3 +155,12 @@ Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 
 - Streaks: `js/streak.js`. A flame chip on Home from 2 days in a row; it stays alive until the end of the day after the last post. Milestones at 3, 7, 14, 30, 60 and 100 days celebrate once each (`account.milestones`).
 - Share as a picture: `js/share.js` draws a 1080x1920 picture (page, stamp, postmark, stickers, signature). Opens the phone's share sheet (WhatsApp, Instagram Stories...) and saves the picture where sharing is not available. Button on the tale screen and inside the celebration.
 - Tests: `node tests/delight.mjs`. Journey test now closes the first-tale card.
+
+## Stay signed in + Google button (v12)
+
+- One shared sign-in client (two at once could race to renew the same saved sign-in).
+- A backup copy of the saved sign-in is kept in the app's own storage and restored if the phone clears the small note; sign-out removes it.
+- A short diary of sign-in events is kept on the phone and shown in "Trouble signing in? Show details".
+- Google's own button (shows "Little Tales", not the supabase.co address). Switches on when `GOOGLE_CLIENT_ID` in `js/config.js` is filled in; the older redirect button stays as the backup.
+- Supabase dashboard (founder): turn OFF "Detect and revoke potentially compromised refresh tokens" and raise "JWT expiry" to 604800 so an app closed mid-renewal cannot lose its sign-in.
+- Tests: `tests/signin.mjs`, plus new backup and sign-out cases in `tests/persist.mjs`.

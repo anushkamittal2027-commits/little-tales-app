@@ -1,20 +1,27 @@
 // Sign-in. Two providers behind one small interface, so the screens never change:
 //  - "demo": for development and previews (no server). Any email works; the code is 12345678.
 //  - "supabase": real Google sign-in and email codes. Switched on automatically when js/config.js is filled in.
-import { CONFIG, ONLINE, CODE_LENGTH } from './config.js';
+import { CONFIG, ONLINE, CODE_LENGTH, GOOGLE_CLIENT_ID } from './config.js';
 import { store } from './store.js';
 
 export const DEMO_CODE = '1234567890'.slice(0, CODE_LENGTH);
 export const auth = { provider: ONLINE ? 'supabase' : 'demo', user: null, ready: false, error: null, diag: [] };
-let sb = null; // the Supabase client, loaded only when online
-
-async function supabase() {
-  if (sb) return sb;
-  if (window.__SB_MOCK) return (sb = window.__SB_MOCK);          // tests only
-  const { createClient } = await import('@supabase/supabase-js');
-  sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
-  return sb;
+// ONE shared sign-in client for the whole app (two clients refreshing the same saved sign-in at the same moment can lock a member out).
+let sbPromise = null;
+function supabase() {
+  if (window.__SB_MOCK) return Promise.resolve(window.__SB_MOCK);          // tests only
+  return (sbPromise ||= (async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    return createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  })().catch((e) => { sbPromise = null; throw e; }));
 }
+// A short diary of sign-in events kept on the phone, so "why was I signed out?" can be answered from the Show details panel.
+const LOG_KEY = 'lt-auth-log';
+export function authLog(msg) {
+  try { const a = JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); a.push(new Date().toISOString().slice(5, 19).replace('T', ' ') + ' ' + msg); localStorage.setItem(LOG_KEY, JSON.stringify(a.slice(-20))); } catch {}
+}
+export const authLogText = () => { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]').join('\n'); } catch { return ''; } };
+const TOKEN_KEY = () => 'sb-' + new URL(CONFIG.SUPABASE_URL).hostname.split('.')[0] + '-auth-token';
 export const client = supabase;
 const toUser = (u) => (u ? { id: u.id, email: u.email, name: u.user_metadata?.full_name || u.user_metadata?.name || '' } : null);
 
@@ -33,7 +40,7 @@ const friendly = (m) => /exchange external code|invalid_client|unauthorized_clie
 // The sign-in the phone remembers (written by the Supabase library). Reading it takes no network, so the app can open instantly.
 const storedSession = () => {
   try {
-    const raw = localStorage.getItem('sb-' + new URL(CONFIG.SUPABASE_URL).hostname.split('.')[0] + '-auth-token');
+    const raw = localStorage.getItem(TOKEN_KEY());
     const s = raw && JSON.parse(raw);
     return s && s.refresh_token && s.user ? s : null;
   } catch { return null; }
@@ -46,9 +53,18 @@ export async function initAuth() {
     auth.diag.push('Address on arrival: ' + location.origin + location.pathname + (names.length ? '  (carried: ' + names.join(', ') + ')' : '  (nothing carried)'));
     const raw = readReturnError();
     if (raw) { auth.error = friendly(raw); console.warn('Sign-in returned an error:', raw); }
+    // If the phone cleared its small saved-sign-in note but kept our own backup copy, put it back (the library then renews it as usual).
+    try {
+      if (!localStorage.getItem(TOKEN_KEY())) {
+        const bk = await store.getMeta('authBackup');
+        if (bk) { localStorage.setItem(TOKEN_KEY(), bk); authLog('Saved sign-in restored from backup'); auth.diag.push('Saved sign-in restored from the backup copy'); }
+      }
+    } catch {}
     const remembered = storedSession();
     const listen = (c) => c.auth.onAuthStateChange((event, session) => {
       auth.diag.push('Event: ' + event + (session ? ' (signed in)' : ''));
+      authLog(event + (session ? ' ok' : ' no session'));
+      try { store.setMeta('authBackup', session ? JSON.stringify(session) : null); } catch {}
       auth.user = toUser(session?.user);
       auth.onChange?.(event, auth.user);
     });
@@ -131,4 +147,19 @@ export async function signOut() {
   if (auth.provider === 'supabase') { auth.manualSignOut = true; await auth.beforeSignOut?.(); const c = await supabase(); await c.auth.signOut(); setTimeout(() => { auth.manualSignOut = false; }, 1500); }
   else await store.setMeta('demoUser', null);
   auth.user = null;
+}
+
+// Google's own sign-in button hands us a signed token; Supabase checks it and signs the member in (no supabase.co page is ever shown).
+export const googleClientId = () => window.__GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID;
+export const googleButtonAvailable = () => auth.provider === 'supabase' && !!googleClientId();
+export async function signInWithGoogleToken(token, nonce) {
+  const c = await supabase();
+  auth.manual = true;
+  try {
+    const { data, error } = await c.auth.signInWithIdToken({ provider: 'google', token, nonce });
+    if (error) throw error;
+    auth.user = toUser(data.user);
+    await auth.afterSignIn?.();
+    return auth.user;
+  } finally { setTimeout(() => { auth.manual = false; }, 1500); }
 }
