@@ -17,13 +17,20 @@ let current = null;
 let stack = [];          // our own record of screens, so back works even where browser history is unavailable
 let silent = 0;          // popstate events we caused ourselves
 
+// Which gingham and where the side flowers sit, per screen (from the design). The camera is dark, so it has no backdrop.
+const BD = {
+  welcome: ['rose', 600], intro: ['sky', 420], signin: ['sky', 440], code: ['rose', 480], terms: ['sky', 420], home: ['sky', 560], calendar: ['rose', 420], day: ['sky', 640],
+  tale: ['rose', 300], account: ['sky', 420], thought: ['rose', 300], frame: ['rose', 470], decorate: ['sky', 200], ready: ['sky', 300], paywall: ['rose', 480],
+  checkout: ['rose', 480], success: ['rose', 480], locked: ['rose', 520], studio: ['sky', 420], weekvideo: ['sky', 300], stamping: ['sky', 300], camera: ['none', 0], moment: ['none', 0],
+};
 function render(st, dir = 'fwd') {
   current?._cleanup?.();
   const fn = screens[st.name] || screens.calendar;
   const el = fn(st.params || {});
   el.classList.add('screen'); if (dir !== 'none') el.classList.add(dir === 'back' ? 'enter-back' : 'enter-fwd');
   document.getElementById('screen').replaceChildren(el);
-  document.getElementById('app').dataset.screen = st.name;
+  const app = document.getElementById('app'); app.dataset.screen = st.name;
+  const [bd, ft] = BD[st.name] || ['sky', 420]; app.dataset.bd = bd; app.style.setProperty('--ft', ft);
   current = el;
   drawTabs(st.name);
   window.scrollTo(0, 0);
@@ -31,7 +38,7 @@ function render(st, dir = 'fwd') {
 }
 
 // ---- bottom tab bar (Home, Calendar, New, Studio, Me) ----
-const TAB_SCREENS = ['home', 'calendar', 'studio', 'account', 'day'];
+const TAB_SCREENS = ['home', 'calendar', 'studio', 'account'];
 const TABS = [['home', 'Home', 'home'], ['calendar', 'Calendar', 'calendar'], ['new', 'New', 'plus'], ['studio', 'Studio', 'sticker'], ['account', 'Me', 'user']];
 let onNew = null;
 export const setNewAction = (fn) => { onNew = fn; };
@@ -44,7 +51,7 @@ function drawTabs(name) {
   if (!bar) { bar = h('nav', { id: 'tabbar', 'aria-label': 'Main' }); app.append(bar); }
   bar.replaceChildren(...TABS.map(([key, label, ic]) => key === 'new'
     ? h('button.tab-new', { 'aria-label': 'Make a new memory', onClick: () => onNew?.(), html: icon.plus })
-    : h('button.tab-item' + (name === key || (key === 'calendar' && name === 'day') ? '.on' : ''), { 'aria-label': label, 'aria-current': name === key ? 'page' : null, onClick: () => { if (name !== key) go(key, {}, { replace: true }); } }, h('span.ti', { html: icon[ic] }), h('span', label))));
+    : h('button.tab-item' + (name === key || false ? '.on' : ''), { 'aria-label': label, 'aria-current': name === key ? 'page' : null, onClick: () => { if (name !== key) go(key, {}, { replace: true }); } }, h('span.ti', { html: icon[ic] }), h('span', label))));
 }
 
 const tryHistory = (fn) => { try { fn(); return true; } catch { return false; } };

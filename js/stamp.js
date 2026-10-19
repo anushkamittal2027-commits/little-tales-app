@@ -39,8 +39,8 @@ export function stampPathPx(w, h, x0 = 0, y0 = 0) {
   return d + ' Z';
 }
 
-// A soft colour block behind each stamp, so every page has its own colour
-const BLOCKS = ['#FF4FA3', '#C6F135', '#25C7B7', '#FFD93D', '#6FA8FF', '#FF6B4A'];
+// A soft colour block behind each stamp, so every page has its own colour (the redesign palette)
+const BLOCKS = ['#F3C9C3', '#BFD7EC', '#F6E3A1', '#C9D8BD', '#E9DECB'];
 export const blockColor = (tale) => {
   let n = 0; for (const c of String(tale.id || tale.date)) n = (n * 31 + c.charCodeAt(0)) >>> 0;
   return BLOCKS[n % BLOCKS.length];
@@ -53,7 +53,8 @@ export const LIGHTS = [
   { id: 'dark', label: 'After dark' },
 ];
 
-// size: CSS font-size for the stamp (everything inside scales with it).
+// size: CSS font-size for the stamp (the stamp is always 10em wide; everything inside scales with it).
+// A real postage stamp: perforated edge, cream paper, a framed photo window and a small footer. Sizes inside are in container units (cqw).
 export function stampEl(tale, { size = '16px', mini = false, postmark = true, developing = false, full = false } = {}) {
   const light = tale.light || 'golden';
   const photo = tale.photo
@@ -64,23 +65,24 @@ export function stampEl(tale, { size = '16px', mini = false, postmark = true, de
     const done = () => box.classList.remove('loading');
     if (photo.complete && photo.naturalWidth) { /* already there */ } else { box.classList.add('loading'); photo.addEventListener('load', done, { once: true }); photo.addEventListener('error', done, { once: true }); }
   }
-  const el = h('div.stamp-wrap' + (mini ? '.mini' : ''), { style: { fontSize: size } },
+  return h('div.stamp-wrap' + (mini ? '.mini' : ''), { style: { fontSize: size } },
     h('div.stamp-shadow',
       h('div.stamp.light-' + light + (developing ? '.developing' : ''),
         box,
         h('div.stamp-foot', h('span', 'LITTLE TALES'), h('span', dotDate(tale.date))))),
     postmark && !mini ? h('div.postmark' + (developing ? '.pending' : ''), { html: postmarkSvg(tale.date) }) : null);
-  return el;
 }
 
 // A full scrapbook page: stamp, title, date, thought and decorations.
 export function pageEl(tale, { developing = false, decorLayer = true } = {}) {
   const page = h('div.page');
-  const stamp = stampEl(tale, { size: 'calc(var(--pw) * .0585)', developing, full: true });
+  const stamp = stampEl(tale, { size: 'calc(52cqw / 10)', developing, full: true });
   const parts = [
-    h('div.page-block', { style: { background: blockColor(tale) } }),
+    h('div.page-corner', { 'aria-hidden': 'true' }),
+    h('div.page-block', { style: { background: blockColor(tale) }, 'aria-hidden': 'true' }),
     h('div.page-stamp', stamp),
-    h('div.page-text',
+    h('div.page-tape', { 'aria-hidden': 'true' }),
+    h('div.page-text' + ((tale.thought || '').length > 80 ? '.long' : ''),
       tale.title ? h('div.page-title', tale.title) : null,
       h('div.page-date', shortDate(tale.date).toUpperCase()),
       tale.thought ? h('div.page-thought', tale.thought) : null),

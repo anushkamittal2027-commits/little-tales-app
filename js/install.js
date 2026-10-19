@@ -59,9 +59,9 @@ export function addToHomeScreen() {
 // A small, dismissible card for the Home screen.
 export function installCard(onChange) {
   if (!canOfferInstall() || account.installHinted) return null;
-  return h('div.install-card.glass-card',
-    h('span.ic-ic', { html: icon.share }),
-    h('div.ic-copy', h('b', 'Put Little Tales on your home screen'), h('small', 'One tap to open, and you stay signed in')),
+  return h('div.install-card',
+    h('span.ic-ic', 'LT'),
+    h('div.ic-copy', h('b', 'Add Little Tales to your home screen'), h('small', 'Opens like an app, one tap away.')),
     h('button.btn-secondary.ic-go', { onClick: addToHomeScreen }, 'Add'),
     h('button.ic-x', { 'aria-label': 'Not now', onClick: async () => { await patchAccount({ installHinted: true }); onChange?.(); }, html: icon.close }));
 }

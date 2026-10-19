@@ -22,7 +22,7 @@ const wrap = (vb, body, extra = '') =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" ${extra} fill="none" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 
 // ---------- small drawing helpers ----------
-const SER = 'Fraunces, Georgia, serif', MONO = 'Courier Prime, Courier New, monospace', SANS = 'DM Sans, Helvetica, Arial, sans-serif';
+const SER = 'Playfair Display, Georgia, serif', MONO = 'DM Mono, Courier New, monospace', SANS = 'Inter, Helvetica, Arial, sans-serif';
 const rnd = (seed) => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const f1 = (n) => Math.round(n * 10) / 10;
 const lg = (n, stops, x1 = 0, y1 = 0, x2 = 0, y2 = 1) =>
@@ -526,7 +526,7 @@ const JOYS = [
       `<path d="M10 14 L100 12 L112 35 L100 58 L10 56 Q4 35 10 14Z" fill="${C.pink}" stroke="${C.plum}" stroke-width="3"/>` +
       `<circle cx="100" cy="35" r="3.5" fill="${C.cream}" stroke="${C.plum}" stroke-width="2.4"/>` +
       `<path d="M16 21 L92 19 M16 50 L92 49" stroke="#fff" stroke-width="1.6" stroke-dasharray="3 4" opacity=".8"/>` +
-      `<text x="52" y="40" text-anchor="middle" font-family="Fraunces, Georgia, serif" font-style="italic" font-weight="600" font-size="19" fill="#fff" stroke="none">with love</text>`) },
+      `<text x="52" y="40" text-anchor="middle" font-family="Playfair Display, Georgia, serif" font-style="italic" font-weight="600" font-size="19" fill="#fff" stroke="none">with love</text>`) },
   { id: 'arrow', name: 'Arrow', group: LJ,
     svg: S(`<path d="M14 68 C30 30 58 28 82 40" stroke="${C.lime}" stroke-width="11" opacity=".95"/>` +
       `<path d="M14 68 C30 30 58 28 82 40" ${o} fill="none"/>` +
@@ -685,23 +685,17 @@ export function trayIcon(kind, id) {
 
 // ---------- Postmark ----------
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-export function postmarkSvg(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const day = String(d).padStart(2, '0');
+export function postmarkSvg() {
+  // the quiet ink postmark from the redesign: a ring that says LITTLE TALES, a tiny flower, and four wavy cancellation lines
   return uniq(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 100" fill="none" stroke="${C.red}" stroke-width="2.2" stroke-linecap="round">` +
-    `<defs><path id="__ID__t" d="M14 50 A36 36 0 0 1 86 50"/><path id="__ID__b" d="M10 50 A40 40 0 0 0 90 50"/></defs>` +
-    `<circle cx="50" cy="50" r="46"/><circle cx="50" cy="50" r="31" stroke-width="1.6"/>` +
-    `<text font-family="Courier Prime, monospace" font-size="9.5" font-weight="700" letter-spacing="1.6" fill="${C.red}" stroke="none">` +
-    `<textPath href="#__ID__t" startOffset="50%" text-anchor="middle">LITTLE TALES</textPath></text>` +
-    `<text font-family="Courier Prime, monospace" font-size="8.5" font-weight="700" letter-spacing="2" fill="${C.red}" stroke="none" dy="9">` +
-    `<textPath href="#__ID__b" startOffset="50%" text-anchor="middle">POSTED</textPath></text>` +
-    `<text x="50" y="47" text-anchor="middle" font-family="Courier Prime, monospace" font-weight="700" font-size="15" fill="${C.red}" stroke="none">${day} ${MONTHS[m - 1]}</text>` +
-    `<text x="50" y="61" text-anchor="middle" font-family="Courier Prime, monospace" font-size="10.5" fill="${C.red}" stroke="none">${y}</text>` +
-    `<path d="M100 28 C112 20 120 36 132 28 C144 20 152 36 164 28 C172 24 178 26 184 28"/>` +
-    `<path d="M100 44 C112 36 120 52 132 44 C144 36 152 52 164 44 C172 40 178 42 184 44"/>` +
-    `<path d="M100 60 C112 52 120 68 132 60 C144 52 152 68 164 60 C172 56 178 58 184 60"/>` +
-    `<path d="M100 76 C112 68 120 84 132 76 C144 68 152 84 164 76 C172 72 178 74 184 76"/>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" aria-hidden="true">` +
+    `<defs><path id="__ID__r" d="M55 60m-33 0a33 33 0 1 1 66 0a33 33 0 1 1 -66 0"/></defs>` +
+    `<circle cx="55" cy="60" r="44" fill="none" stroke="#3E4C5E" stroke-width="2.2"/>` +
+    `<circle cx="55" cy="60" r="25" fill="none" stroke="#3E4C5E" stroke-width="1.4"/>` +
+    `<text font-family="DM Mono, monospace" font-size="9.5" letter-spacing="2.2" fill="#3E4C5E"><textPath href="#__ID__r">LITTLE TALES \u00b7 LITTLE TALES \u00b7</textPath></text>` +
+    `<path d="M55 50c4 4 4 10 0 18-4-8-4-14 0-18zM45 62c5-1 8 1 10 6-5 1-8-1-10-6zM65 62c-5-1-8 1-10 6 5 1 8-1 10-6z" fill="#3E4C5E"/>` +
+    `<g fill="none" stroke="#3E4C5E" stroke-width="2.2" stroke-linecap="round">` +
+    `<path d="M104 38q12-7 24 0t24 0 24 0 24 0"/><path d="M104 54q12-7 24 0t24 0 24 0 24 0"/><path d="M104 70q12-7 24 0t24 0 24 0 24 0"/><path d="M104 86q12-7 24 0t24 0 24 0 24 0"/></g>` +
     `</svg>`);
 }
 

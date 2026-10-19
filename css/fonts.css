@@ -1,35 +1,7 @@
-@font-face {
-  font-family: 'Courier Prime';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url(../assets/fonts/CourierPrime-normal-400.woff2) format('woff2');
-}
-@font-face {
-  font-family: 'Courier Prime';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url(../assets/fonts/CourierPrime-normal-700.woff2) format('woff2');
-}
-@font-face {
-  font-family: 'DM Sans';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url(../assets/fonts/DMSans-normal-400-700.woff2) format('woff2');
-}
-@font-face {
-  font-family: 'Fraunces';
-  font-style: italic;
-  font-weight: 400 600;
-  font-display: swap;
-  src: url(../assets/fonts/Fraunces-italic-400-600.woff2) format('woff2');
-}
-@font-face {
-  font-family: 'Fraunces';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url(../assets/fonts/Fraunces-normal-400-700.woff2) format('woff2');
-}
+/* Little Tales type: Playfair Display (headings), Inter (body and buttons), DM Mono (dates and stamps), Caveat (handwritten notes). Served from this site so the app works offline. */
+@font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 400 900; font-display: swap; src: url(../assets/fonts/PlayfairDisplay-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 400 900; font-display: swap; src: url(../assets/fonts/PlayfairDisplay-italic.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap; src: url(../assets/fonts/Inter-normal.woff2) format('woff2'); }
+@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url(../assets/fonts/DMMono-400.woff2) format('woff2'); }
+@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url(../assets/fonts/DMMono-500.woff2) format('woff2'); }
+@font-face { font-family: 'Caveat'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(../assets/fonts/Caveat-normal.woff2) format('woff2'); }

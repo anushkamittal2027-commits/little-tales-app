@@ -1,13 +1,15 @@
 // Turns a tale into a picture that can be shared (WhatsApp, Instagram Stories...) or saved.
 // It is drawn on a canvas from the tale's own data, so it looks the same on every phone and never depends on what is on screen.
-import { stampPathPx, blockColor } from './stamp.js';
-import { artSvg, postmarkSvg, LOGO } from './art.js';
+// The look follows the app: soft gingham, a paper page, a perforated stamp, handwriting.
+import { blockColor } from './stamp.js';
+import { artSvg, postmarkSvg } from './art.js';
 import { dotDate, shortDate } from './util.js';
 import { saveBlob } from './zip.js';
 
 const W = 1080, H = 1920;          // a tall picture: perfect for Stories and WhatsApp status, fine for chats
-const PW = 900, PH = 1125;         // the scrapbook page inside it (4:5, like the app)
-const INK = '#1E1B2E';
+const PW = 840, PH = 1050;         // the scrapbook page (4:5, like the app)
+const INK = '#2E3134';
+const SERIF = '"Playfair Display", Georgia, serif', MONO = '"DM Mono", ui-monospace, monospace', HAND = 'Caveat, "Segoe Print", cursive';
 
 const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('image')); i.src = src; });
 const svgImg = async (svg, wh = null) => {
@@ -17,7 +19,6 @@ const svgImg = async (svg, wh = null) => {
   const img = await loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s));
   return { img, ratio };
 };
-
 function wrap(ctx, text, maxW) {
   const out = []; let line = '';
   for (const word of String(text).split(/\s+/)) {
@@ -27,99 +28,104 @@ function wrap(ctx, text, maxW) {
   if (line) out.push(line); return out;
 }
 const rot = (ctx, cx, cy, deg, fn) => { ctx.save(); ctx.translate(cx, cy); ctx.rotate((deg * Math.PI) / 180); fn(); ctx.restore(); };
+const rr = (ctx, x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+const spaced = (ctx, px) => { try { ctx.letterSpacing = px + 'px'; } catch {} };
 
-async function drawStamp(ctx, tale, photo, size) {
-  const em = size, sw = 10 * em, sh = 12.6 * em;
-  ctx.save(); ctx.translate(-sw / 2, -sh / 2);
-  const outline = new Path2D(stampPathPx(sw, sh));
-  ctx.save(); ctx.shadowColor = 'rgba(30,27,46,.32)'; ctx.shadowBlur = .55 * em; ctx.shadowOffsetY = .4 * em; ctx.fillStyle = '#FFFBF3'; ctx.fill(outline); ctx.restore();
-  ctx.fillStyle = '#FFFBF3'; ctx.fill(outline);
-  ctx.strokeStyle = 'rgba(30,27,46,.2)'; ctx.lineWidth = .05 * em; ctx.strokeRect(.52 * em, .52 * em, sw - 1.04 * em, sh - 1.04 * em);
-  // the photo window, cropped to fill like object-fit: cover
-  const px = 1.05 * em, py = 1.05 * em, pw = 7.9 * em, ph = 10.05 * em;
-  ctx.save(); ctx.beginPath(); ctx.roundRect ? ctx.roundRect(px, py, pw, ph, .12 * em) : ctx.rect(px, py, pw, ph); ctx.clip();
-  ctx.fillStyle = '#e8dccb'; ctx.fillRect(px, py, pw, ph);
-  if (photo) {
-    const k = Math.max(pw / photo.naturalWidth, ph / photo.naturalHeight), dw = photo.naturalWidth * k, dh = photo.naturalHeight * k;
-    ctx.drawImage(photo, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+// soft gingham: two overlapping bands of colour that fade out, like watercolour
+function gingham(ctx, x, y, w, h, tile, rgb, a) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  const band = (g) => { g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(.42, `rgba(${rgb},${a})`); g.addColorStop(.52, `rgba(${rgb},${a * .35})`); g.addColorStop(.6, `rgba(${rgb},0)`); return g; };
+  for (let gx = x; gx < x + w; gx += tile) { ctx.fillStyle = band(ctx.createLinearGradient(gx, 0, gx + tile, 0)); ctx.fillRect(gx, y, tile, h); }
+  for (let gy = y; gy < y + h; gy += tile) { ctx.fillStyle = band(ctx.createLinearGradient(0, gy, 0, gy + tile)); ctx.fillRect(x, gy, w, tile); }
+  ctx.restore();
+}
+// a strip of washi tape with ragged ends, drawn with its top-left at (0, 0)
+function tape(ctx, w, h) {
+  ctx.save(); ctx.beginPath();
+  [[.02, 0], [.98, 0], [1, .25], [.97, .5], [1, .75], [.98, 1], [.02, 1], [0, .72], [.03, .5], [0, .28]].forEach(([x, y], i) => (i ? ctx.lineTo(x * w, y * h) : ctx.moveTo(x * w, y * h)));
+  ctx.closePath(); ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(0, 0, w, h);
+  const t = h / 2.5; ctx.fillStyle = 'rgba(150,188,224,.62)';
+  for (let x = 0; x < w; x += t * 2) ctx.fillRect(x, 0, t, h);
+  for (let y = 0; y < h; y += t * 2) ctx.fillRect(0, y, w, t);
+  ctx.restore();
+}
+
+// The postage stamp, centred on (0, 0): perforated edge, cream paper, framed photo, footer. wpx is its width.
+function drawStamp(ctx, tale, photo, pm, wpx) {
+  const u = wpx / 100, w = 100 * u, h = 130 * u;
+  const off = document.createElement('canvas'); off.width = Math.ceil(w); off.height = Math.ceil(h);
+  const o = off.getContext('2d');
+  o.fillStyle = '#FFFCF5'; o.fillRect(0, 0, w, h);
+  o.globalCompositeOperation = 'destination-out';
+  for (let x = 0; x <= 100.01; x += 5) for (const y of [0, 130]) { o.beginPath(); o.arc(x * u, y * u, 1.65 * u, 0, Math.PI * 2); o.fill(); }
+  for (let y = 5; y < 129.9; y += 5) for (const x of [0, 100]) { o.beginPath(); o.arc(x * u, y * u, 1.65 * u, 0, Math.PI * 2); o.fill(); }
+  ctx.save(); ctx.translate(-w / 2, -h / 2);
+  ctx.save(); ctx.shadowColor = 'rgba(74,58,36,.28)'; ctx.shadowBlur = 2.2 * u * 2; ctx.shadowOffsetY = 1.6 * u; ctx.drawImage(off, 0, 0); ctx.restore();
+  const px = 6.5 * u, py = 6.5 * u, pw = 87 * u, ph = 108 * u;
+  ctx.fillStyle = '#E9EEF0'; ctx.fillRect(px, py, pw, ph);
+  ctx.save(); ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip();
+  if (photo) { const k = Math.max(pw / photo.naturalWidth, ph / photo.naturalHeight), dw = photo.naturalWidth * k, dh = photo.naturalHeight * k; ctx.drawImage(photo, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh); }
+  const L = { morning: ['rgba(226,240,252,.42)', 'rgba(255,255,255,.18)'], golden: ['rgba(255,196,110,.34)', 'rgba(236,140,80,.22)'], dark: ['rgba(28,36,72,.38)', 'rgba(16,18,40,.5)'] }[tale.light || 'golden'];
+  if (L) { const lg = ctx.createLinearGradient(0, py, 0, py + ph); lg.addColorStop(0, L[0]); lg.addColorStop(1, L[1]); ctx.fillStyle = lg; ctx.fillRect(px, py, pw, ph); }
+  ctx.restore();
+  ctx.strokeStyle = '#E4D8C2'; ctx.lineWidth = .6 * u; ctx.strokeRect(px + .3 * u, py + .3 * u, pw - .6 * u, ph - .6 * u);
+  ctx.fillStyle = '#4A4740'; ctx.font = `400 ${4.3 * u}px ${MONO}`; ctx.textBaseline = 'middle'; spaced(ctx, .12 * 4.3 * u);
+  ctx.textAlign = 'left'; ctx.fillText('LITTLE TALES', px, 121 * u); ctx.textAlign = 'right'; ctx.fillText(dotDate(tale.date), px + pw, 121 * u); spaced(ctx, 0);
+  if (pm) {
+    const mw = 60 * u, mh = mw * pm.ratio;
+    ctx.save(); ctx.globalAlpha = .78; ctx.translate(58 * u + mw / 2, -7 * u + mh / 2); ctx.rotate((-9 * Math.PI) / 180); ctx.drawImage(pm.img, -mw / 2, -mh / 2, mw, mh); ctx.restore();
   }
-  // the light ("Original" draws nothing at all)
-  const light = tale.light || 'golden';
-  if (light === 'morning') { ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = 'rgba(190,215,235,.22)'; ctx.fillRect(px, py, pw, ph); }
-  if (light === 'golden') { ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = 'rgba(242,166,107,.5)'; ctx.fillRect(px, py, pw, ph); ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(242,166,107,.10)'; ctx.fillRect(px, py, pw, ph); }
-  if (light === 'dark') { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(70,60,120,.55)'; ctx.fillRect(px, py, pw, ph); }
   ctx.restore();
-  ctx.strokeStyle = 'rgba(30,27,46,.45)'; ctx.lineWidth = .06 * em; ctx.strokeRect(px, py, pw, ph);
-  // footer: LITTLE TALES ........ 17.10.26
-  ctx.fillStyle = 'rgba(30,27,46,.75)'; ctx.font = `700 ${.52 * em}px "Courier Prime", "Courier New", monospace`; ctx.textBaseline = 'middle';
-  try { ctx.letterSpacing = `${.1 * .52 * em}px`; } catch {}
-  ctx.textAlign = 'left'; ctx.fillText('LITTLE TALES', px + .2 * em, py + ph + .8 * em);
-  ctx.textAlign = 'right'; ctx.fillText(dotDate(tale.date), px + pw - .2 * em, py + ph + .8 * em);
-  try { ctx.letterSpacing = '0px'; } catch {}
-  ctx.restore();
-  return { sw, sh, em };
 }
 
 // Draws the finished picture and returns it as a PNG Blob.
 export async function makeShareImage(tale) {
-  await Promise.all([document.fonts.load('700 54px Fraunces'), document.fonts.load('italic 400 33px Fraunces'), document.fonts.load('700 27px "Courier Prime"')].map((p) => p.catch(() => {})));
+  await Promise.all([document.fonts.load('600 60px "Playfair Display"'), document.fonts.load('italic 400 40px "Playfair Display"'), document.fonts.load('400 30px "DM Mono"'), document.fonts.load('600 60px Caveat')].map((p) => p.catch(() => {})));
   const photo = tale.photo ? await loadImg(tale.photo).catch(() => null) : null;
   const decos = [];
-  for (const d of tale.decorations || []) { try { const s = artSvg(d.kind, d.id); if (s) decos.push({ d, ...(await svgImg(s)) }); } catch { /* a missing sticker is skipped */ } }
-  const pm = await svgImg(postmarkSvg(tale.date), 700).catch(() => null);
-  const logo = await svgImg(LOGO, 120).catch(() => null);
+  for (const d of tale.decorations || []) { try { const sv = artSvg(d.kind, d.id); if (sv) decos.push({ d, ...(await svgImg(sv)) }); } catch { /* a missing sticker is skipped */ } }
+  const pm = await svgImg(postmarkSvg(tale.date), 600).catch(() => null);
 
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const ctx = c.getContext('2d');
-  // soft brand background
-  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#FFC6E3'); g.addColorStop(.5, '#FFE9A8'); g.addColorStop(1, '#B6EFE2');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  for (const [x, y, r, col] of [[120, 260, 520, 'rgba(255,79,163,.35)'], [980, 760, 520, 'rgba(198,241,53,.35)'], [260, 1600, 560, 'rgba(37,199,183,.35)']]) {
-    const rg = ctx.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, col); rg.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
-  }
+  ctx.fillStyle = '#F7FAFD'; ctx.fillRect(0, 0, W, H);
+  gingham(ctx, 0, 0, W, H, 156, '150,195,235', .45);
+  ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.font = `600 84px ${HAND}`; ctx.fillText('a little tale', W / 2, 200);
 
-  // the page
-  const ox = (W - PW) / 2, oy = 230;
-  ctx.save(); ctx.translate(ox, oy);
-  ctx.save(); ctx.shadowColor = 'rgba(48,36,78,.28)'; ctx.shadowBlur = 60; ctx.shadowOffsetY = 28; ctx.fillStyle = '#FFFDF8'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(0, 0, PW, PH, 12) : ctx.rect(0, 0, PW, PH); ctx.fill(); ctx.restore();
-  ctx.save(); ctx.beginPath(); ctx.roundRect ? ctx.roundRect(0, 0, PW, PH, 12) : ctx.rect(0, 0, PW, PH); ctx.clip();
-  // coloured block
-  rot(ctx, PW * (.13 + .37), PH * (.07 + .33), -4.5, () => {
-    const bw = PW * .74, bh = PH * .66; ctx.translate(-bw / 2, -bh / 2); ctx.globalAlpha = .92; ctx.fillStyle = blockColor(tale);
-    const pts = [[0, 0], [1, .012], [.99, .97], [.92, .99], [.85, .97], [.76, .995], [.66, .97], [.55, .99], [.44, .97], [.33, .994], [.22, .97], [.11, .99], [.01, .97]];
-    ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * bw, y * bh) : ctx.moveTo(x * bw, y * bh))); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+  const u = PW / 100;                                   // one hundredth of the page width
+  rot(ctx, W / 2, 330 + PH / 2, -2, () => {
+    ctx.translate(-PW / 2, -PH / 2);
+    ctx.save(); ctx.shadowColor = 'rgba(70,55,30,.38)'; ctx.shadowBlur = 80; ctx.shadowOffsetY = 40; ctx.fillStyle = '#FFFDF9'; rr(ctx, 0, 0, PW, PH, 16); ctx.fill(); ctx.restore();
+    ctx.save(); rr(ctx, 0, 0, PW, PH, 16); ctx.clip();
+    ctx.fillStyle = 'rgba(120,100,70,.09)';
+    for (let y = 2 * u; y < PH; y += 4 * u) for (let x = 2 * u; x < PW; x += 4 * u) { ctx.beginPath(); ctx.arc(x, y, .35 * u, 0, Math.PI * 2); ctx.fill(); }
+    rot(ctx, 111 * u, 11 * u, 12, () => { ctx.fillStyle = '#FFFDF9'; ctx.fillRect(-17 * u, -17 * u, 34 * u, 34 * u); gingham(ctx, -17 * u, -17 * u, 34 * u, 34 * u, 10 * u, '160,195,226', .5); });
+    rot(ctx, 46 * u, 45 * u, 4, () => { ctx.fillStyle = blockColor(tale); rr(ctx, -33 * u, -36 * u, 66 * u, 72 * u, u); ctx.fill(); });
+    rot(ctx, 47 * u, 42.8 * u, -3, () => drawStamp(ctx, tale, photo, pm, 52 * u));
+    rot(ctx, 48 * u, 8.25 * u, -7, () => { ctx.translate(-13 * u, -3.25 * u); tape(ctx, 26 * u, 6.5 * u); });
+    // title, date and words
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; let y = 88 * u;
+    if (tale.title) { ctx.fillStyle = INK; ctx.font = `600 ${7.6 * u}px ${SERIF}`; ctx.fillText(tale.title, 10 * u, y, 80 * u); y += 7.6 * u * 1.1; }
+    y += 1.6 * u; ctx.fillStyle = '#6B6760'; ctx.font = `400 ${2.8 * u}px ${MONO}`; spaced(ctx, .2 * 2.8 * u); ctx.fillText(shortDate(tale.date).toUpperCase(), 10 * u, y); spaced(ctx, 0);
+    y += 2.8 * u * 1.3 + 2.2 * u;
+    if (tale.thought) {
+      const fs = (tale.thought.length > 80 ? 3.7 : 4.4) * u; ctx.fillStyle = '#4F4B45'; ctx.font = `italic 400 ${fs}px ${SERIF}`;
+      for (const line of wrap(ctx, tale.thought, 80 * u).slice(0, 5)) { ctx.fillText(line, 10 * u, y); y += fs * 1.35; }
+    }
+    // stickers, tape, paper and doodles on top
+    for (const { d, img, ratio } of decos) {
+      const dw = (d.s / 100) * PW, dh = dw * ratio;
+      ctx.save(); if (d.kind !== 'doodles') { ctx.shadowColor = 'rgba(60,40,20,.28)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3; }
+      rot(ctx, (d.x / 100) * PW, (d.y / 100) * PH, d.r || 0, () => ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh)); ctx.restore();
+    }
+    ctx.restore();
   });
-  // the stamp and its postmark
-  const em = PW * .0585, sw = 10 * em, sh = 12.6 * em, scx = PW / 2, scy = PH * .084 + sh / 2;
-  ctx.save(); ctx.translate(scx, scy); ctx.rotate((-2 * Math.PI) / 180); await drawStamp(ctx, tale, photo, em);
-  if (pm) {
-    const mw = 10.4 * em, mh = mw * pm.ratio, mcx = sw / 2 + 3.4 * em - mw / 2, mcy = sh / 2 + 1.2 * em - mh / 2;
-    ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = .9; ctx.translate(mcx, mcy); ctx.rotate((-9 * Math.PI) / 180); ctx.drawImage(pm.img, -mw / 2, -mh / 2, mw, mh); ctx.restore();
-  }
-  ctx.restore();
-  // title, date, words
-  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; let y = PH * .784;
-  if (tale.title) { ctx.fillStyle = INK; ctx.font = `700 ${PW * .06}px Fraunces, Georgia, serif`; y += PW * .06; ctx.fillText(tale.title, PW / 2, y, PW * .8); y += PW * .008; }
-  ctx.fillStyle = 'rgba(30,27,46,.6)'; ctx.font = `700 ${PW * .03}px "Courier Prime", "Courier New", monospace`; try { ctx.letterSpacing = `${PW * .03 * .14}px`; } catch {}
-  y += PW * .035; ctx.fillText(shortDate(tale.date).toUpperCase(), PW / 2, y); try { ctx.letterSpacing = '0px'; } catch {} y += PW * .016;
-  if (tale.thought) {
-    ctx.fillStyle = INK; ctx.font = `italic 400 ${PW * .037}px Fraunces, Georgia, serif`;
-    for (const line of wrap(ctx, tale.thought, PW * .8).slice(0, 4)) { y += PW * .037 * 1.35; ctx.fillText(line, PW / 2, y); }
-  }
-  // stickers, tape, paper and doodles on top
-  for (const { d, img, ratio } of decos) {
-    const dw = (d.s / 100) * PW, dh = dw * ratio;
-    ctx.save(); if (d.kind !== 'doodles') { ctx.shadowColor = 'rgba(30,27,46,.22)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3; }
-    rot(ctx, (d.x / 100) * PW, (d.y / 100) * PH, d.r || 0, () => ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh)); ctx.restore();
-  }
-  ctx.restore(); ctx.restore();
 
   // the signature under the page
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  if (logo) ctx.drawImage(logo.img, W / 2 - 52, 1470, 104, 104 * logo.ratio);
-  ctx.fillStyle = INK; ctx.font = '700 66px Fraunces, Georgia, serif'; ctx.fillText('Little Tales', W / 2, 1680);
-  ctx.fillStyle = 'rgba(30,27,46,.7)'; ctx.font = '400 34px "DM Sans", system-ui, sans-serif'; ctx.fillText('Turn little moments into memories', W / 2, 1738);
-  ctx.fillStyle = '#E8368F'; ctx.font = '700 38px "DM Sans", system-ui, sans-serif'; ctx.fillText('littletales.me', W / 2, 1800);
+  ctx.fillStyle = INK; ctx.font = `600 70px ${SERIF}`; ctx.fillText('Little Tales', W / 2, 1670);
+  ctx.fillStyle = '#4F4B45'; ctx.font = `400 32px ${MONO}`; spaced(ctx, 6.4); ctx.fillText('LITTLETALES.ME', W / 2, 1735); spaced(ctx, 0);
 
   return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not make the picture'))), 'image/png'));
 }

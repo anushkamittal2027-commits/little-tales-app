@@ -1,7 +1,7 @@
-import { h, icon, makeThumb, buzz, MAX_PER_DAY, MAX_THOUGHT, todayStr, parseDate, toDateStr, addDays, monthName, longDate, shortDate, uid, fileToPhoto, drawToJpeg } from './util.js';
+import { h, icon, makeThumb, buzz, dotDate, dayTitle, MAX_PER_DAY, MAX_THOUGHT, todayStr, parseDate, toDateStr, addDays, monthName, longDate, shortDate, uid, fileToPhoto, drawToJpeg } from './util.js';
 import { store } from './store.js';
 import { state, register, go, back, toast, sheet } from './nav.js';
-import { stampEl, pageEl, LIGHTS, stampPathPx } from './stamp.js';
+import { stampEl, pageEl, LIGHTS, blockColor } from './stamp.js';
 import { makeEditor } from './decorate.js';
 import { Recorder, MAX_SECONDS, micMessage, Dictation, dictationSupported, playChime, playParty, playStamp } from './recorder.js';
 import { LOGO, artSvg } from './art.js';
@@ -55,24 +55,22 @@ function canStart(date) {
 // =====================================================
 // WELCOME (first time only)
 // =====================================================
+const STAR = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6l6.6 16.6L56 24l-13.6 11L47 52 32 42.6 17 52l4.6-17L8 24l17.4-1.4z" fill="#F2C94C" stroke="#E0AE2C" stroke-width="2" stroke-linejoin="round"/></svg>';
+const SPARK = '<svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 2v30M2 17h30M6.5 6.5l21 21M27.5 6.5l-21 21" stroke="#E7B93E" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
 register('welcome', () => {
-  const mk = (photo, title, rot, size = '9.5px') => ({ el: stampEl({ date: todayStr(), photo: samplePhoto(photo), light: 'golden', title }, { size, postmark: false }), rot });
-  const c1 = mk('string-lights', '', -9), c2 = mk('skyline-dusk', '', 4, '12px'), c3 = mk('rain-bokeh', '', -3);
+  const demo = { date: todayStr(), photo: samplePhoto('misty-hills'), light: 'none' };
   return h('div.welcome',
-    h('div.welcome-collage',
-      h('div.wc.wc1', { style: { '--rot': '-9deg' } }, c1.el),
-      h('div.wc.wc3', { style: { '--rot': '7deg' } }, c3.el),
-      h('div.wc.wc2', { style: { '--rot': '-3deg' } }, c2.el),
-      h('div.wc-tape.t1', { html: artSvg('tape', 'tape-dots') }),
-      h('div.wc-tape.t2', { html: artSvg('tape', 'tape-apricot') }),
-      h('div.wc-sticker.s1', { html: artSvg('stickers', 'sun') }),
-      h('div.wc-sticker.s2', { html: artSvg('stickers', 'heart') }),
-      h('div.wc-sticker.s3', { html: artSvg('stickers', 'withlove') })),
-    h('div.welcome-copy',
-      h('div.brand-line', h('span.logo', { html: LOGO }), 'Little Tales'),
-      h('h1', 'Your camera roll forgets. ', h('span.hl.hl-lime', h('em', 'Your album won\u2019t.'))),
-      h('p', 'Catch a little moment, say how it felt, and watch it become a stamp in your own scrapbook.')),
-    h('div.bottom', primary('Start my album', () => go('signin')), h('p.fine.ver', 'Little Tales ' + APP_VERSION)));
+    h('div.welcome-head', h('h1', 'Little Tales'), h('p', 'Turn little moments', h('br'), 'into memories.')),
+    h('div.welcome-art', { 'aria-hidden': 'true' },
+      h('div.wa-gingham'), h('div.wa-block'),
+      h('div.wa-stamp', stampEl(demo, { size: '20px', postmark: false })),
+      h('div.wa-tape'), h('div.wa-star', { html: STAR }), h('div.wa-spark', { html: SPARK }),
+      h('div.wa-note', 'Small moments,', h('br'), 'big stories')),
+    h('div.bottom',
+      primary('Start my album', () => go('signin')),
+      h('button.link.welcome-signin', { onClick: () => go('signin') }, 'I already have an album · Sign in'),
+      h('p.fine.center', 'Private by default. No feed, no followers.'),
+      h('p.fine.center.ver', 'Little Tales ' + APP_VERSION)));
 });
 
 // =====================================================
@@ -86,49 +84,48 @@ register('calendar', () => {
   const { y, m } = state.month;
   const shift = (n) => { const d = new Date(y, m + n, 1); state.month = { y: d.getFullYear(), m: d.getMonth() }; go('calendar', {}, { replace: true }); };
 
-  let taps = 0, tapTimer;
-  const logo = h('button.brand', { 'aria-label': 'Little Tales', onClick: () => {
-    taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => (taps = 0), 1200);
-    if (taps >= 5) { taps = 0; if (isFounder()) founderPanel(); }
-  } }, h('span.logo', { html: LOGO }), 'Little Tales');
-
   const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
   const cells = [];
   for (let i = 0; i < first.getDay(); i++) cells.push(h('div.cell.blank'));
+  let monthTales = 0;
   for (let d = 1; d <= days; d++) {
     const ds = toDateStr(new Date(y, m, d));
     const tales = store.forDate(ds);
+    monthTales += tales.length;
     const future = ds > today, isToday = ds === today;
     const cls = ['cell', isToday && 'today', future && 'future', tales.length && 'has'].filter(Boolean).join('.');
     const cell = h('button.' + cls, {
-      'aria-label': `${shortDate(ds)}${tales.length ? `, ${tales.length} tales` : ''}`,
+      'aria-label': `${shortDate(ds)}${tales.length ? `, ${tales.length} tales` : ''}${isToday && !tales.length ? ', add a tale' : ''}`,
       onClick: () => {
         if (tales.length) go('day', { date: ds });
         else if (isToday) startToday();
       },
     },
       tales.length
-        ? [h('div.cover' + (state.justPosted && tales.some((t) => t.id === state.justPosted) ? '.new' : ''), stampEl(tales[0], { size: '9.8cqw', mini: true })), h('span.num', d), dots(tales.length)]
-        : [h('span.num', d), isToday ? dots(0) : null]);
+        ? [h('div.cover' + (state.justPosted && tales.some((t) => t.id === state.justPosted) ? '.new' : ''), stampEl(tales[0], { size: 'inherit', mini: true }), h('span.num', d)), dots(tales.length)]
+        : isToday ? [h('span.num', d), h('span.plus', { 'aria-hidden': 'true', html: icon.plus })] : [h('span.num', d)]);
     cells.push(cell);
   }
   state.justPosted = null;
 
+  let taps = 0, tapTimer;
+  const title = h('h1', { onClick: () => {
+    taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => (taps = 0), 1200);
+    if (taps >= 5) { taps = 0; if (isFounder()) founderPanel(); }
+  } }, `${monthName(m)} ${y}`);
   const todayCount = store.count(today);
   const root = h('div.calendar',
-    h('div.cal-head', logo, h('div.cal-head-right', trialPill(tinfo), h('button.icon-btn.acct', { 'aria-label': 'Account', onClick: () => go('account'), html: icon.user }))),
+    h('header.cal-head',
+      h('div', h('p.kicker', `${monthTales} ${monthTales === 1 ? 'TALE' : 'TALES'} THIS MONTH`), title),
+      h('div.arrows',
+        h('button.icon-btn', { 'aria-label': 'Previous month', onClick: () => shift(-1), html: icon.back }),
+        h('button.icon-btn', { 'aria-label': 'Next month', onClick: () => shift(1), html: icon.chevR }))),
     sundayBanner(tinfo),
     h('div.cal-sheet',
-      h('div.month-nav',
-        h('h1', h('span.big', (state.month.y === new Date().getFullYear() && state.month.m === new Date().getMonth()) ? new Date().getDate() : 1), h('span.stack', h('span.yr', y), h('em', monthName(m)))),
-        h('div.arrows',
-          h('button.icon-btn', { 'aria-label': 'Previous month', onClick: () => shift(-1), html: icon.back }),
-          h('button.icon-btn', { 'aria-label': 'Next month', onClick: () => shift(1), html: icon.chevR }))),
-      h('div.weekdays', ...['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => h('span', d))),
+      h('div.weekdays', { 'aria-hidden': 'true' }, ...['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => h('span', d))),
       h('div.grid', ...cells)),
-    latestStrip(),
-    h('div.bottom',
-      h('p.hint', todayCount ? `${todayCount} of ${MAX_PER_DAY} kept today` : 'Today counts.')));
+    h('p.cal-legend', h('span.dot.on'), h('span', h('b', `Today: ${todayCount} of ${MAX_PER_DAY} kept.`), ' Dots show how many tales a day holds.')),
+    latestStrip());
   // swipe left or right to change month
   let sx = 0, sy = 0;
   root.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
@@ -150,14 +147,14 @@ export function sundayBanner(info) {
 }
 
 function latestStrip() {
-  const list = [...store.tales].sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt)).slice(0, 7);
-  if (!list.length) return syncState.pulling ? h('div.latest', h('div.latest-title', 'Latest ', h('em', 'tales')), h('div.latest-row', ...[0, 1, 2].map(() => h('div.sk-stamp', { 'aria-hidden': 'true' })))) : null;
-  const rots = [-4, 3, -2, 5, -5, 2, -3];
-  return h('div.latest',
-    h('div.latest-title', 'Latest ', h('em', 'tales')),
+  const list = [...store.tales].sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt)).slice(0, 8);
+  if (!list.length) return syncState.pulling ? h('section.latest', h('h2', 'Latest tales'), h('div.latest-row', ...[0, 1, 2, 3].map(() => h('div.sk-stamp', { 'aria-hidden': 'true' })))) : null;
+  const rots = [-3, 2, -2, 3, -3, 2, -2, 3];
+  return h('section.latest',
+    h('h2', 'Latest tales'),
     h('div.latest-row', ...list.map((t, i) =>
       h('button.latest-card', { 'aria-label': t.title || shortDate(t.date), style: { '--rot': rots[i % rots.length] + 'deg' }, onClick: () => go('tale', { id: t.id }) },
-        stampEl(t, { size: '8.6px', mini: false, postmark: false })))));
+        stampEl(t, { size: '6.8px', postmark: false })))));
 }
 
 export function startToday() {
@@ -167,96 +164,28 @@ export function startToday() {
 }
 
 // =====================================================
-// ADD A MOMENT
+// CAMERA (take a photo or choose one; also used to retake a photo)
 // =====================================================
-register('moment', (p) => {
+// The live picture is drawn on a canvas from the camera's raw frames and is never shown as a browser video, so it can never appear mirrored.
+const PLATE = { hw: 85.8, hh: 106.8 };            // the photo window of the stamp (its shape decides how the photo is cropped)
+const dayLabel = (ds) => (ds === todayStr() ? 'Today · ' : '') + shortDate(ds).replace(/^(\w+) (\d+) (\w+)$/, '$1 $2 $3');
+
+const cameraScreen = (p) => {
   const edit = p.editId ? store.byId(p.editId) : null;
   if (!edit && !state.draft) state.draft = newDraft();
-
-  const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true, onChange: onFile });
-  async function onFile() {
-    const f = fileInput.files[0]; if (!f) return;
-    const photo = await fileToPhoto(f);
-    if (edit) { edit.photo = photo; edit.thumb = await makeThumb(photo).catch(() => undefined); await store.save(edit); toast('Photo retaken'); back('calendar'); return; }
-    state.draft.photo = photo;
-    chooseDay();
-  }
-  function chooseDay() {
-    const today = todayStr();
-    const input = h('input.date-input', { type: 'date', value: state.draft.date, max: today });
-    const msg = h('p.sheet-msg');
-    const close = sheet(h('div.daypick',
-      h('h2', 'Which day is this from?'),
-      h('p', 'Pick the day this moment belongs to. Today is fine too.'),
-      input, msg,
-      primary('Continue', () => {
-        const d = input.value || today;
-        if (d > today) { msg.textContent = 'Tales can only be kept for today or earlier.'; return; }
-        if (store.count(d) >= MAX_PER_DAY) { close(); canStart(d); return; }
-        state.draft.date = d; close(); go('thought');
-      })), { onClose: () => {} });
-  }
-
-  const cam = h('button.btn-primary.big', { onClick: () => {
-    if (!edit && !canStart(state.draft.date)) return;
-    go('camera', edit ? { editId: edit.id } : {}, { replace: !!edit });
-  } }, h('span.btn-ic', { html: icon.camera }), 'Take a photo');
-  const gal = h('button.btn-secondary', { onClick: () => {
-    if (!edit && !canStart(todayStr())) return;
-    fileInput.click();
-  } }, h('span.btn-ic', { html: icon.image }), 'From your gallery');
-
-  return h('div.moment',
-    topBar(),
-    h('div.moment-hero', stampEl({ date: todayStr(), photo: null, light: 'golden' }, { size: '16px', postmark: false })),
-    h('div.moment-copy', h('h1', edit ? 'Retake the photo' : 'Add a moment'), h('p', 'What caught your eye?')),
-    h('div.bottom.stack', cam, gal, fileInput));
-});
-
-// ---------- in-app camera: a bright live view with a 3D stamp cut-out ----------
-const PLATE = { w: 330, h: 420, hx: 50, hy: 66, hw: 230, hh: 290 };
-function platePath() {
-  const { w, h } = PLATE, r = 64;
-  return `M${r} 0 H${w - r} A${r} ${r} 0 0 1 ${w} ${r} V${h - r} A${r} ${r} 0 0 1 ${w - r} ${h} H${r} A${r} ${r} 0 0 1 0 ${h - r} V${r} A${r} ${r} 0 0 1 ${r} 0 Z`;
-}
-function plateSvg() {
-  const hole = stampPathPx(PLATE.hw, PLATE.hh, PLATE.hx, PLATE.hy);
-  const body = platePath();
-  return `<svg viewBox="0 0 ${PLATE.w} ${PLATE.h}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <defs>
-    <linearGradient id="pm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".28" stop-color="#dfe3ea"/><stop offset=".5" stop-color="#f7f8fb"/><stop offset=".74" stop-color="#bcc3cf"/><stop offset="1" stop-color="#eef0f5"/></linearGradient>
-    <linearGradient id="pe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#7d8696" stop-opacity=".55"/></linearGradient>
-    <pattern id="br" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 1H4" stroke="#fff" stroke-opacity=".5" stroke-width=".6"/><path d="M0 3H4" stroke="#8d95a3" stroke-opacity=".25" stroke-width=".6"/></pattern>
-    <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#2a2f45" flood-opacity=".35"/><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#2a2f45" flood-opacity=".25"/></filter>
-    <filter id="ib"><feGaussianBlur stdDeviation="3.2"/></filter>
-    <clipPath id="pc"><path d="${body}"/></clipPath>
-  </defs>
-  <g filter="url(#sh)"><path d="${body} ${hole}" fill="url(#pm)" fill-rule="evenodd"/></g>
-  <path d="${body} ${hole}" fill="url(#br)" fill-rule="evenodd" opacity=".55"/>
-  <path d="${body}" fill="none" stroke="url(#pe)" stroke-width="3"/>
-  <path d="${body}" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1" transform="translate(0 1.5)" clip-path="url(#pc)"/>
-  <path d="${hole}" fill="none" stroke="#1d2233" stroke-opacity=".55" stroke-width="7" filter="url(#ib)"/>
-  <path d="${hole}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="1.6" transform="translate(0 2.2)"/>
-  <path d="${hole}" fill="none" stroke="#5b6376" stroke-opacity=".7" stroke-width="1.2"/>
-  <path d="M30 22 C120 6 210 6 300 22" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="3" stroke-linecap="round"/>
-</svg>`;
-}
-
-register('camera', (p) => {
-  const edit = p.editId ? store.byId(p.editId) : null;
   let stream, facing = 'environment', demoRaf = 0;
-  const mkVideo = (cls) => h('video.' + cls, { autoplay: true, playsinline: true, muted: true });
-  const bgCanvas = h('canvas.cam-bg', { 'aria-hidden': 'true', width: 48, height: 64 }), video = mkVideo('cam-src');
+  const bgCanvas = h('canvas.cam-bg', { 'aria-hidden': 'true', width: 48, height: 64 });
+  const video = h('video.cam-src', { autoplay: true, playsinline: true, muted: true });
   const view = h('canvas.cam-view', { 'aria-hidden': 'true' });
   let drawing = 0;
   const msg = h('div.cam-msg', { hidden: true });
   const flash = h('div.cam-flash');
-  const fallback = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, onChange: async () => {
-    const f = fallback.files[0]; if (f) await accept(await fileToPhoto(f));
-  } });
+  const fallback = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, onChange: async () => { const f = fallback.files[0]; if (f) await accept(await fileToPhoto(f)); } });
+  const gallery = h('input', { type: 'file', accept: 'image/*', hidden: true, onChange: async () => { const f = gallery.files[0]; if (f) await accept(await fileToPhoto(f)); gallery.value = ''; } });
 
   async function accept(photo) {
     if (edit) { edit.photo = photo; edit.thumb = await makeThumb(photo).catch(() => undefined); await store.save(edit); toast('Photo retaken'); back('calendar'); return; }
+    if (!canStart(state.draft.date)) return;
     state.draft.photo = photo; go('thought', {}, { replace: true });
   }
   async function open() {
@@ -269,7 +198,7 @@ register('camera', (p) => {
         try { const ds = demoStream(); stream = ds; video.srcObject = ds; msg.hidden = true; if (!drawing) paint(); hint.textContent = 'Demo camera for this preview. Your real camera works on your own address.'; return; } catch {}
       }
       msg.hidden = false;
-      msg.replaceChildren(h('p', 'We couldn\u2019t open the camera here. You can use your phone\u2019s own camera instead.'),
+      msg.replaceChildren(h('p', 'We couldn’t open the camera here. You can use your phone’s own camera, or choose a photo from your gallery.'),
         h('button.btn-primary', { onClick: () => fallback.click() }, 'Open phone camera'));
     }
   }
@@ -291,7 +220,7 @@ register('camera', (p) => {
     return c.captureStream(30);
   }
   // The part of the camera frame that shows through the stamp window. The preview and the saved photo both use exactly this crop,
-  // and both come from the raw camera frame, so what you see is what you get (the browser's own video element is never shown).
+  // and both come from the raw camera frame, so what you see is what you get.
   function cropBox() {
     const aspect = PLATE.hw / PLATE.hh, vw = video.videoWidth, vh = video.videoHeight;
     let sw = vw, sh = vw / aspect; if (sh > vh) { sh = vh; sw = vh * aspect; }
@@ -310,36 +239,61 @@ register('camera', (p) => {
     drawing = (video.requestVideoFrameCallback ? video.requestVideoFrameCallback(paint) : requestAnimationFrame(paint));
   }
   function snap() {
-    if (!video.videoWidth) return;
+    if (!video.videoWidth) { gallery.click(); return; }
+    if (!edit && !canStart(state.draft.date)) return;
     const { sx, sy, sw, sh } = cropBox();
     const c = document.createElement('canvas'); const k = Math.min(1, 1280 / Math.max(sw, sh));
     c.width = Math.round(sw * k); c.height = Math.round(sh * k);
     c.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
     buzz(14); flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
-    plate.classList.add('punch');
+    stage.classList.add('punch');
     setTimeout(() => accept(c.toDataURL('image/jpeg', 0.84)), 260);
   }
-  const hint = h('p.cam-hint', 'Line up your moment inside the stamp');
+  const hint = h('p.cam-hint', 'Fill the stamp with your moment');
+
+  // the stamp-shaped window (a real stamp, with the live picture where the photo goes)
+  const draftDate = () => (edit ? edit.date : state.draft.date);
+  const frame = stampEl({ date: draftDate(), photo: null, light: 'none' }, { size: '27px', postmark: false });
+  frame.querySelector('.stamp-photo').replaceChildren(view, video);
+  const footDate = frame.querySelector('.stamp-foot span:last-child');
+  const stage = h('div.cam-stage', frame);
+
+  // which day is this moment from? (today is the default)
+  const datePill = edit ? h('span.cam-spacer') : h('button.cam-date', { onClick: () => {
+    const today = todayStr();
+    const input = h('input.date-input', { type: 'date', value: state.draft.date, max: today });
+    const m2 = h('p.sheet-msg');
+    const close = sheet(h('div.daypick',
+      h('h2', 'Which day is this from?'),
+      h('p', 'Pick the day this moment belongs to. Today is fine too.'),
+      input, m2,
+      primary('Continue', () => {
+        const d = input.value || today;
+        if (d > today) { m2.textContent = 'Tales can only be kept for today or earlier.'; return; }
+        if (store.count(d) >= MAX_PER_DAY) { close(); canStart(d); return; }
+        state.draft.date = d; datePill.querySelector('.cdl').textContent = dayLabel(d); footDate.textContent = dotDate(d); close();
+      })));
+  } }, h('span.btn-ic', { html: icon.calendar }), h('span.cdl', dayLabel(state.draft.date)), h('span.btn-ic.chev', { html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>' }));
+
   open();
-  const pct = (v, t) => (v / t * 100) + '%';
-  const plate = h('div.plate',
-    h('div.plate-view', { style: { left: pct(PLATE.hx, PLATE.w), top: pct(PLATE.hy, PLATE.h), width: pct(PLATE.hw, PLATE.w), height: pct(PLATE.hh, PLATE.h) } }, view, video),
-    h('div.plate-art', { html: plateSvg() }));
+  const last = [...store.tales].filter((t) => t.thumb || t.photo).sort((a, b) => b.createdAt - a.createdAt)[0];
   const el = h('div.camera',
     bgCanvas, h('div.cam-wash'),
-    h('button.cam-close', { 'aria-label': 'Close camera', onClick: () => back(), html: icon.close }),
-    h('div.cam-title', 'Frame your ', h('em', 'stamp')),
-    h('div.plate-wrap', plate),
-    hint,
-    msg,
+    h('header.cam-head',
+      h('button.cam-close', { 'aria-label': 'Close camera', onClick: () => back(), html: icon.close }),
+      datePill, h('span.cam-spacer')),
+    stage, hint, msg,
     h('div.cam-bar',
-      h('span.cam-spacer'),
+      h('button.cam-gallery', { 'aria-label': 'Choose from gallery', onClick: () => gallery.click(), style: last ? { backgroundImage: `url(${last.thumb || last.photo})` } : {} }, last ? null : h('span', { html: icon.image })),
       h('button.shutter', { 'aria-label': 'Take photo', onClick: snap }, h('span')),
       h('button.cam-flip', { 'aria-label': 'Switch camera', onClick: () => { facing = facing === 'environment' ? 'user' : 'environment'; open(); }, html: icon.flip })),
-    flash, fallback);
+    h('div.cam-labels', h('span', 'Gallery'), h('span.on', 'Photo'), h('span', 'Flip')),
+    flash, fallback, gallery);
   el._cleanup = stop;
   return el;
-});
+};
+register('camera', cameraScreen);
+register('moment', cameraScreen);                  // older links still work: "add a moment" is the camera now
 
 // ---------- voice note pill (play / pause) ----------
 export function voicePill(src, dur, { onRemove, seed = 1 } = {}) {
@@ -456,12 +410,13 @@ register('thought', (p) => {
 
   const heroTale = edit ? t : state.draft;
   el = h('div.thought',
-    topBar(!edit ? linkBtn('Retake photo', () => { go('moment', {}, { replace: true }); }) : null),
-    h('div.thought-hero', stampEl(heroTale, { size: '10px', postmark: false })),
-    h('h1', 'What were you thinking?'),
-    voiceArea,
-    h('div.text-wrap', ta, count), dictBtn, status,
-    h('div.bottom', primary(edit ? 'Save changes' : 'Make it a stamp', async () => {
+    stepBar(2, !edit ? linkBtn('Retake', () => { go('camera', {}, { replace: true }); }) : null),
+    h('div.thought-hero', h('div.th-stamp', stampEl(heroTale, { size: '9.2px', postmark: false })),
+      h('div', h('h1', 'How did it feel?'), h('p.lead.small', 'Write a line, say it out loud, or both.'))),
+    h('section.tcard', h('p.kicker', 'A short thought'), h('div.text-wrap', ta), h('div.tc-row', dictBtn, count)),
+    status,
+    h('section.tcard.vcard', h('p.kicker', 'Voice note'), voiceArea),
+    h('div.bottom', primary(edit ? 'Save changes' : 'Next', async () => {
       if (recording) return;
       if (edit) { edit.thought = t.thought; edit.audio = t.audio; edit.audioDur = t.audioDur; await store.save(edit); toast('Saved'); back('calendar'); }
       else go('frame');
@@ -470,6 +425,8 @@ register('thought', (p) => {
   return el;
 });
 
+const stepBar = (n, right) => h('div.topbar.stepbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }),
+  h('div.steps', { 'aria-label': `Step ${n} of 4` }, ...[1, 2, 3, 4].map((k) => h('i' + (k < n ? '.done' : k === n ? '.on' : '')))), h('div.topbar-right', right));
 const redirectHome = () => { queueMicrotask(() => go('home', {}, { replace: true })); return h('div'); };
 
 // =====================================================
@@ -481,27 +438,31 @@ register('frame', (p) => {
   if (!t || (!edit && !t.photo)) return redirectHome();
 
   const heroBox = h('div.frame-hero');
-  const draw = () => heroBox.replaceChildren(stampEl(t, { size: '19px', postmark: false }));
+  const draw = () => heroBox.replaceChildren(h('div.fh-panel', { 'aria-hidden': 'true' }), h('div.fh-stamp', stampEl(t, { size: '21.6px', postmark: false })));
   draw();
-  const chips = h('div.chips');
+  const SW = { none: 'conic-gradient(from 200deg, #F6E3A1, #F3C9C3, #BFD7EC, #C9D8BD, #F6E3A1)', morning: 'linear-gradient(#DCEAF6, #fff)', golden: 'linear-gradient(#FFD79A, #F0A768)', dark: 'linear-gradient(#4C5A86, #1F2745)' };
+  const chips = h('div.chips', { role: 'radiogroup', 'aria-label': 'Light' });
   const drawChips = () => chips.replaceChildren(...LIGHTS.map((l) =>
-    h('button.chip.lt-' + l.id + (t.light === l.id ? '.on' : ''), { onClick: () => { t.light = (t.light === l.id && l.id !== 'none') ? 'none' : l.id; draw(); drawChips(); } }, l.label)));
+    h('button.chip.lt-' + l.id + (t.light === l.id ? '.on' : ''), { role: 'radio', 'aria-checked': String(t.light === l.id), onClick: () => { t.light = (t.light === l.id && l.id !== 'none') ? 'none' : l.id; draw(); drawChips(); } },
+      h('span.sw', { style: { background: SW[l.id] } }), l.label)));
   drawChips();
-  const title = h('input.title-input', { type: 'text', maxlength: 32, placeholder: 'Give it a little title', 'aria-label': 'Title' });
+  const title = h('input.title-input', { type: 'text', id: 'title', maxlength: 32, placeholder: 'Give it a little title', 'aria-label': 'Title' });
   title.value = t.title || '';
-  title.addEventListener('input', () => { t.title = title.value; });
+  const tcount = h('span.count', `${title.value.length}/32`);
+  title.addEventListener('input', () => { t.title = title.value; tcount.textContent = `${title.value.length}/32`; });
 
   const next = async () => {
     if (edit) { edit.light = t.light; edit.title = t.title; await store.save(edit); toast('Saved'); back('calendar'); }
     else go('stamping');
   };
   return h('div.frame',
-    topBar(),
+    h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }), h('div.topbar-title', 'Frame your stamp'), h('span.topbar-spacer')),
     heroBox,
     h('div.frame-controls',
-      h('div.label', 'Pick a light (or keep it original)'), chips,
-      h('div.label', 'Title (optional)'), title),
-    h('div.bottom.stack', primary(edit ? 'Save' : 'Stamp it', next), edit ? null : linkBtn('Skip for now', next)));
+      h('p.label', 'Light'), chips,
+      h('p.fine', 'Your photo stays exactly as taken unless you pick a light.'),
+      h('label.label', { for: 'title' }, 'Title'), h('div.title-wrap', title, tcount)),
+    h('div.bottom', primary(edit ? 'Save' : 'Stamp it', next), edit ? null : linkBtn('Skip for now', next)));
 });
 
 // =====================================================
@@ -512,7 +473,7 @@ register('stamping', () => {
   if (!t || !t.photo) return redirectHome();
   const stamp = stampEl(t, { size: '23px', developing: true });
   if (account.settings.sound !== false) setTimeout(playStamp, 700);
-  const el = h('div.stamping', h('div.stamping-stage', stamp), h('p.stamping-text', 'Stamping…'));
+  const el = h('div.stamping', h('div.stamping-stage', stamp), h('p.stamping-text', 'Stamping\u2026'));
   let done = false;
   const next = () => { if (!done) { done = true; go('decorate', {}, { replace: true }); } };
   const timer = setTimeout(next, 1900);
@@ -546,11 +507,10 @@ register('decorate', (p) => {
   };
   return h('div.decorate',
     h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }),
-      h('div.topbar-title', 'Decorate your page'), skipSlot),
+      h('div.topbar-title', 'Decorate'), skipSlot),
     h('div.page-frame', page),
     hint,
-    ed.tray,
-    h('div.bottom.tight', primary('Done decorating', done)));
+    h('section.dock', { 'aria-label': 'Decorations' }, ed.tray, primary('Done decorating', done)));
 });
 
 // =====================================================
@@ -582,16 +542,17 @@ register('ready', () => {
   const t = state.draft;
   if (!t || !t.photo) return redirectHome();
   return h('div.ready',
-    h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }), h('div.topbar-title', 'Your tale is ready')),
+    h('div.ready-head', h('button.icon-btn.rh-back', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }), h('p.kicker', 'Almost there'), h('h1', 'Your page is ready')),
     h('div.page-frame', pageEl(t)),
-    h('div.bottom.stack',
+    h('p.private-note', h('span.btn-ic', { html: icon.lock }), 'Only you can see this page.'),
+    h('div.bottom',
       primary('Post to my calendar', async (ev) => {
         const btn = ev.currentTarget; if (btn.disabled) return;
         if (store.count(t.date) >= MAX_PER_DAY) { canStart(t.date); return; }
         const saved = { ...t, createdAt: Date.now() };
         btn.disabled = true;
         try { saved.thumb = await makeThumb(saved.photo).catch(() => undefined); await store.save(saved); buzz([18, 50, 18]); }
-        catch (e) { btn.disabled = false; console.error(e); toast('We couldn\u2019t save this tale. Your phone may be out of space.'); return; }
+        catch (e) { btn.disabled = false; console.error(e); toast('We couldn’t save this tale. Your phone may be out of space.'); return; }
         state.justPosted = saved.id;
         const d = parseDate(saved.date); state.month = { y: d.getFullYear(), m: d.getMonth() };
         state.draft = null;
@@ -607,21 +568,29 @@ register('ready', () => {
 register('day', (p) => {
   const tales = store.forDate(p.date);
   if (!tales.length) return redirectHome();
-  const isToday = p.date === todayStr();
+  const today = todayStr();
   const n = tales.length;
-  // every tale of the day is shown together, as big as the screen allows (several tales overlap a little, like a pile of stamps)
-  const em = n === 1 ? 'calc(min(100vw, 460px) * .07)' : 'calc((min(100vw, 460px) - 4px) / 20.4)';
-  const row = h('div.day-row.n' + n, ...tales.map((t) =>
-    h('button.day-card', { onClick: () => go('tale', { id: t.id }) },
-      stampEl(t, { size: em }),
-      t.title ? h('div.day-title', t.title) : null)));
+  const canAdd = n < MAX_PER_DAY && p.date <= today;
+  // every tale of the day is shown together, as big as the screen allows
+  const em = n === 1 ? 'calc(min(100vw, 430px) * .056)' : 'calc(min(100vw, 430px) * .043)';
+  const items = tales.map((t, i) => h('div.day-item.i' + i,
+    h('div.di-block', { 'aria-hidden': 'true', style: { background: blockColor(t) } }),
+    h('button.day-card', { 'aria-label': t.title || shortDate(t.date), onClick: () => go('tale', { id: t.id }) }, stampEl(t, { size: em, postmark: i === 0 })),
+    h('div.di-tape', { 'aria-hidden': 'true' }),
+    t.title || t.audio ? h('div.di-note', t.title ? h('p.day-title', t.title) : null, t.audio ? h('p.di-voice', h('span.btn-ic', { html: icon.play }), fmtDur(t.audioDur || 0)) : null) : null));
+  if (canAdd) items.push(h('button.day-add', { onClick: () => { if (!canStart(p.date)) return; state.draft = newDraft(p.date); go('camera'); } },
+    h('span.da-ic', { html: icon.plus }), h('b', 'Add another tale'), h('small', `${MAX_PER_DAY - n} ${MAX_PER_DAY - n === 1 ? 'spot' : 'spots'} left`)));
+  const dates = [...new Set(store.tales.map((t) => t.date))].sort();
+  const at = dates.indexOf(p.date), prev = dates[at - 1], next = dates[at + 1];
+  const short = (ds) => shortDate(ds).split(' ').slice(0, 2).join(' ');
+  const pill = (ds, left) => ds
+    ? h('button.day-pill', { onClick: () => go('day', { date: ds }, { replace: true }) }, left ? [h('span.btn-ic', { html: icon.back }), short(ds)] : [short(ds), h('span.btn-ic', { html: icon.chevR })])
+    : h('span.day-pill.none');
   return h('div.day',
-    topBar(),
-    h('div.day-head', h('div.day-kicker', isToday ? 'Today' : 'A day to remember'), h('h1', longDate(p.date)), dots(n)),
-    row,
-    tales.length < MAX_PER_DAY && isToday
-      ? h('div.bottom', primary('Add another tale', () => { if (!canStart(p.date)) return; state.draft = newDraft(p.date); go('moment'); }))
-      : null);
+    h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back('calendar'), html: icon.back }),
+      h('div.day-head', h('h1', dayTitle(p.date)), h('p.kicker', `${n} OF ${MAX_PER_DAY} KEPT`)), h('span.topbar-spacer')),
+    h('div.day-row.n' + n, ...items),
+    h('div.day-nav', pill(prev, true), pill(next, false)));
 });
 
 // =====================================================
@@ -633,14 +602,15 @@ register('tale', (p) => {
   const pill = t.audio ? voicePill(t.audio, t.audioDur, { seed: (t.createdAt % 7) + 1 }) : null;
   const el = h('div.tale',
     h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }),
-      h('div.topbar-right', h('button.icon-btn', { 'aria-label': 'More', onClick: () => taleMenu(t), html: icon.more }))),
+      h('p.tale-date', shortDate(t.date).replace(' ', ' · ').toUpperCase()),
+      h('button.icon-btn', { 'aria-label': 'More: edit thought, edit stamp, retake photo, delete', onClick: () => taleMenu(t), html: icon.more })),
     h('div.page-frame', pageEl(t)),
     pill ? h('div.tale-voice', pill) : null,
-    h('div.bottom.stack',
+    h('div.bottom',
       h('button.btn-primary', { onClick: async (ev) => {
         const b = ev.currentTarget; if (b.disabled) return; b.disabled = true; b.classList.add('busy');
         try { if (await shareTale(t) === 'saved') toast('Saved as a picture'); }
-        catch (e) { console.warn(e); toast('We couldn\u2019t make the picture. Please try again.'); }
+        catch (e) { console.warn(e); toast('We couldn’t make the picture. Please try again.'); }
         b.disabled = false; b.classList.remove('busy');
       } }, h('span.btn-ic', { html: icon.share }), 'Share as a picture'),
       h('button.btn-secondary', { onClick: () => go('decorate', { id: t.id }) }, 'Decorate')));

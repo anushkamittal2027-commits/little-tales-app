@@ -16,8 +16,8 @@ await p.addInitScript(() => {
 await p.goto(URL); await p.waitForTimeout(900);
 await p.click('text=Start my album'); await p.click('.google'); await p.waitForTimeout(700); await p.click('.check'); await p.click('text=Start my free week'); await p.waitForTimeout(400); await p.click('.intro-top .link'); await p.waitForTimeout(500);
 await p.evaluate(() => window.__lt.store.removeSamples());
-await p.click('.hh-cta .btn-primary'); await p.waitForTimeout(300);
-await p.screenshot({ path: '/tmp/s/v1.png' }); await p.click('text=From your gallery'); await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700); await p.click('.daypick .btn-primary'); await p.waitForTimeout(600);
+await p.click('.hh-cta'); await p.waitForTimeout(300);
+await p.screenshot({ path: '/tmp/s/v1.png' }); await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
 ok('thought screen shown', await p.locator('.thought').count() === 1);
 
 // dictation: words appear in the box, stay editable

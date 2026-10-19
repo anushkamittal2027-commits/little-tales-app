@@ -12,6 +12,7 @@ import { CANONICAL_ORIGIN } from './config.js';
 import { setDayOffset, buzz } from './util.js';
 import { auth, initAuth } from './auth.js';
 import { loadAnalytics } from './analytics.js';
+import { BACKDROP_HTML } from './backdrop.js';
 
 // Android/Chrome offers "install" through this event; we show our own button on the install screen.
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__installPrompt = e; });
@@ -30,7 +31,8 @@ async function syncInBackground() {
 }
 
 // One address, one saved sign-in: the old free address sends people to the real one.
-if (location.hostname.endsWith('.pages.dev') && !window.__DEMO_AUTH) location.replace(CANONICAL_ORIGIN + location.pathname + location.search + location.hash);
+// (preview links such as redesign.little-tales-app.pages.dev are left alone so a new design can be tried before it goes live)
+if (['littletales.pages.dev', 'little-tales-app.pages.dev'].includes(location.hostname) && !window.__DEMO_AUTH) location.replace(CANONICAL_ORIGIN + location.pathname + location.search + location.hash);
 
 // The first touch anywhere unlocks sound for the rest of the visit (phones refuse sound until someone has touched the page).
 for (const ev of ['touchend', 'pointerup', 'click']) window.addEventListener(ev, () => unlockAudio(), { once: true, passive: true });
@@ -46,6 +48,7 @@ window.addEventListener('pointerdown', (e) => {
 
 async function boot() {
   ensureStampClip();
+  { const bd = document.getElementById('backdrop'); if (bd) bd.innerHTML = BACKDROP_HTML; }
   try {
     await store.load();
     await loadAccount();

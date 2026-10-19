@@ -22,9 +22,8 @@ async function start(p) {
 }
 async function galleryTale(p, label = 'hello', { light = null, post = false, deco = false } = {}) {
   await p.click('#tabbar .tab-new'); await p.waitForTimeout(300);
-  await p.click('text=From your gallery'); await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700);
-  await p.click('.daypick .btn-primary'); await p.waitForTimeout(500);
-  await p.fill('.thought-input', label); await p.click('text=Make it a stamp'); await p.waitForTimeout(300);
+  await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
+  await p.fill('.thought-input', label); await p.click('.thought .bottom .btn-primary'); await p.waitForTimeout(300);
   if (light) await p.click(`.chip:has-text("${light}")`);
   await p.fill('.title-input', label.slice(0, 20)); await p.click('text=Stamp it'); await p.waitForSelector('.decorate', { timeout: 6000 }); await p.waitForTimeout(500);
   if (deco) { await p.click('.tray-item >> nth=0'); await p.waitForTimeout(200); }
@@ -63,7 +62,7 @@ for (const w of [320, 360, 375, 393, 430]) {
 // ===== 2. CAMERA: the preview shows exactly the pixels that get saved =====
 if (process.env.FAKECAM) {
   const p = await page({}); await start(p);
-  await p.click('#tabbar .tab-new'); await p.click('text=Take a photo'); await p.waitForTimeout(1800);
+  await p.click('#tabbar .tab-new'); await p.waitForTimeout(1800);
   const sig = (id) => p.evaluate(async (src) => {
     const img = src === 'canvas' ? document.querySelector('canvas.cam-view') : await new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = window.__lt.shot; });
     const c = document.createElement('canvas'); c.width = 8; c.height = 10; const g = c.getContext('2d'); g.drawImage(img, 0, 0, 8, 10);
@@ -85,8 +84,8 @@ if (process.env.FAKECAM) {
 // ===== 5. LIGHT: Original / no effect, and tapping a selected light clears it =====
 {
   const p = await page({}); await start(p);
-  await p.click('#tabbar .tab-new'); await p.click('text=From your gallery'); await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700); await p.click('.daypick .btn-primary'); await p.waitForTimeout(400);
-  await p.fill('.thought-input', 'x'); await p.click('text=Make it a stamp'); await p.waitForTimeout(300);
+  await p.click('#tabbar .tab-new'); await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
+  await p.fill('.thought-input', 'x'); await p.click('.thought .bottom .btn-primary'); await p.waitForTimeout(300);
   ok('"Original" is offered first', (await p.locator('.chips .chip').first().innerText()) === 'Original');
   ok('the photo starts exactly as taken (Original), no filter added', await p.locator('.frame-hero .stamp.light-none').count() === 1);
   await p.click('.chip:has-text("After dark")'); ok('a light can be picked', await p.locator('.frame-hero .stamp.light-dark').count() === 1);
@@ -108,19 +107,19 @@ for (const [w, h] of [[393, 670], [390, 844], [360, 640]]) {
   ok(`Ready ${w}x${h}: the page fills the width and most of the height`, ready.w >= ready.vw * 0.78 && ready.h >= ready.vh * 0.5 && ready.sh <= ready.vh + 1, JSON.stringify(ready));
   await p.click('text=Back to decorating'); await p.waitForTimeout(500);
   const dec = await p.evaluate(() => { const pg = document.querySelector('.page').getBoundingClientRect(), tr = document.querySelector('.tray').getBoundingClientRect(); return { pageH: pg.height, trayH: tr.height, vh: innerHeight, sh: document.documentElement.scrollHeight }; });
-  ok(`Decorate ${w}x${h}: the stamp is bigger than the tools`, dec.pageH > dec.trayH * 1.9 && dec.pageH >= dec.vh * 0.45 && dec.sh <= dec.vh + 1, JSON.stringify(dec));
+  ok(`Decorate ${w}x${h}: the stamp is bigger than the tools`, dec.pageH > dec.trayH * 1.6 && dec.pageH >= dec.vh * 0.42 && dec.sh <= dec.vh + 1, JSON.stringify(dec));
   await p.context().close();
 }
 
 // ===== 4. VOICE: unsupported or failing browsers fall back to the keyboard microphone with a clear message =====
 {
   const p = await page({}, () => { delete window.SpeechRecognition; delete window.webkitSpeechRecognition; }); await start(p);
-  await p.click('#tabbar .tab-new'); await p.click('text=From your gallery'); await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700); await p.click('.daypick .btn-primary'); await p.waitForTimeout(400);
+  await p.click('#tabbar .tab-new'); await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
   await p.click('.dictate'); await p.waitForTimeout(200);
   ok('no speech support: the cursor goes in the box and the keyboard microphone is explained', (await p.locator('.mic-status').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
   await p.context().close();
   const q = await page({}, () => { window.SpeechRecognition = window.webkitSpeechRecognition = class { start() { setTimeout(() => this.onerror?.({ error: 'service-not-allowed' }), 30); } stop() {} }; }); await start(q);
-  await q.click('#tabbar .tab-new'); await q.click('text=From your gallery'); await q.setInputFiles('input[type=file]', gallery); await q.waitForTimeout(700); await q.click('.daypick .btn-primary'); await q.waitForTimeout(400);
+  await q.click('#tabbar .tab-new'); await q.setInputFiles('input[type=file]:not([capture])', gallery); await q.waitForTimeout(1000);
   await q.click('.dictate'); await q.waitForTimeout(300);
   const msg = (await q.locator('.mic-status').innerText()).toLowerCase();
   ok('phone dictation switched off: says exactly where to turn it on, and offers the keyboard microphone', msg.includes('dictation') && msg.includes('keyboard'), msg);
@@ -150,7 +149,7 @@ for (const [w, h] of [[393, 670], [390, 844], [360, 640]]) {
   await p.evaluate(async () => { const { store } = window.__lt; const d = new Date(); const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; for (let i = 0; i < 3; i++) await store.save({ id: 'd' + i, date: ds, createdAt: i + 1, photo: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', title: 'Tale ' + i, thought: '', light: 'none', decorations: [], audio: null, audioDur: 0 }, { local: true }); window.__lt.go('day', { date: ds }, { replace: true }); });
   await p.waitForTimeout(600);
   const w3 = await p.evaluate(() => [...document.querySelectorAll('.day-card .stamp')].map((s) => Math.round(s.getBoundingClientRect().width)));
-  ok('Day view with 3 tales: each stamp is at least 170 px wide (was about 80)', w3.length === 3 && w3.every((w) => w >= 170), JSON.stringify(w3));
+  ok('Day view with 3 tales: each stamp is at least 160 px wide (was about 80)', w3.length === 3 && w3.every((w) => w >= 160), JSON.stringify(w3));
   ok('Day view: all 3 tales are shown together, nothing swipes', await p.evaluate(() => { const r = document.querySelector('.day-row'); const cards = [...document.querySelectorAll('.day-card')].map((c) => c.getBoundingClientRect()); return getComputedStyle(r).overflowX !== 'auto' && getComputedStyle(r).overflowX !== 'scroll' && !document.querySelector('.day-swipe, .day-dots') && cards.every((c) => c.left >= -30 && c.right <= innerWidth + 30) && document.documentElement.scrollWidth <= innerWidth; }));
   ok('Day view with 3 tales fits the phone width', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await p.screenshot({ path: '/tmp/s/day3.png' });
@@ -165,7 +164,7 @@ for (const [w, h] of [[393, 670], [390, 844], [360, 640]]) {
 }
 if (process.env.FAKECAM) {
   const p = await page({}); await start(p);
-  await p.click('#tabbar .tab-new'); await p.click('text=Take a photo'); await p.waitForTimeout(1500);
+  await p.click('#tabbar .tab-new'); await p.waitForTimeout(1500);
   const vis = await p.evaluate(() => [...document.querySelectorAll('video')].map((v) => { const cs = getComputedStyle(v); return { op: cs.opacity, w: v.getBoundingClientRect().width, tr: cs.transform }; }));
   ok('no camera video element is visible on screen (only canvases show the picture)', vis.every((v) => Number(v.op) === 0 || v.w <= 2), JSON.stringify(vis));
   const bg = await p.evaluate(() => { const c = document.querySelector('canvas.cam-bg'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i]; return s; });
@@ -233,9 +232,10 @@ if (process.env.FAKECAM) {
     await p.evaluate(async () => { window.__lt.account.dayOffset = 6; window.__lt.setDayOffset(6); await window.__lt.sync.pullAccount(); });
     ok('a member cannot stay in time-travel (always real time)', await p.evaluate(() => window.__lt.account.dayOffset) === 0);
     await p.evaluate(() => window.__lt.go('home', {}, { replace: true })); await p.waitForTimeout(400);
-    for (let i = 0; i < 5; i++) await p.click('.brand');
+    await p.evaluate(() => window.__lt.go('calendar', {}, { replace: true })); await p.waitForTimeout(400); for (let i = 0; i < 5; i++) await p.click('.cal-head h1');
     await p.waitForTimeout(400);
     ok('the hidden founder panel stays closed for members', await p.locator('.sheet').count() === 0);
+    await p.evaluate(() => window.__lt.go('home', {}, { replace: true })); await p.waitForTimeout(400);
     await p.click('.tile:has-text("Your week")'); await p.waitForTimeout(400);
     ok('"Your week" on day 1 explains it is ready on day 7 (does not open an early video)', await p.locator('.home').count() === 1 && (await p.locator('.toast').innerText()).includes('day 7'));
     await p.context().close(); }

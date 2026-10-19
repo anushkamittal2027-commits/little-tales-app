@@ -1,11 +1,11 @@
 // Little Tales service worker: works offline, opens fast, and shows the gentle nudges.
-const CACHE = 'little-tales-v8';
+const CACHE = 'little-tales-v9';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest',
-  'css/fonts.css', 'css/styles.css', 'css/pop-bg.css', 'css/pop.css', 'css/glass.css', 'css/screens2.css', 'css/decor.css',
+  'css/fonts.css', 'css/base.css', 'css/stamp.css', 'css/screens.css', 'css/decor.css',
   'js/app.js', 'js/nav.js', 'js/util.js', 'js/store.js', 'js/account.js', 'js/art.js', 'js/stamp.js', 'js/screens.js', 'js/screens2.js',
-  'js/decorate.js', 'js/recorder.js', 'js/sample.js', 'js/video.js', 'js/zip.js', 'js/config.js', 'js/push.js', 'js/auth.js', 'js/sync.js', 'js/pay.js', 'js/screens3.js', 'js/install.js',
-  'assets/fonts/Fraunces-normal-400-700.woff2', 'assets/fonts/Fraunces-italic-400-600.woff2', 'assets/fonts/DMSans-normal-400-700.woff2',
-  'assets/fonts/CourierPrime-normal-400.woff2', 'assets/fonts/CourierPrime-normal-700.woff2', 'assets/icons/icon-192.png', 'assets/icons/icon-512.png'];
+  'js/decorate.js', 'js/recorder.js', 'js/sample.js', 'js/video.js', 'js/zip.js', 'js/config.js', 'js/push.js', 'js/auth.js', 'js/sync.js', 'js/pay.js', 'js/screens3.js', 'js/install.js', 'js/backdrop.js',
+  'assets/fonts/PlayfairDisplay-normal.woff2', 'assets/fonts/PlayfairDisplay-italic.woff2', 'assets/fonts/Inter-normal.woff2',
+  'assets/fonts/DMMono-400.woff2', 'assets/fonts/DMMono-500.woff2', 'assets/fonts/Caveat-normal.woff2', 'assets/icons/icon-192.png', 'assets/icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL).catch(() => {})).then(() => self.skipWaiting()));

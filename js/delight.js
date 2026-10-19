@@ -1,8 +1,8 @@
 // Little moments of joy: confetti, the first-tale card and streak milestones.
 import { h, icon } from './util.js';
-import { sheet } from './nav.js';
-import { shareTale } from './share.js';
 import { toast } from './nav.js';
+import { shareTale } from './share.js';
+import { stampEl } from './stamp.js';
 
 const COLORS = ['#FF4FA3', '#C6F135', '#25C7B7', '#FFD93D', '#6FA8FF', '#FF6B4A'];
 const calm = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
@@ -34,27 +34,31 @@ export function confetti(ms = 2600) {
   requestAnimationFrame(tick);
 }
 
-function card({ emoji, title, body, tale, actions = true }) {
+function card({ kicker, title, body, tale }) {
   confetti();
-  let close;
+  const root = document.getElementById('app');
+  const close = () => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 200); };
   const share = h('button.btn-primary', { onClick: async (ev) => {
     const b = ev.currentTarget; if (b.disabled) return; b.disabled = true;
     try { const r = await shareTale(tale); if (r === 'saved') toast('Saved as a picture'); } catch (e) { console.warn(e); toast('We couldn’t make the picture. Please try again.'); }
     b.disabled = false;
   } }, h('span.btn-ic', { html: icon.share }), 'Share this stamp');
-  close = sheet(h('div.celebrate',
-    h('div.cel-emoji', { 'aria-hidden': 'true', html: emoji }),
-    h('h2', title), h('p', body),
-    actions && tale ? share : null,
-    h('button.link', { onClick: () => close() }, 'Maybe later')));
+  const wrap = h('div.cel-backdrop', { onClick: (e) => { if (e.target === wrap) close(); } },
+    h('div.celebrate', { role: 'dialog', 'aria-labelledby': 'celebrate-title' },
+      tale ? h('div.cel-stamp', stampEl(tale, { size: '13px' })) : null,
+      h('p.cel-kicker', kicker),
+      h('h2', { id: 'celebrate-title' }, title), h('p.cel-body', body),
+      tale ? share : null,
+      h('button.link', { onClick: close }, 'Maybe later')));
+  root.append(wrap);
 }
 
 export const FLAME = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.4 2.5c.4 3-1.2 4.6-2.7 6.2C8.3 10.2 7 11.7 7 14a5 5 0 0 0 10 0c0-1.6-.7-2.9-1.6-4 .1 1.1-.4 1.9-1.2 2.3.6-3-.2-6.8-1.8-9.8z"/></svg>';
 
 export function celebrateFirst(tale) {
-  card({ emoji: '<span class="cel-big">\u{1F389}</span>', title: 'Your first little tale!', body: 'It’s on your calendar now. This is the first stamp of many. Come back tomorrow and add another.', tale });
+  card({ kicker: 'the first of many', title: 'Your first little tale!', body: 'It’s tucked safely in your calendar. Come back tomorrow to start a streak.', tale });
 }
 
 export function celebrateStreak(n, tale) {
-  card({ emoji: `<span class="cel-flame">${FLAME}</span>`, title: `${n} days in a row!`, body: n >= 30 ? 'A whole habit of noticing. That’s really something.' : 'You keep coming back to what matters. Keep the flame going.', tale });
+  card({ kicker: 'keep the flame going', title: `${n} days in a row!`, body: n >= 30 ? 'A whole habit of noticing. That’s really something.' : 'You keep coming back to what matters. Lovely.', tale });
 }

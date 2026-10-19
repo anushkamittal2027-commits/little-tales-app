@@ -22,9 +22,8 @@ async function start(p) {
 }
 async function makeTale(p, label) {
   await p.click('#tabbar .tab-new'); await p.waitForTimeout(300);
-  await p.click('text=From your gallery'); await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700);
-  await p.click('.daypick .btn-primary'); await p.waitForTimeout(500);
-  await p.fill('.thought-input', label); await p.click('text=Make it a stamp'); await p.waitForTimeout(300);
+  await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
+  await p.fill('.thought-input', label); await p.click('.thought .bottom .btn-primary'); await p.waitForTimeout(300);
   await p.fill('.title-input', label.slice(0, 20)); await p.click('text=Stamp it'); await p.waitForSelector('.decorate', { timeout: 6000 }); await p.waitForTimeout(500);
   await p.click('.tray-item >> nth=0'); await p.waitForTimeout(200);
   await p.click('text=Done decorating'); await p.waitForSelector('.ready'); await p.waitForTimeout(400);
@@ -92,7 +91,7 @@ async function makeTale(p, label) {
   await seed(1); await seed(2); // streak of 2, today open
   await p.evaluate(() => { window.__lt.account.celebratedFirst = true; window.__lt.go('home', {}, { replace: true }); }); await p.waitForTimeout(600);
   const chip = await p.locator('.streak').innerText().catch(() => '');
-  ok('home shows "2 days in a row" with a nudge', /2 days in a row/.test(chip) && /keep it going/.test(chip), chip.replace(/\n/g, ' | '));
+  ok('home shows "2 days in a row" with a nudge', /2 days in a row/.test(chip) && /keep it going/i.test(chip), chip.replace(/\n/g, ' | '));
   ok('flame is dim until today is posted', await p.locator('.streak-flame.lit').count() === 0);
   await p.screenshot({ path: '/tmp/s/streak-open.png' });
   await makeTale(p, 'Third day');          // posts today -> 3 days -> milestone
@@ -150,7 +149,7 @@ async function makeTale(p, label) {
 {
   const p = await page(); await start(p);
   await p.evaluate(async () => { const s = await import('./js/sync.js'); s.syncState.pulling = true; window.__lt.go('home', {}, { replace: true }); }); await p.waitForTimeout(500);
-  ok('home shows placeholder stamps while tales are on their way', await p.locator('.sk-stamp').count() === 3);
+  ok('home shows placeholder stamps while tales are on their way', await p.locator('.sk-stamp').count() === 4);
   await p.screenshot({ path: '/tmp/s/skeleton.png' });
   await p.evaluate(async () => { const s = await import('./js/sync.js'); s.syncState.pulling = false; window.__lt.go('home', {}, { replace: true }); }); await p.waitForTimeout(400);
   ok('placeholders go away afterwards', await p.locator('.sk-stamp').count() === 0);

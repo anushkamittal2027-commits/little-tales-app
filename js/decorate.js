@@ -3,7 +3,7 @@ import { h, icon } from './util.js';
 import { TRAYS, DEFAULT_WIDTH, STICKER_GROUPS, artSvg } from './art.js';
 import { decoEl, placeDeco } from './stamp.js';
 
-const TABS = [['stickers', 'Stickers'], ['tape', 'Tape'], ['paper', 'Paper'], ['doodles', 'Doodles']];
+const TABS = [['tape', 'Tape'], ['stickers', 'Stickers'], ['paper', 'Paper'], ['doodles', 'Doodles']];
 const COLS = { stickers: 4, tape: 2, paper: 4, doodles: 3 };
 const MAX_ITEMS = 30;
 

@@ -23,10 +23,10 @@ ok('starts with no tales today', (await nToday()) === 0);
 async function makeTale(label, { camera = true, voice = false, skipDeco = true } = {}) {
   await p.click('#tabbar .tab-new'); await p.waitForTimeout(300);
   if (await p.locator('.limit').count()) return false;
-  if (camera) { await p.click('text=Take a photo'); await p.waitForTimeout(1300); await p.click('.shutter'); await p.waitForTimeout(900); }
-  else { await p.click('text=From your gallery'); await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700); await p.click('.daypick .btn-primary'); await p.waitForTimeout(500); }
+  if (camera) { await p.waitForTimeout(1300); await p.click('.shutter'); await p.waitForTimeout(900); }
+  else { await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000); }
   if (voice) { await p.click('.mic'); await p.waitForTimeout(1500); await p.click('.mic'); await p.waitForTimeout(800); }
-  await p.fill('.thought-input', label); await p.click('text=Make it a stamp'); await p.waitForTimeout(300);
+  await p.fill('.thought-input', label); await p.click('.thought .bottom .btn-primary'); await p.waitForTimeout(300);
   await p.fill('.title-input', label.slice(0, 20)); await p.click('text=Stamp it');
   await p.waitForSelector('.decorate', { timeout: 6000 });
   if (!skipDeco) { await p.click('.tray-item >> nth=0'); await p.waitForTimeout(300); }
@@ -53,20 +53,20 @@ await p.click('.limit .btn-primary'); await p.waitForTimeout(400);
 await p.click('.cell.today'); await p.waitForTimeout(500);
 ok('day view shows 3 tales', (await p.locator('.day-card').count()) === 3);
 await p.click('.day-card >> nth=1'); await p.waitForTimeout(500);
-await p.click('[aria-label="More"]'); await p.click('text=Edit thought'); await p.waitForTimeout(400);
+await p.click('[aria-label^="More"]'); await p.click('text=Edit thought'); await p.waitForTimeout(400);
 await p.fill('.thought-input', 'Edited words'); await p.click('text=Save changes'); await p.waitForTimeout(500);
 ok('edit thought saved', (await p.locator('.page-thought').innerText()).includes('Edited words'));
-await p.click('[aria-label="More"]'); await p.click('text=Delete this tale'); await p.waitForTimeout(300); await p.click('.sheet .btn-danger'); await p.waitForTimeout(800);
+await p.click('[aria-label^="More"]'); await p.click('text=Delete this tale'); await p.waitForTimeout(300); await p.click('.sheet .btn-danger'); await p.waitForTimeout(800);
 ok('delete removed a tale', (await nToday()) === 2);
 ok('lands on the day after deleting', (await p.locator('.day').count()) === 1);
 ok('a slot is free again after deleting', (await p.locator('text=Add another tale').count()) === 1);
 
 // gallery photo from another day
-await p.click('text=Add another tale'); await p.waitForTimeout(300); await p.click('text=From your gallery');
-await p.setInputFiles('input[type=file]', gallery); await p.waitForTimeout(700);
+await p.click('text=Add another tale'); await p.waitForTimeout(500);
 const y = new Date(today.getTime() - 3 * 864e5); const YD = `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`;
-await p.fill('.daypick input[type=date]', YD); await p.click('.daypick .btn-primary'); await p.waitForTimeout(500);
-await p.fill('.thought-input', 'From three days ago'); await p.click('text=Make it a stamp'); await p.click('text=Stamp it'); await p.waitForSelector('.decorate'); await p.click('text=Skip for now'); await p.click('text=Post to my calendar'); await p.waitForTimeout(1200); await p.locator('.celebrate .link').click({ timeout: 800 }).catch(() => {}); await p.waitForTimeout(2200);
+await p.click('.cam-date'); await p.fill('.daypick input[type=date]', YD); await p.click('.daypick .btn-primary'); await p.waitForTimeout(400);
+await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
+await p.fill('.thought-input', 'From three days ago'); await p.click('.thought .bottom .btn-primary'); await p.click('text=Stamp it'); await p.waitForSelector('.decorate'); await p.click('text=Skip for now'); await p.click('text=Post to my calendar'); await p.waitForTimeout(1200); await p.locator('.celebrate .link').click({ timeout: 800 }).catch(() => {}); await p.waitForTimeout(2200);
 ok('backdated tale counts against its own day', await p.evaluate((d) => window.__lt.store.tales.filter((t) => t.date === d).length === 1, YD));
 ok('today still has 2', (await nToday()) === 2);
 await p.screenshot({ path: OUT + '/calendar-final.png' });

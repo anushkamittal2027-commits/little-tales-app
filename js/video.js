@@ -68,7 +68,7 @@ function drawStamp(ctx, tale, img, cx, cy, u, rot, zoomT) {
   ctx.fillStyle = light === 'dark' ? 'rgba(30,24,70,.34)' : light === 'morning' ? 'rgba(190,215,235,.18)' : 'rgba(242,166,107,.2)'; ctx.fillRect(px, py, pw, ph);
   ctx.restore();
   ctx.strokeStyle = 'rgba(30,27,46,.45)'; ctx.lineWidth = u * 0.06; ctx.strokeRect(px, py, pw, ph);
-  ctx.fillStyle = 'rgba(30,27,46,.72)'; ctx.font = `700 ${u * 0.5}px "Courier Prime", monospace`; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(30,27,46,.72)'; ctx.font = `700 ${u * 0.5}px "DM Mono", monospace`; ctx.textBaseline = 'middle';
   ctx.textAlign = 'left'; ctx.fillText('LITTLE TALES', 1.1 * u, 11.7 * u); ctx.textAlign = 'right'; ctx.fillText(dotDate(tale.date), 8.9 * u, 11.7 * u);
   ctx.restore(); ctx.restore();
 }
@@ -79,9 +79,9 @@ function drawPostmark(ctx, tale, cx, cy, r, k, rot) {
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); const s = 1 + (1 - ease(k)) * 0.45; ctx.scale(s, s); ctx.globalAlpha = ease(k) * 0.9;
   ctx.strokeStyle = '#F2385A'; ctx.fillStyle = '#F2385A'; ctx.lineWidth = r * 0.06;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke(); ctx.lineWidth = r * 0.04; ctx.beginPath(); ctx.arc(0, 0, r * 0.68, 0, 7); ctx.stroke();
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `700 ${r * 0.3}px "Courier Prime", monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `700 ${r * 0.3}px "DM Mono", monospace`;
   ctx.fillText(`${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]}`, 0, -r * 0.08);
-  ctx.font = `400 ${r * 0.22}px "Courier Prime", monospace`; ctx.fillText(String(d.getFullYear()), 0, r * 0.22);
+  ctx.font = `400 ${r * 0.22}px "DM Mono", monospace`; ctx.fillText(String(d.getFullYear()), 0, r * 0.22);
   ctx.lineWidth = r * 0.05; ctx.lineCap = 'round';
   for (let n = 0; n < 4; n++) { ctx.beginPath(); const y = -r * 0.5 + n * r * 0.36; ctx.moveTo(r * 1.1, y); for (let x = 0; x <= 5; x++) ctx.quadraticCurveTo(r * (1.2 + x * 0.22 + 0.11), y + (x % 2 ? r * 0.12 : -r * 0.12), r * (1.2 + x * 0.22 + 0.22), y); ctx.stroke(); }
   ctx.restore();
@@ -93,7 +93,7 @@ export async function makeVideo(tales, { canvas, soft, subscribed, rangeText = '
   const per = n > 12 ? 1.7 : n > 6 ? 2.2 : 2.7, INTRO = 2.4, OUTRO = 2.6;
   const total = INTRO + n * per + OUTRO;
   canvas.width = W; canvas.height = H; const ctx = canvas.getContext('2d');
-  await Promise.all(['700 80px Fraunces', 'italic 500 40px Fraunces', '700 30px "Courier Prime"', '400 30px "Courier Prime"', '600 30px "DM Sans"'].map((f) => document.fonts.load(f).catch(() => {})));
+  await Promise.all(['700 80px Playfair Display', 'italic 500 40px Playfair Display', '700 30px "DM Mono"', '400 30px "DM Mono"', '600 30px "Inter"'].map((f) => document.fonts.load(f).catch(() => {})));
   const imgs = await Promise.all(tales.map((t) => loadImg(t.photo)));
 
   // Audio: a short snippet of each voice note, mixed into the video.
@@ -121,37 +121,37 @@ export async function makeVideo(tales, { canvas, soft, subscribed, rangeText = '
       ctx.save(); ctx.globalAlpha = k; ctx.translate(0, (1 - k) * 40);
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const title = soft ? videoTitle(n) : 'Your week';
-      ctx.font = `700 ${soft ? 78 : 120}px Fraunces, Georgia, serif`;
+      ctx.font = `700 ${soft ? 78 : 120}px Playfair Display, Georgia, serif`;
       const lines = soft ? wrap(ctx, title, W - 140) : [title];
       const lh = soft ? 92 : 130, y0 = H / 2 - ((lines.length - 1) * lh) / 2 - 40;
       lines.forEach((l, i) => {
         const w = ctx.measureText(l).width; ctx.fillStyle = '#C6F135'; ctx.save(); ctx.translate(W / 2, y0 + i * lh); ctx.rotate(-0.02); ctx.fillRect(-w / 2 - 22, -lh * 0.42, w + 44, lh * 0.8); ctx.restore();
         ctx.fillStyle = INK; ctx.fillText(l, W / 2, y0 + i * lh);
       });
-      ctx.font = '400 34px "Courier Prime", monospace'; ctx.fillStyle = 'rgba(30,27,46,.75)'; ctx.fillText(rangeText, W / 2, H / 2 + 150);
+      ctx.font = '400 34px "DM Mono", monospace'; ctx.fillStyle = 'rgba(30,27,46,.75)'; ctx.fillText(rangeText, W / 2, H / 2 + 150);
       ctx.restore(); return;
     }
     if (t >= INTRO + n * per) {
       const lt = t - INTRO - n * per; drawBg(ctx, n, t);
       const k = ease(lt / 0.7); ctx.save(); ctx.globalAlpha = k; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK;
-      ctx.font = '700 92px Fraunces, Georgia, serif';
+      ctx.font = '700 92px Playfair Display, Georgia, serif';
       const msg = subscribed ? 'See you next Sunday.' : 'Keep your tales going.'; wrap(ctx, msg, W - 120).forEach((l, i, a) => ctx.fillText(l, W / 2, H / 2 - ((a.length - 1) * 106) / 2 + i * 106));
-      ctx.font = 'italic 500 38px Fraunces, Georgia, serif'; ctx.fillText('Little Tales', W / 2, H / 2 + 150); ctx.restore(); return;
+      ctx.font = 'italic 500 38px Playfair Display, Georgia, serif'; ctx.fillText('Little Tales', W / 2, H / 2 + 150); ctx.restore(); return;
     }
     const i = Math.min(n - 1, Math.floor((t - INTRO) / per)), lt = t - INTRO - i * per, tale = tales[i];
     drawBg(ctx, i, t);
     const u = 41, enter = ease(lt / 0.7), settle = 1 - enter;
     const cx = W / 2, cy = 560 + settle * -300, rot = (i % 2 ? 0.045 : -0.045) * (0.4 + settle * 1.4);
     ctx.save(); ctx.globalAlpha = clamp01(lt / 0.25);
-    if (tale.title) { ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 54px Fraunces, Georgia, serif'; ctx.fillText(tale.title, W / 2, 110); }
+    if (tale.title) { ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 54px Playfair Display, Georgia, serif'; ctx.fillText(tale.title, W / 2, 110); }
     ctx.restore();
     drawStamp(ctx, tale, imgs[i], cx, cy, u, rot, lt / per);
     drawPostmark(ctx, tale, cx + 5 * u * 0.78, cy + 6.3 * u * 0.62, 90, (lt - 0.8) / 0.35, -0.16);
-    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(30,27,46,.7)'; ctx.font = '700 28px "Courier Prime", monospace';
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(30,27,46,.7)'; ctx.font = '700 28px "DM Mono", monospace';
     ctx.globalAlpha = clamp01((lt - 0.5) / 0.3); ctx.fillText(parseDate(tale.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase(), W / 2, 905);
     ctx.restore();
     if (tale.thought) {
-      ctx.save(); ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = 'italic 500 40px Fraunces, Georgia, serif';
+      ctx.save(); ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = 'italic 500 40px Playfair Display, Georgia, serif';
       let rem = Math.floor(tale.thought.length * clamp01((lt - 0.9) / Math.max(0.6, per - 1.5)));
       ctx.textAlign = 'left';
       wrap(ctx, tale.thought, W - 130).forEach((l, li) => { if (rem > 0) ctx.fillText(l.slice(0, rem), W / 2 - ctx.measureText(l).width / 2, 950 + li * 54); rem -= l.length + 1; });

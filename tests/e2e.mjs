@@ -38,7 +38,9 @@ await shot('02-home');
 await p.click('#tabbar >> text=Calendar'); await p.waitForTimeout(500);
 ok('calendar from the tab bar', await p.locator('.calendar').count() === 1);
 ok('status is trial', (await status()) === 'trial');
+await p.evaluate(() => window.__lt.go('home', {}, { replace: true })); await p.waitForTimeout(500);
 ok('trial pill says Day 1 of 7', (await p.locator('.pill').innerText()).includes('Day 1 of 7'));
+await p.evaluate(() => window.__lt.go('calendar', {}, { replace: true })); await p.waitForTimeout(500);
 await shot('03-calendar-day1');
 await p.reload(); await p.waitForTimeout(1200);
 ok('reload keeps you in (no welcome again)', await p.locator('.home').count() === 1);
@@ -60,7 +62,7 @@ await shot('07-paywall');
 await p.click('text=Maybe later'); await p.waitForTimeout(600);
 ok('Maybe later returns to calendar on day 7', await p.locator('.calendar').count() === 1);
 await lt('go', 'paywall', { from: 'pill' }); await p.waitForTimeout(500);
-await p.click('.plan >> nth=1'); await p.click('text=Continue'); await p.waitForTimeout(600);
+await p.click('.plan >> nth=0'); await p.click('text=Continue'); await p.waitForTimeout(600);
 ok('checkout shown', await p.locator('.checkout').count() === 1);
 await p.click('.paytab >> nth=0'); await p.click('.pay-fields input'); await p.fill('.pay-fields input', 'bad');
 await p.click('.checkout .btn-primary'); await p.waitForTimeout(250);
@@ -71,14 +73,16 @@ await p.click('.checkout .btn-primary'); await p.waitForSelector('.success', { t
 await shot('09-success');
 ok('subscribed after practice payment', (await status()) === 'subscribed');
 await p.click('text=Back to my calendar'); await p.waitForTimeout(600);
-ok('member pill on calendar', (await p.locator('.pill').innerText()).includes('Member'));
+await p.evaluate(() => window.__lt.go('home', {}, { replace: true })); await p.waitForTimeout(500);
+ok('member pill on home', (await p.locator('.pill').innerText()).includes('Member'));
+await p.evaluate(() => window.__lt.go('calendar', {}, { replace: true })); await p.waitForTimeout(500);
 
 // ---- GST switch + Sunday video banner + month swipe
 await lt('go', 'paywall', { from: 'pill' }); await p.waitForTimeout(400);
 ok('prices flat while not GST registered', !(await p.locator('.gst').innerText()).includes('GST'));
 await p.evaluate(async () => { window.__lt.account.settings.gst = true; await window.__lt.go('paywall', { from: 'pill' }); }); await p.waitForTimeout(400);
 ok('GST note appears when the switch is on', (await p.locator('.gst').innerText()).includes('GST'));
-await p.click('.plan >> nth=1'); await p.click('text=Continue'); await p.waitForTimeout(400);
+await p.click('.plan >> nth=0'); await p.click('text=Continue'); await p.waitForTimeout(400);
 ok('checkout shows a GST line and total with GST', (await p.locator('.checkout').innerText()).includes('GST (18%)') && (await p.locator('.srow.total').innerText()).includes('175.82'));
 await p.evaluate(() => { window.__lt.account.settings.gst = false; });
 await p.evaluate(async () => { const a = window.__lt.account; const now = new Date(); const toSun = (7 - now.getDay()) % 7; a.dayOffset = toSun; window.__lt.setDayOffset(toSun); window.__lt.go('calendar', {}, { replace: true }); });
@@ -88,28 +92,28 @@ await shot('09b-sunday-banner');
 await p.click('.banner'); await p.waitForTimeout(500);
 ok('Sunday video screen opens', await p.locator('.weekvideo').count() === 1);
 await p.evaluate(() => { window.__lt.account.dayOffset = 0; window.__lt.setDayOffset(0); window.__lt.go('calendar', {}, { replace: true }); }); await p.waitForTimeout(500);
-const titleBefore = await p.locator('.month-nav em').innerText();
+const titleBefore = await p.locator('.cal-head h1').innerText();
 const box = await p.locator('.grid').boundingBox();
 await p.mouse.move(box.x + 300, box.y + 80);
 await p.evaluate(() => { const g = document.querySelector('.calendar'); const t = (x, type) => { const ev = new Event(type, { bubbles: true }); ev.touches = [{ clientX: x, clientY: 300 }]; ev.changedTouches = [{ clientX: x, clientY: 300 }]; g.dispatchEvent(ev); }; t(320, 'touchstart'); t(120, 'touchend'); });
 await p.waitForTimeout(600);
-ok('swiping left moves to the next month', (await p.locator('.month-nav em').innerText()) !== titleBefore);
+ok('swiping left moves to the next month', (await p.locator('.cal-head h1').innerText()) !== titleBefore);
 await p.evaluate(() => { const g = document.querySelector('.calendar'); const t = (x, type) => { const ev = new Event(type, { bubbles: true }); ev.touches = [{ clientX: x, clientY: 300 }]; ev.changedTouches = [{ clientX: x, clientY: 300 }]; g.dispatchEvent(ev); }; t(120, 'touchstart'); t(320, 'touchend'); });
 await p.waitForTimeout(600);
-ok('swiping right comes back', (await p.locator('.month-nav em').innerText()) === titleBefore);
+ok('swiping right comes back', (await p.locator('.cal-head h1').innerText()) === titleBefore);
 
 // ---- account + download
-await p.click('.acct'); await p.waitForTimeout(500);
-ok('account opens', await p.locator('.account').count() === 1);
+await p.click('#tabbar [aria-label="Me"]'); await p.waitForTimeout(500);
+ok('account opens', await p.locator('.account').count() === 1, await p.evaluate(() => document.getElementById('app').dataset.screen + ' tabs=' + document.querySelectorAll('#tabbar .tab-item').length));
 await shot('10-account');
-const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }), p.click('text=Download my scrapbook')]);
+const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }), p.click('text=Download my tales')]);
 const zipPath = `${OUT}/scrapbook.zip`; await dl.saveAs(zipPath);
 const zipBuf = fs.readFileSync(zipPath);
 ok('scrapbook zip downloaded', zipBuf.length > 5000 && zipBuf.slice(0, 2).toString() === 'PK', zipBuf.length + ' bytes');
 ok('zip holds tales.json and photos', zipBuf.includes('tales.json') && zipBuf.includes('photos/'));
 
 // ---- locked
-await p.click('text=Cancel subscription'); await p.waitForTimeout(400); await p.click('.sheet .btn-danger'); await p.waitForTimeout(600);
+await p.click('.pc-btn'); await p.waitForTimeout(400); await p.click('.sheet .btn-danger'); await p.waitForTimeout(600);
 ok('cancel subscription works', (await status()) !== 'subscribed');
 await lt('jumpTo', 'locked'); await lt('go', 'calendar'); await p.waitForTimeout(700);
 ok('locked status', (await status()) === 'locked');
@@ -132,7 +136,7 @@ await shot('13-deleted');
 
 // ---- account deletion
 await lt('jumpTo', 'day1'); await lt('go', 'account'); await p.waitForTimeout(500);
-await p.click('text=Delete my account and tales'); await p.waitForTimeout(400); await p.click('.sheet .btn-danger'); await p.waitForTimeout(900);
+await p.click('text=Delete my account'); await p.waitForTimeout(400); await p.click('.sheet .btn-danger'); await p.waitForTimeout(900);
 ok('delete account returns to welcome', await p.locator('.welcome').count() === 1);
 ok('no tales left after delete', await p.evaluate(() => window.__lt.store.tales.length === 0));
 

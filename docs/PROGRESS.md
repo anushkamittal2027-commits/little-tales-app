@@ -164,3 +164,11 @@ Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 
 - Google's own button (shows "Little Tales", not the supabase.co address). Switches on when `GOOGLE_CLIENT_ID` in `js/config.js` is filled in; the older redirect button stays as the backup.
 - Supabase dashboard (founder): turn OFF "Detect and revoke potentially compromised refresh tokens" and raise "JWT expiry" to 604800 so an app closed mid-renewal cannot lose its sign-in.
 - Tests: `tests/signin.mjs`, plus new backup and sign-out cases in `tests/persist.mjs`.
+
+## Redesign (branch `redesign`)
+
+- New look from the "same backgrounds" design: soft gingham with small drawings around the edges (js/backdrop.js), paper cards, olive pill buttons, Playfair Display / Inter / DM Mono / Caveat (served from assets/fonts), a real perforated postage stamp (css/stamp.css) and a page built on container units.
+- Styles are now four files: css/base.css (tokens, buttons, sheets, tab bar), css/stamp.css (stamp and page), css/screens.css (one section per screen), css/decor.css (the decorating tray). The older layered styles were removed.
+- Flow changes that came with the design: "Make today's stamp" opens the camera straight away. The camera has a gallery button and a date chip (which day is this moment from); the old "Add a moment" and "Which day" screens are gone. Thought has step dots, the Day view shows every stamp together with previous/next day buttons, Me is a settings list with switches, Locked shows a sealed envelope.
+- The share picture, the postmark and the celebration card follow the same look.
+- Tests were updated for the new flow. `tests/shots.mjs` takes a picture of every screen.

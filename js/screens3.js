@@ -9,36 +9,49 @@ import { auth } from './auth.js';
 import { startToday, trialPill, founderPanel, sundayBanner } from './screens.js';
 import { installCard } from './install.js';
 import { isFounder, syncState } from './sync.js';
+import { samplePhoto } from './sample.js';
 import { computeStreak } from './streak.js';
-import { FLAME } from './delight.js';
 
 const primary = (label, onClick, attrs = {}) => h('button.btn-primary', { onClick, ...attrs }, label);
 const secondary = (label, onClick) => h('button.btn-secondary', { onClick }, label);
 const link = (label, onClick) => h('button.link', { onClick }, label);
 
 const greeting = () => { const hr = new Date().getHours(); return hr < 5 ? 'Still up' : hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'; };
-const firstName = () => { const n = (auth.user?.name || '').trim().split(/\s+/)[0]; return n || ''; };
+const firstName = () => {
+  const n = (auth.user?.name || '').trim().split(/\s+/)[0];
+  if (n) return n;
+  const local = ((auth.user?.email || '').split('@')[0] || '').replace(/[0-9_.\-+].*$/, '');           // "anushka.m" becomes "anushka"
+  return local.length >= 2 ? local[0].toUpperCase() + local.slice(1) : '';
+};
 const recent = (n) => [...store.tales].sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt)).slice(0, n);
 
 // ---------- first-time tour ----------
 register('intro', () => {
+  const photo = (n) => samplePhoto(n);
   const slides = [
-    { art: ['stickers', 'sun'], t: ['Catch a ', 'moment'], p: 'Take a photo or pick one from your gallery. Anything small that made you pause.' },
-    { art: ['stickers', 'heart'], t: ['Say how it ', 'felt'], p: 'Hold the mic for a voice note, or write a line. Up to three tales a day, so every one counts.' },
-    { art: ['tape', 'tape-dots'], t: ['Watch it become a ', 'stamp'], p: 'Your photo is cut into a little postage stamp. Decorate it with tape and stickers, then post it to your calendar.' },
+    { t: 'Catch a moment', p: 'Take a photo or pick one from your gallery. Up to three little tales a day.',
+      art: () => [['w1', { photo: photo('string-lights'), date: '2026-10-12', light: 'none' }, '15px'], ['w2', { photo: photo('rain-bokeh'), date: '2026-10-14', light: 'none' }, '14px'], ['w3', { photo: photo('skyline-dusk'), date: '2026-10-16', light: 'none' }, '17px', true]] },
+    { t: 'Say how it felt', p: 'Write a line, say it out loud, or both. Your voice stays with the stamp.',
+      art: () => [['w3', { photo: photo('misty-hills'), date: '2026-10-16', light: 'none' }, '17px', true], ['wmic', null]] },
+    { t: 'Watch it become a stamp', p: 'Your photo is cut into a little postage stamp. Decorate it with tape and stickers, then post it to your calendar.',
+      art: () => [['w2', { photo: photo('skyline-dusk'), date: '2026-10-16', light: 'golden' }, '14px'], ['w3', { photo: photo('string-lights'), date: '2026-10-17', light: 'none' }, '17px', true], ['w1', { photo: photo('rain-bokeh'), date: '2026-10-15', light: 'none' }, '14px']] },
   ];
   let i = 0;
   const wrap = h('div.intro');
   const finish = async () => { await patchAccount({ introSeen: true }); go('home', {}, { replace: true }); };
   const draw = () => {
     const s = slides[i], last = i === slides.length - 1;
+    const art = h('div.intro-hero', { 'aria-hidden': 'true' },
+      h('div.ih-panel'),
+      ...s.art().map(([cls, tale, size, pm]) => cls === 'wmic'
+        ? h('div.ih-mic.wmic', h('span.ih-mic-ic', { html: icon.mic }), h('span.ih-wave', ...Array.from({ length: 22 }, (_, k) => h('i', { style: { height: (18 + Math.abs(Math.sin(k * 1.3)) * 70) + '%' } }))))
+        : h('div.ih-stamp.' + cls, stampEl(tale, { size, postmark: !!pm }))),
+      h('div.ih-tape'));
     wrap.replaceChildren(
-      h('div.intro-top', last ? null : link('Skip', finish)),
-      h('div.intro-hero', stampEl({ date: todayStr(), photo: null, light: 'golden' }, { size: '9px', postmark: i === 2 }),
-        h('div.intro-badge', { html: artSvg(s.art[0], s.art[1]) || LOGO })),
-      h('h1', s.t[0], h('em', s.t[1])),
-      h('p.lead', s.p),
-      h('div.dots-nav', ...slides.map((_, k) => h('i' + (k === i ? '.on' : '')))),
+      h('div.intro-top', last ? null : h('button.link', { onClick: finish }, 'Skip')),
+      art,
+      h('div.intro-copy', h('p.kicker', `STEP ${i + 1} OF ${slides.length}`), h('h1', s.t), h('p.lead', s.p)),
+      h('div.dots-nav', { 'aria-label': `Slide ${i + 1} of ${slides.length}` }, ...slides.map((_, k) => h('i' + (k === i ? '.on' : '')))),
       h('div.bottom', primary(last ? 'Let’s begin' : 'Next', () => (last ? finish() : (i++, draw())))));
   };
   draw();
@@ -46,57 +59,63 @@ register('intro', () => {
 });
 
 // ---------- home ----------
+const GINGHAM_STAR = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6l6.6 16.6L56 24l-13.6 11L47 52 32 42.6 17 52l4.6-17L8 24l17.4-1.4z" fill="#F2C94C" stroke="#E0AE2C" stroke-width="2" stroke-linejoin="round"/></svg>';
 register('home', () => {
   const info = trialInfo();
   const today = todayStr();
   const count = store.count(today);
-  const mine = recent(10);
+  const mine = recent(8);
   const left = Math.max(0, MAX_PER_DAY - count);
+  const hr = new Date().getHours();
   let taps = 0, tapTimer;
-  const logo = h('button.brand', { 'aria-label': 'Little Tales', onClick: () => {
+  const hello = h('h1', { onClick: () => {
     taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => (taps = 0), 1200);
     if (taps >= 5) { taps = 0; if (isFounder()) founderPanel(); }
-  } }, h('span.logo', { html: LOGO }), 'Little Tales');
+  } }, firstName() || 'friend', h('span.greet-ic', { 'aria-hidden': 'true', html: hr >= 5 && hr < 17 ? icon.sun : icon.moon }));
+  const head = h('header.home-head',
+    h('div', h('p.greet', greeting() + (firstName() ? ',' : '')), hello, trialPill(info)),
+    h('button.avatar-btn', { 'aria-label': 'Me and settings', onClick: () => go('account') }, (firstName() || auth.user?.email || 'L')[0].toUpperCase()));
 
-  const hero = h('div.home-hero.glass-card',
+  const todayTale = store.forDate(today)[0];
+  const hero = h('section.home-hero',
+    h('div.hh-strip', { 'aria-hidden': 'true' }),
     h('div.hh-copy',
-      h('div.kicker', greeting() + (firstName() ? ', ' + firstName() : '')),
-      h('h1', count ? 'Another ' : 'What caught your ', h('em', count ? 'tale?' : 'eye today?')),
-      h('p', count ? `${count} of ${MAX_PER_DAY} kept today${left ? '' : '. See you tomorrow.'}` : 'Make today’s stamp. It only takes a minute.')),
-    h('div.hh-stamp', stampEl(mine[0] || { date: today, photo: null, light: 'golden' }, { size: '8px', postmark: false })),
-    h('div.hh-cta', primary(left ? 'Make today’s stamp' : 'Today is full', () => startToday(), left ? {} : { disabled: true })));
+      h('h2', count ? 'Another tale?' : 'What caught your eye today?'),
+      h('p', count ? `${count} of ${MAX_PER_DAY} kept today${left ? '' : '. See you tomorrow.'}` : `Nothing kept yet today. ${left} spots left.`)),
+    h('div.hh-stamp' + (todayTale ? '.has' : ''), { 'aria-hidden': 'true' }, todayTale ? stampEl(todayTale, { size: '9px', postmark: false }) : h('span', { html: icon.camera })),
+    h('span.hh-star', { 'aria-hidden': 'true', html: GINGHAM_STAR }),
+    h('button.btn-primary.hh-cta', { onClick: () => startToday(), disabled: !left }, left ? [h('span.btn-ic', { html: icon.camera }), 'Make today’s stamp'] : 'Today is full'));
 
   const { count: streak, postedToday } = computeStreak(store.tales, today);
-  const streakChip = streak >= 2
-    ? h('button.streak', { onClick: () => toast(postedToday ? `${streak} days in a row. Lovely.` : `${streak} days in a row. Post today to keep it going.`) },
-      h('span.streak-flame' + (postedToday ? '.lit' : ''), { html: FLAME }), h('b', `${streak} days in a row`), postedToday ? null : h('small', 'keep it going today'))
+  const streakRow = streak >= 2
+    ? h('button.streak', { onClick: () => go('calendar') },
+      h('span.streak-flame' + (postedToday ? '.lit' : ''), { html: icon.flame }),
+      h('span.streak-t', h('b', `${streak} days in a row`), h('small', postedToday ? 'Lovely. See you tomorrow' : 'Keep it going today')),
+      h('span.streak-go', { html: icon.chevR }))
     : null;
 
-  const skeleton = () => h('section.home-sec', h('div.sec-head', h('h2', 'Your ', h('em', 'memories'))),
-    h('div.latest-row.home-row', ...[0, 1, 2].map(() => h('div.sk-stamp', { 'aria-hidden': 'true' }))));
-
+  const skeleton = () => h('section.home-sec', h('div.sec-head', h('h2', 'Your memories')),
+    h('div.mem-row', ...[0, 1, 2, 3].map(() => h('div.sk-stamp', { 'aria-hidden': 'true' }))));
+  const rots = [-3, 2, -2, 3, -3, 2, -2, 3];
   const memories = !mine.length && syncState.pulling ? skeleton() : mine.length
     ? h('section.home-sec',
-      h('div.sec-head', h('h2', 'Your ', h('em', 'memories')), link('See all', () => go('calendar'))),
-      h('div.latest-row.home-row', ...mine.map((t, i) =>
-        h('button.latest-card', { 'aria-label': t.title || shortDate(t.date), style: { '--rot': [-4, 3, -2, 5, -5, 2, -3][i % 7] + 'deg' }, onClick: () => go('tale', { id: t.id }) },
-          stampEl(t, { size: '8.6px', mini: false, postmark: false })))))
-    : h('section.home-sec.empty.glass-card',
-      h('h2', 'Your first stamp is ', h('em', 'waiting')),
+      h('div.sec-head', h('h2', 'Your memories'), h('button.link', { onClick: () => go('calendar') }, 'See all')),
+      h('div.mem-row', ...mine.map((t, i) =>
+        h('button.latest-card', { 'aria-label': t.title || shortDate(t.date), style: { '--rot': rots[i % 8] + 'deg' }, onClick: () => go('tale', { id: t.id }) },
+          stampEl(t, { size: '7.6px', postmark: false })))))
+    : h('section.home-sec.empty',
+      h('h2', 'Your first stamp is waiting'),
       h('ol.tips', h('li', 'Tap Make today’s stamp'), h('li', 'Add a photo, then a voice note or a line'), h('li', 'Decorate it and post it to your calendar')));
 
-  const tile = (ic, title, sub, onClick) => h('button.tile.glass-card', { onClick }, h('span.tile-ic', { html: ic }), h('b', title), h('small', sub));
+  const tile = (ic, color, title, onClick) => h('button.tile', { onClick }, h('span.tile-ic', { style: { color }, html: ic }), h('b', title));
+  const week = () => { if (info.status === 'subscribed') go('weekvideo', { mode: 'sunday' }); else if (info.status === 'day7') go('weekvideo', { mode: 'trial' }); else toast('Your week video is ready on day 7 of your free week.'); };
   const tiles = h('div.tiles',
-    tile(icon.calendar, 'Calendar', 'Every day you kept', () => go('calendar')),
-    tile(icon.sticker, 'Scrapbook studio', 'Tape, stickers, paper', () => go('studio')),
-    tile(icon.film, 'Your week', info.status === 'subscribed' ? 'Watch your latest video' : info.status === 'day7' ? 'Make it now' : 'Ready on day 7', () => { if (info.status === 'subscribed') go('weekvideo', { mode: 'sunday' }); else if (info.status === 'day7') go('weekvideo', { mode: 'trial' }); else toast('Your week video is ready on day 7 of your free week.'); }),
-    tile(icon.user, 'Settings & account', 'Plan, nudges, download', () => go('account')));
+    tile(icon.calendar, '#5E7A53', 'Calendar', () => go('calendar')),
+    tile(icon.sticker, '#C46F63', 'Scrapbook studio', () => go('studio')),
+    tile(icon.film, '#3D6A99', 'Your week', week),
+    tile(icon.settings, '#6E4A12', 'Settings & account', () => go('account')));
 
-  return h('div.home',
-    h('div.cal-head', logo, h('div.cal-head-right', trialPill(info))),
-    sundayBanner(info),
-    streakChip,
-    hero, memories, tiles, installCard(() => go('home', {}, { replace: true })));
+  return h('div.home', head, sundayBanner(info), hero, streakRow, memories, tiles, installCard(() => go('home', {}, { replace: true })));
 });
 
 // ---------- scrapbook studio ----------

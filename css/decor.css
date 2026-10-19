@@ -1,106 +1,17 @@
-/* Decorating tray: extra categories, paper textures and the larger sticker library. */
-
-/* The tray is taller now (group chips + a scrolling body), so leave a little more room around the page. */
-
-/* ---- tab bar: four tabs ---- */
-.tray { padding: 8px 8px 8px; display: flex; flex-direction: column; }
-.tray-tabs { gap: 4px; }
-.tray-tabs .tab { font-size: 13.5px; padding: 0 2px; min-width: 0; }
-
-/* ---- sticker group chips: one swipeable row ---- */
-.group-chips {
-  display: flex; gap: 6px; margin: 0 -8px 8px; padding: 1px 8px 2px;
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding: 0 8px;
-}
-.group-chips::-webkit-scrollbar { display: none; }
-.group-chips[hidden] { display: none; }
-.group-chip {
-  flex: 0 0 auto; height: 32px; padding: 0 13px; border-radius: 16px; scroll-snap-align: start;
-  font: 600 12.5px/1 var(--sans); letter-spacing: .01em; white-space: nowrap; color: var(--ink);
-  background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .85);
-  box-shadow: 0 2px 8px rgba(48, 36, 78, .07); touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-  transition: background .2s var(--ease), color .2s, box-shadow .2s, transform .2s var(--ease);
-}
-.group-chip:active { transform: scale(.96); }
-.group-chip.on { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: 0 4px 12px rgba(30, 27, 46, .28); }
-.group-chip:focus-visible, .tray-item:focus-visible, .tab:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
-
-/* ---- scrolling item body (shows a peek of the next row so it is clear there is more) ---- */
-.tray-body {
-  height: 134px; overflow-y: auto; overflow-x: hidden; margin: 0 -4px; padding: 2px 4px 4px;
-  overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(30, 27, 46, .25) transparent;
-  touch-action: pan-y;
-}
-.tray-body::-webkit-scrollbar { width: 4px; }
-.tray-body::-webkit-scrollbar-thumb { background: rgba(30, 27, 46, .25); border-radius: 2px; }
-.tray-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
-.tray-grid { gap: 7px; }
+/* The decorating tray: tabs, sticker groups and a swipeable row of things to add. It lives in the dock under the page. */
+.tray { display: flex; flex-direction: column; padding-top: 8px; }
+.tray-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); height: 40px; padding: 3px; border-radius: 999px; background: #F3EDE2; margin-top: 2px; }
+.tab { border-radius: 999px; font: 600 13px var(--sans); color: var(--ink-2); min-width: 0; transition: background .2s, color .2s; }
+.tab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 6px rgba(70, 55, 30, .15); }
+.group-chips { display: flex; gap: 8px; margin: 8px -16px 0; padding: 1px 16px 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scroll-padding: 0 16px; }
+.group-chips::-webkit-scrollbar { display: none; } .group-chips[hidden] { display: none; }
+.group-chip { flex: none; display: flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid #E0D6C4; font: 500 13px var(--sans); white-space: nowrap; color: var(--ink); background: transparent; }
+.group-chip.on { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 600; }
+.tray-body { margin: 6px -16px 0; overflow: visible; }
+.tray-grid { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 2px 16px 6px; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x; }
+.tray-grid::-webkit-scrollbar { display: none; }
 .tray-grid .tray-item[hidden] { display: none; }
-.tray-item { --th: 46px; height: 60px; padding: 7px; contain: layout paint; }
-.tray-item svg { width: 100%; height: var(--th); max-height: none; overflow: visible; }
-.tray-item.tape { --th: 36px; height: 50px; padding: 7px 8px; }
-.tray-item.doodles { --th: 38px; height: 50px; padding: 6px 8px; }
-.tray-item.paper { --th: 58px; height: 62px; padding: 2px; }
-.tray-item.paper svg { transform: scale(1.12); }
-/* tabs without the chip row get that height back so the tray never changes size */
-.tray:not([data-tab="stickers"]) .tray-body { height: 176px; }
-/* realistic art already carries its own soft shadow; sticker-edge outline in the tray stays subtle */
-.tray-item.stickers svg { filter: drop-shadow(0 1px 1px rgba(30, 27, 46, .18)); }
-.tray-item.stickers svg.art { filter: none; }
-
-/* ---- richer art on the page: keep the fine hairlines of the new artwork crisp ---- */
-:root .deco.k-stickers svg.art *, :root .deco.k-paper svg *, :root .deco.k-tape svg * { stroke-width: revert-layer; }
-.deco.k-stickers svg.art { overflow: visible; }
-
-/* sticker outline for the die-cut look: a little softer for the realistic / editorial art */
-.deco.k-paper { filter: drop-shadow(0 1px 1.5px rgba(30, 27, 46, .18)); }
-.deco.k-doodles svg.art, .deco.k-doodles svg { overflow: visible; }
-
-/* ---- premium design: dark pill chips to match its selected tab ---- */
-html[data-design="premium"] .group-chip { background: transparent; border-color: rgba(27, 26, 36, .12); color: #4A4756; box-shadow: none; }
-html[data-design="premium"] .group-chip.on { background: #1B1A24; color: #fff; border-color: #1B1A24; }
-html[data-design="premium"] .tray-item.stickers svg.art { filter: none; }
-
-/* ---- pop design: chunky chips ---- */
-.group-chip { border-radius: 14px; }
-
-
-/* =====================================================================
-   DECORATE and READY: the stamp page is the hero. It takes all the room the
-   controls leave, and the tools sit in a compact dock under it.
-   ===================================================================== */
-.decorate, .ready { height: 100dvh; min-height: 0; overflow: hidden; padding-bottom: 0; }
-.decorate .topbar, .ready .topbar, .decorate .tray, .decorate .bottom, .ready .bottom, .decorate .deco-hint { flex: 0 0 auto; }
-.decorate .page-frame, .ready .page-frame {
-  flex: 1 1 0; min-height: 0; margin: 0; padding: 4px 0; background: none; border: 0; box-shadow: none; border-radius: 0;
-  display: grid; place-items: center; container-type: size;
-}
-.decorate .page, .ready .page { --pw: min(calc(100vw - 32px), calc((100dvh - 250px) * .8)); }
-@supports (width: 1cqw) {
-  .decorate .page, .ready .page { --pw: min(100cqw, calc(100cqh * .8)); }
-}
-.decorate .deco-hint { margin: 0 0 6px; font-size: 12px; text-align: center; line-height: 1.2; }
-
-/* compact tool dock: tabs, one swipeable row of groups, one swipeable row of items */
-.decorate .tray { margin: 0 -16px; padding: 8px 12px 4px; border-radius: 22px 22px 0 0; border-bottom: 0; box-shadow: 0 -8px 24px rgba(48, 36, 78, .12); }
-.decorate .tray-tabs { margin-bottom: 6px; padding: 2px; }
-.decorate .tray-tabs .tab { height: 32px; font-size: 13px; }
-.decorate .group-chips { margin: 0 -12px 6px; padding: 1px 12px; }
-.decorate .group-chip { height: 28px; padding: 0 12px; font-size: 12px; }
-.decorate .tray-body, .decorate .tray:not([data-tab="stickers"]) .tray-body { height: auto; overflow: visible; margin: 0 -12px; padding: 0; touch-action: auto; }
-.decorate .tray-grid, .decorate .tray-grid.cols-2, .decorate .tray-grid.cols-3, .decorate .tray-grid.cols-4 {
-  display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 2px 12px 6px;
-  -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x;
-}
-.decorate .tray-grid::-webkit-scrollbar { display: none; }
-.decorate .tray-item { flex: 0 0 62px; width: 62px; height: 62px; --th: 44px; padding: 6px; }
-.decorate .tray-item.tape { flex-basis: 108px; width: 108px; height: 52px; --th: 34px; }
-.decorate .tray-item.doodles { flex-basis: 84px; width: 84px; height: 52px; --th: 34px; }
-.decorate .tray-item.paper { flex-basis: 66px; width: 66px; height: 62px; --th: 54px; padding: 2px; }
-.decorate .bottom.tight { padding: 8px 0 calc(10px + env(safe-area-inset-bottom)); }
-.decorate .bottom .btn-primary { height: 50px; }
-.decorate .tray { margin-left: -16px; margin-right: -16px; }
-
-/* Ready: big finished stamp, a compact action area */
-.ready .bottom.stack { padding-top: 8px; gap: 6px; }
+.tray-item { flex: 0 0 62px; width: 62px; height: 60px; --th: 40px; padding: 6px; border-radius: 16px; background: #F6F1E6; display: grid; place-items: center; transition: scale .16s ease; contain: layout paint; }
+.tray-item svg { width: 100%; height: var(--th); overflow: visible; display: block; }
+.tray-item.tape { flex-basis: 108px; width: 108px; height: 52px; --th: 34px; } .tray-item.doodles { flex-basis: 84px; width: 84px; height: 52px; --th: 34px; } .tray-item.paper { flex-basis: 66px; width: 66px; height: 62px; --th: 54px; padding: 2px; }
+.tray-item:active { scale: .94; }
