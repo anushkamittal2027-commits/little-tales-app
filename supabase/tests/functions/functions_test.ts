@@ -2,13 +2,13 @@
 // deno-lint-ignore-file no-explicit-any
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 Deno.env.set('SUPABASE_URL', 'http://fake'); Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'service-key'); Deno.env.set('SUPABASE_ANON_KEY', 'anon');
-Deno.env.set('VAPID_PUBLIC_KEY', 'p'); Deno.env.set('VAPID_PRIVATE_KEY', 'k'); Deno.env.set('RESEND_API_KEY', 'resend'); Deno.env.set('RAZORPAY_WEBHOOK_SECRET', 'whsec');
+Deno.env.set('VAPID_PUBLIC_KEY', 'p'); Deno.env.set('VAPID_PRIVATE_KEY', 'k'); Deno.env.set('RESEND_API_KEY', 'resend'); Deno.env.set('RAZORPAY_WEBHOOK_SECRET', 'whsec'); Deno.env.set('DODO_WEBHOOK_SECRET', 'whsec_' + btoa('dodo-secret-bytes')); Deno.env.set('DODO_PRODUCT_MONTHLY', 'pdt_m'); Deno.env.set('DODO_PRODUCT_YEARLY', 'pdt_y');
 Deno.env.set('RAZORPAY_KEY_ID', 'rzp_test'); Deno.env.set('RAZORPAY_KEY_SECRET', 'secret'); Deno.env.set('RAZORPAY_PLAN_MONTHLY', 'plan_m'); Deno.env.set('RAZORPAY_PLAN_YEARLY', 'plan_y');
 
 const handlers: Record<string, (r: Request) => Promise<Response> | Response> = {};
 let current = '';
 (Deno as any).serve = (h: any) => { handlers[current] = h; };
-for (const name of ['lifecycle', 'nudges', 'razorpay-webhook', 'create-subscription', 'cancel-subscription', 'delete-account']) { current = name; await import(`../../functions/${name}/index.ts?${name}`); }
+for (const name of ['lifecycle', 'nudges', 'razorpay-webhook', 'dodo-webhook', 'create-subscription', 'cancel-subscription', 'delete-account']) { current = name; await import(`../../functions/${name}/index.ts?${name}`); }
 const { db, resetDb } = await import('./stub_supabase.ts');
 const { sent } = await import('./stub_webpush.ts');
 
@@ -147,4 +147,60 @@ Deno.test('delete-account: removes the signed-in member only', async () => {
   assertEquals((await post('delete-account', {}, 'bad')).status, 401);
   assertEquals((await post('delete-account', {})).status, 200);
   assertEquals(db.deleted, ['u1']); assertEquals(db.files['photos/u1'], []); assertEquals(db.files['voices/u1'], []); assertEquals(db.files['photos/u2'], ['b.jpg']);
+});
+
+// ---- Dodo Payments webhook ----
+const U9 = '00000000-0000-4000-8000-000000000009';
+async function dodoSign(id: string, ts: string, body: string) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode('dodo-secret-bytes'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${id}.${ts}.${body}`)))));
+}
+let dodoN = 0;
+const dodo = async (type: string, data: any = {}, o: { sig?: string; ts?: string; at?: string } = {}) => {
+  const body = JSON.stringify({ type, timestamp: o.at ?? new Date().toISOString(), data: { payload_type: 'Subscription', subscription_id: 'sub_d1', customer: { customer_id: 'cus_1' }, metadata: { user_id: U9, plan: 'monthly' }, next_billing_date: '2099-01-01T00:00:00Z', ...data } });
+  const id = 'msg_' + ++dodoN, ts = o.ts ?? String(Math.floor(Date.now() / 1000));
+  return handlers['dodo-webhook'](new Request('http://f', { method: 'POST', body, headers: { 'webhook-id': id, 'webhook-timestamp': ts, 'webhook-signature': 'v1,' + (o.sig ?? await dodoSign(id, ts, body)) } }));
+};
+Deno.test('dodo webhook: only a correctly signed, fresh message changes anything', async () => {
+  resetDb();
+  assertEquals((await dodo('subscription.active', {}, { sig: 'AAAA' })).status, 401);
+  assertEquals((await dodo('subscription.active', {}, { ts: String(Math.floor(Date.now() / 1000) - 3600) })).status, 401);   // a replay of an old message
+  assertEquals(db.tables.subscriptions.length, 0);
+  assertEquals((await handlers['dodo-webhook'](new Request('http://f', { method: 'POST', body: '{}' }))).status, 401);
+  assertEquals((await dodo('subscription.active')).status, 200);
+  const s = db.tables.subscriptions[0];
+  assertEquals([s.user_id, s.plan, s.status, s.provider, s.dodo_subscription_id], [U9, 'monthly', 'active', 'dodo', 'sub_d1']);
+  assert(s.current_period_end.startsWith('2099-01-01'));
+});
+Deno.test('dodo webhook: renewals, trouble and the end of a subscription', async () => {
+  resetDb(); let t = Date.now();
+  const at = () => new Date(t += 1000).toISOString();
+  await dodo('subscription.active', {}, { at: at() });
+  await dodo('payment.succeeded', {}, { at: at() }); assertEquals(db.tables.subscriptions[0].status, 'active');
+  await dodo('payment.succeeded', { subscription_id: undefined }, { at: at() });                          // a one-off payment: ignored
+  await dodo('subscription.on_hold', {}, { at: at() }); assertEquals(db.tables.subscriptions[0].status, 'past_due');
+  await dodo('subscription.renewed', {}, { at: at() }); assertEquals(db.tables.subscriptions[0].status, 'active');
+  await dodo('subscription.cancelled', { cancel_at_next_billing_date: true }, { at: at() });          // cancelled, but paid until the end date
+  assertEquals(db.tables.subscriptions[0].status, 'active');
+  await dodo('subscription.cancelled', { cancel_at_next_billing_date: true, next_billing_date: '2000-01-01T00:00:00Z' }, { at: at() });   // end date has passed
+  assertEquals(db.tables.subscriptions[0].status, 'cancelled');
+  await dodo('subscription.active', {}, { at: at() }); await dodo('subscription.expired', {}, { at: at() });
+  assertEquals(db.tables.subscriptions[0].status, 'cancelled'); assertEquals(db.tables.subscriptions.length, 1);
+});
+Deno.test('dodo webhook: late, unknown or incomplete messages never change a paying member', async () => {
+  resetDb();
+  const t0 = Date.now();
+  await dodo('subscription.active', {}, { at: new Date(t0).toISOString() });
+  await dodo('subscription.on_hold', {}, { at: new Date(t0 - 60000).toISOString() });                   // arrived late: it happened BEFORE the activation
+  assertEquals(db.tables.subscriptions[0].status, 'active');
+  await dodo('subscription.expired', { subscription_id: 'sub_OLD' }, { at: new Date(t0 + 1000).toISOString() });      // an older subscription
+  await dodo('subscription.failed', { subscription_id: 'sub_NEVER' }, { at: new Date(t0 + 2000).toISOString() });     // one we never saved
+  assertEquals(db.tables.subscriptions[0].status, 'active'); assertEquals(db.tables.subscriptions.length, 1);
+  resetDb();
+  await dodo('subscription.active', { metadata: { plan: 'monthly' } });                                   // no member
+  await dodo('subscription.active', { metadata: { user_id: U9, plan: 'lifetime' }, product_id: 'pdt_x' }); // unknown plan
+  await dodo('subscription.active', { metadata: { user_id: 'not-a-uuid', plan: 'monthly' } });
+  assertEquals(db.tables.subscriptions.length, 0);
+  await dodo('subscription.active', { metadata: { user_id: U9 }, product_id: 'pdt_y' });                  // plan found from the product
+  assertEquals(db.tables.subscriptions[0].plan, 'yearly');
 });

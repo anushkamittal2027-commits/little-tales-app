@@ -1,7 +1,7 @@
 # EASY WAY (use this)
 1. Unzip the latest `littletales-project-full-vN.zip`, open the inner folder (it contains `package.json`), click its address bar, type `cmd`, press Enter.
 2. Run: `node tools/deploy-server.mjs`
-   (It signs you in to Supabase in the browser, makes the reminder keys, saves the secrets, and puts the 6 server functions online.)
+   (It signs you in to Supabase in the browser, makes the reminder keys, saves the secrets, and puts the 7 server functions online.)
 3. (Nothing to send: the website already has the matching reminder key.)
 4. Do the last step in `docs/SCHEDULE_STEP.md` (two SQL pastes in Supabase).
 
@@ -53,6 +53,7 @@ npx supabase functions deploy lifecycle
 npx supabase functions deploy create-subscription
 npx supabase functions deploy cancel-subscription
 npx supabase functions deploy razorpay-webhook
+npx supabase functions deploy dodo-webhook
 ```
 `supabase/config.toml` already marks the webhook and the two scheduled jobs as not needing a member sign-in.
 
@@ -72,3 +73,11 @@ Razorpay Dashboard, Settings, Webhooks, Add: URL `https://vnorlnjsvknhsvjfczyl.s
 - Delete account from the app (use a test account): the user disappears from Authentication, Users and from Storage.
 - In the SQL editor use "Run" on `select * from cron.job;` to see the two jobs.
 - Test a reminder by hand: Edge Functions, `nudges`, Test, with header `Authorization: Bearer <service key>`. It only sends in members' 1pm and 8pm hour.
+
+
+## Dodo Payments (instead of, or next to, Razorpay)
+1. Run the SQL in `supabase/migrations/006_dodo.sql` once (Supabase, SQL Editor).
+2. In Dodo (Test mode first), Developer, Webhooks, Add endpoint: URL `https://vnorlnjsvknhsvjfczyl.supabase.co/functions/v1/dodo-webhook`, and tick subscription.active, subscription.renewed, subscription.plan_changed, subscription.on_hold, subscription.past_due, subscription.failed, subscription.cancelled, subscription.expired and payment.succeeded.
+3. Save the endpoint's signing secret in Supabase (never in chat): `npx supabase secrets set DODO_WEBHOOK_SECRET=whsec_...`
+4. Save the two product ids: `npx supabase secrets set DODO_PRODUCT_MONTHLY=pdt_... DODO_PRODUCT_YEARLY=pdt_...`
+5. Deploy the function: `npx supabase functions deploy dodo-webhook`

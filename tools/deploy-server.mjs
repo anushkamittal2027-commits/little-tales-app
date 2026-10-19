@@ -1,4 +1,4 @@
-// One command that switches on the server side: reminder keys, secrets and the 6 server functions.
+// One command that switches on the server side: reminder keys, secrets and the 7 server functions.
 // Run:  node tools/deploy-server.mjs      (needs Node and an internet connection; nothing is sent to anyone but your own Supabase project)
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const REF = 'vnorlnjsvknhsvjfczyl';
-const FUNCTIONS = ['delete-account', 'nudges', 'lifecycle', 'create-subscription', 'cancel-subscription', 'razorpay-webhook'];
+const FUNCTIONS = ['delete-account', 'nudges', 'lifecycle', 'create-subscription', 'cancel-subscription', 'razorpay-webhook', 'dodo-webhook'];
 const say = (m) => console.log('\n==> ' + m);
 const run = (args, opts = {}) => {
   const r = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['--yes', 'supabase', ...args], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', ...opts });

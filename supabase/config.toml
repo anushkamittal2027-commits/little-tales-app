@@ -4,6 +4,8 @@ project_id = "vnorlnjsvknhsvjfczyl"
 # Razorpay and the scheduler do not send a member sign-in token. These functions check their own secret instead.
 [functions.razorpay-webhook]
 verify_jwt = false
+[functions.dodo-webhook]
+verify_jwt = false
 [functions.nudges]
 verify_jwt = false
 [functions.lifecycle]
