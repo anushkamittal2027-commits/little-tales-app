@@ -11,6 +11,7 @@ import { unlockAudio } from './recorder.js';
 import { CANONICAL_ORIGIN } from './config.js';
 import { setDayOffset, buzz } from './util.js';
 import { auth, initAuth } from './auth.js';
+import { loadAnalytics } from './analytics.js';
 
 // Android/Chrome offers "install" through this event; we show our own button on the install screen.
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__installPrompt = e; });
@@ -85,6 +86,7 @@ async function boot() {
     : trialInfo().status === 'new' ? { name: 'terms', params: {}, n: 1 } : { name: 'home', params: {}, n: 1 };
   if (auth.user && auth.provider === 'supabase' && !signedInSynced && !store.tales.length) { sync.syncState.pulling = true; setTimeout(() => { sync.syncState.pulling = false; }, 30000); }
   start(first);
+  setTimeout(loadAnalytics, 1500);               // after the first screen is up, so it never slows opening
   if (auth.user && auth.provider === 'supabase' && !signedInSynced) syncInBackground();
   if (new URLSearchParams(location.search).get('new') === '1' && trialInfo().status !== 'new' && !['locked', 'deleted'].includes(trialInfo().status)) { history.replaceState(null, '', location.pathname); const { startToday } = await import('./screens.js'); startToday?.(); }
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {

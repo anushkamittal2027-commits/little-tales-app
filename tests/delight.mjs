@@ -217,6 +217,21 @@ async function makeTale(p, label) {
   await p.context().close();
 }
 
+// ---- analytics (Microsoft Clarity): only on the real website, content masked ----
+{
+  const p = await page(); await p.goto(URL); await p.waitForTimeout(2500);
+  const r = await p.evaluate(async () => {
+    const { shouldLoad } = await import('./js/analytics.js');
+    return { live: shouldLoad('littletales.me', 'https:', null), local: shouldLoad('localhost', 'http:', null), pagesDev: shouldLoad('little-tales-app.pages.dev', 'https:', null), dnt: shouldLoad('littletales.me', 'https:', '1'),
+      script: !!document.querySelector('script[src*="clarity.ms"]'), mask: document.getElementById('app').getAttribute('data-clarity-mask') };
+  });
+  ok('analytics loads only on https://littletales.me', r.live && !r.local && !r.pagesDev, JSON.stringify(r));
+  ok('analytics respects Do Not Track', !r.dnt);
+  ok('no analytics script on localhost or in tests', !r.script);
+  ok('the whole app is masked in recordings', r.mask === 'True');
+  await p.context().close();
+}
+
 await b.close();
 console.log(`\n${fails ? 'FAILED ' + fails : 'ALL PASSED'} (console errors: ${errs})`);
 process.exit(fails || errs ? 1 : 0);

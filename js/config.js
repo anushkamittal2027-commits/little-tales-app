@@ -19,3 +19,5 @@ export const CANONICAL_ORIGIN = 'https://littletales.me';
 // Google's "Client ID" (public, ends in .apps.googleusercontent.com). When filled in, the sign-in screen shows Google's own button, which says "Little Tales"
 // instead of the supabase.co address. Leave empty to keep the old redirect button.
 export const GOOGLE_CLIENT_ID = '';
+// Microsoft Clarity (anonymous usage recordings and heatmaps). Only loaded on the real website, never on localhost or in tests.
+export const CLARITY_ID = 'yzzxnf3q1w';

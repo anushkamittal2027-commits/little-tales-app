@@ -17,6 +17,7 @@ Little Tales turns your photos and thoughts into stamps in a private scrapbook. 
 - **Reminders:** if you turn them on, a code from your phone that lets us send you notifications, and your time zone.
 - **The 4th-tale count:** we count how often someone tries to make a fourth tale in one day, so we can decide if three a day is the right limit. This does not include what is in your tales.
 - **Basic technical data** like the type of phone and browser, to keep the app working.
+- **How the app is used:** we use Microsoft Clarity to see how people use the app (for example which buttons are tapped and where people get stuck) so we can improve it. **Your photos, voice notes, thoughts, titles and names are masked and are not recorded.**
 
 ## What we do not do
 - We **never use your photos, voice notes or thoughts for ads**.
@@ -33,6 +34,7 @@ To run your scrapbook, keep it safe across your phones, remind you when you ask 
 - **Razorpay**: handles payments.
 - **Resend**: sends sign-in codes and warning emails.
 - **Google**: only if you choose Google sign-in.
+- **Microsoft Clarity**: shows us how the app is used, with your content masked.
 They may process data on our behalf. They are not allowed to use it for their own purposes. Our service providers may keep data on servers outside India, under their own security standards.
 
 ## How long we keep things
