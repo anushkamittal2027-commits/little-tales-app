@@ -24,3 +24,10 @@ Updated at the end of phase 1 (v11). We pick this up tomorrow.
 
 ## D. Feedback from your testing
 (add here)
+
+## E. Records to keep (do not delete)
+Google Search Console ownership of littletales.me is verified by two DNS TXT records in Cloudflare (DNS, Records). They are public, not secrets. Keep both:
+- google-site-verification=xwQ-ypabYn0zwjmthT3rkRsPJpvW8WIi9IFd4nSw1ok
+- google-site-verification=0OneKxtx9o4lGZCZuTKwsntHJ_CNWNCFzE9In-ZhW6s
+Verified with the founder's personal Google account. Add the business email as a second owner (Search Console, Settings, Users and permissions) as a backup.
+Microsoft Clarity project id: yzzxnf3q1w (installed in js/analytics.js; app content is masked).
