@@ -19,9 +19,9 @@ import { finishDodoReturn } from './pay.js';
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__installPrompt = e; });
 
 const OPEN = {
-  new: ['welcome', 'signin', 'code', 'terms', 'intro'],
-  locked: ['locked', 'paywall', 'checkout', 'success', 'account'],
-  deleted: ['locked', 'account', 'welcome', 'terms', 'paywall', 'checkout', 'success'],
+  new: ['welcome', 'signin', 'code', 'terms', 'intro', 'legal'],
+  locked: ['locked', 'paywall', 'checkout', 'success', 'account', 'legal'],
+  deleted: ['locked', 'account', 'welcome', 'terms', 'paywall', 'checkout', 'success', 'legal'],
 };
 
 let signedInSynced = false;
@@ -70,7 +70,7 @@ async function boot() {
     console.error('Could not open storage', e);
   }
   setGuard((name) => {
-    if (!auth.user) return ['welcome', 'signin', 'code'].includes(name) ? null : 'welcome';       // signed out: only the front door
+    if (!auth.user) return ['welcome', 'signin', 'code', 'legal'].includes(name) ? null : 'welcome';       // signed out: only the front door
     const s = trialInfo().status;
     const allowed = OPEN[s];
     if (!allowed) return null;

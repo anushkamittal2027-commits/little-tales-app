@@ -11,10 +11,6 @@
 .stamp-photo .photo, .stamp-photo .photo-empty { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; -webkit-user-drag: none; }
 .photo-empty { display: grid; place-items: center; background: repeating-linear-gradient(135deg, #F3EADB 0 2.4cqw, #EDE2CF 2.4cqw 4.8cqw); }
 .photo-empty span { font-family: var(--serif); font-size: 18cqw; color: #C9B994; line-height: 1; }
-.light-overlay { position: absolute; inset: 0; pointer-events: none; }
-.light-morning .light-overlay { background: linear-gradient(rgba(226, 240, 252, .42), rgba(255, 255, 255, .18)); }
-.light-golden .light-overlay { background: linear-gradient(rgba(255, 196, 110, .34), rgba(236, 140, 80, .22)); }
-.light-dark .light-overlay { background: linear-gradient(rgba(28, 36, 72, .38), rgba(16, 18, 40, .5)); }
 .stamp-foot { flex: 1; display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 4.3cqw; letter-spacing: .12em; color: #4A4740; white-space: nowrap; }
 .postmark { position: absolute; top: -7cqw; right: -18cqw; width: 60cqw; transform: rotate(-9deg); opacity: .78; pointer-events: none; }
 .postmark svg { width: 100%; height: auto; display: block; }

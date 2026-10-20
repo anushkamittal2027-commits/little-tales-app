@@ -21,7 +21,7 @@ let silent = 0;          // popstate events we caused ourselves
 const BD = {
   welcome: ['rose', 600], intro: ['sky', 420], signin: ['sky', 440], code: ['rose', 480], terms: ['sky', 420], home: ['sky', 560], calendar: ['rose', 420], day: ['sky', 640],
   tale: ['rose', 300], account: ['sky', 420], thought: ['rose', 300], frame: ['rose', 470], decorate: ['sky', 200], ready: ['sky', 300], paywall: ['rose', 480],
-  checkout: ['rose', 480], success: ['rose', 480], locked: ['rose', 520], studio: ['sky', 420], weekvideo: ['sky', 300], stamping: ['sky', 300], camera: ['none', 0], moment: ['none', 0],
+  checkout: ['rose', 480], success: ['rose', 480], locked: ['rose', 520], studio: ['sky', 420], weekvideo: ['sky', 300], stamping: ['sky', 300], legal: ['sky', 200], camera: ['none', 0], moment: ['none', 0],
 };
 function render(st, dir = 'fwd') {
   current?._cleanup?.();

@@ -20,17 +20,9 @@ await p.click('.hh-cta'); await p.waitForTimeout(300);
 await p.screenshot({ path: '/tmp/s/v1.png' }); await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
 ok('thought screen shown', await p.locator('.thought').count() === 1);
 
-// dictation: words appear in the box, stay editable
+// speak instead of typing: the keyboard microphone is pointed out and the box gets the cursor
 await p.click('.dictate'); await p.waitForTimeout(200);
-ok('dictation shows listening state', (await p.locator('.dictate').innerText()).includes('Listening'));
-await p.evaluate(() => { const r = window.__sr; r.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: 'The chai was perfect today' }], { isFinal: true })] }); });
-ok('spoken words land in the text box', (await p.inputValue('.thought-input')) === 'The chai was perfect today', await p.inputValue('.thought-input'));
-await p.click('.dictate'); await p.waitForTimeout(200);
-await p.fill('.thought-input', (await p.inputValue('.thought-input')) + ' and warm');
-ok('the text stays editable', (await p.inputValue('.thought-input')).endsWith('and warm'));
-await p.click('.dictate'); await p.waitForTimeout(100);
-await p.evaluate(() => window.__sr.onerror({ error: 'not-allowed' })); await p.waitForTimeout(100);
-ok('blocked microphone gives a clear message', (await p.locator('.mic-status').innerText()).toLowerCase().includes('block'), await p.locator('.mic-status').innerText());
+ok('speak button focuses the box and explains the keyboard microphone', (await p.locator('.mic-status').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
 
 // voice note: tap to start, tap to stop
 await p.click('.mic'); await p.waitForTimeout(1500);

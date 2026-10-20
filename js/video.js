@@ -1,6 +1,7 @@
 // "Your week": a real video made on the phone from the member's tales.
 // Each tale becomes a scene (stamp drops in, postmark presses on, thought types out, voice snippet plays),
 // drawn on a canvas and recorded with the browser's own recorder. No server, no cost.
+import { filteredImage } from './filters.js';
 import { stampPathPx } from './stamp.js';
 import { dotDate, parseDate } from './util.js';
 
@@ -64,8 +65,6 @@ function drawStamp(ctx, tale, img, cx, cy, u, rot, zoomT) {
     const dw = img.width * s, dh = img.height * s;
     ctx.drawImage(img, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
   } else { ctx.fillStyle = '#e8dccb'; ctx.fillRect(px, py, pw, ph); }
-  const light = tale.light || 'golden';
-  ctx.fillStyle = light === 'dark' ? 'rgba(30,24,70,.34)' : light === 'morning' ? 'rgba(190,215,235,.18)' : 'rgba(242,166,107,.2)'; ctx.fillRect(px, py, pw, ph);
   ctx.restore();
   ctx.strokeStyle = 'rgba(30,27,46,.45)'; ctx.lineWidth = u * 0.06; ctx.strokeRect(px, py, pw, ph);
   ctx.fillStyle = 'rgba(30,27,46,.72)'; ctx.font = `700 ${u * 0.5}px "DM Mono", monospace`; ctx.textBaseline = 'middle';
@@ -94,7 +93,7 @@ export async function makeVideo(tales, { canvas, soft, subscribed, rangeText = '
   const total = INTRO + n * per + OUTRO;
   canvas.width = W; canvas.height = H; const ctx = canvas.getContext('2d');
   await Promise.all(['700 80px Playfair Display', 'italic 500 40px Playfair Display', '700 30px "DM Mono"', '400 30px "DM Mono"', '600 30px "Inter"'].map((f) => document.fonts.load(f).catch(() => {})));
-  const imgs = await Promise.all(tales.map((t) => loadImg(t.photo)));
+  const imgs = (await Promise.all(tales.map((t) => loadImg(t.photo)))).map((im, i) => filteredImage(im, tales[i].light || 'golden'));
 
   // Audio: a short snippet of each voice note, mixed into the video.
   let actx = null, dest = null, buffers = [];

@@ -1,6 +1,7 @@
 // Turns a tale into a picture that can be shared (WhatsApp, Instagram Stories...) or saved.
 // It is drawn on a canvas from the tale's own data, so it looks the same on every phone and never depends on what is on screen.
 // The look follows the app: soft gingham, a paper page, a perforated stamp, handwriting.
+import { filteredImage } from './filters.js';
 import { blockColor } from './stamp.js';
 import { artSvg, postmarkSvg } from './art.js';
 import { dotDate, shortDate } from './util.js';
@@ -65,9 +66,7 @@ function drawStamp(ctx, tale, photo, pm, wpx) {
   const px = 6.5 * u, py = 6.5 * u, pw = 87 * u, ph = 108 * u;
   ctx.fillStyle = '#E9EEF0'; ctx.fillRect(px, py, pw, ph);
   ctx.save(); ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip();
-  if (photo) { const k = Math.max(pw / photo.naturalWidth, ph / photo.naturalHeight), dw = photo.naturalWidth * k, dh = photo.naturalHeight * k; ctx.drawImage(photo, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh); }
-  const L = { morning: ['rgba(226,240,252,.42)', 'rgba(255,255,255,.18)'], golden: ['rgba(255,196,110,.34)', 'rgba(236,140,80,.22)'], dark: ['rgba(28,36,72,.38)', 'rgba(16,18,40,.5)'] }[tale.light || 'golden'];
-  if (L) { const lg = ctx.createLinearGradient(0, py, 0, py + ph); lg.addColorStop(0, L[0]); lg.addColorStop(1, L[1]); ctx.fillStyle = lg; ctx.fillRect(px, py, pw, ph); }
+  if (photo) { const k = Math.max(pw / photo.naturalWidth, ph / photo.naturalHeight), dw = photo.naturalWidth * k, dh = photo.naturalHeight * k; const fp = filteredImage(photo, tale.light || 'golden', Math.ceil(Math.max(dw, dh))); ctx.drawImage(fp, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh); }
   ctx.restore();
   ctx.strokeStyle = '#E4D8C2'; ctx.lineWidth = .6 * u; ctx.strokeRect(px + .3 * u, py + .3 * u, pw - .6 * u, ph - .6 * u);
   ctx.fillStyle = '#4A4740'; ctx.font = `400 ${4.3 * u}px ${MONO}`; ctx.textBaseline = 'middle'; spaced(ctx, .12 * 4.3 * u);

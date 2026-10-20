@@ -47,8 +47,7 @@ const page = (title, body) => `<!doctype html><html lang="en"><head><meta charse
 fs.writeFileSync(out + 'privacy.html', page('Privacy Policy', md(fs.readFileSync(root + 'docs/legal/PRIVACY_POLICY_DRAFT.md', 'utf8'))));
 fs.writeFileSync(out + 'terms.html', page('Terms of Use', md(fs.readFileSync(root + 'docs/legal/TERMS_DRAFT.md', 'utf8'))));
 
-// Cloudflare Pages: friendly addresses and safe headers
-fs.writeFileSync(out + '_redirects', '/privacy /privacy.html 200\n/terms /terms.html 200\n');
+// Cloudflare Pages: safe headers (it already serves terms.html at /terms; a rewrite back to .html makes a redirect loop)
 fs.writeFileSync(out + '_headers', '/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(self), microphone=(self)\n/sw.js\n  Cache-Control: no-cache\n');
 const size = (d) => fs.readdirSync(d, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? size(d + '/' + e.name) : fs.statSync(d + '/' + e.name).size), 0);
 console.log('Built dist/site', (size(out) / 1048576).toFixed(1) + ' MB');

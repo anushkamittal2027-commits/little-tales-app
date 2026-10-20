@@ -1,6 +1,7 @@
 // Draws a stamp and a full scrapbook page. Shared by every screen.
 import { h, dotDate, shortDate } from './util.js';
 import { postmarkSvg, artSvg } from './art.js';
+import { filterCss } from './filters.js';
 
 // ---- the cut-out stamp shape ----
 // One shared clip path. The stamp box is always 10em x 12.6em, so circles stay round at any size.
@@ -46,12 +47,7 @@ export const blockColor = (tale) => {
   return BLOCKS[n % BLOCKS.length];
 };
 
-export const LIGHTS = [
-  { id: 'none', label: 'Original' },
-  { id: 'morning', label: 'Morning' },
-  { id: 'golden', label: 'Golden hour' },
-  { id: 'dark', label: 'After dark' },
-];
+export { LIGHTS, FILTERS } from './filters.js';
 
 // size: CSS font-size for the stamp (the stamp is always 10em wide; everything inside scales with it).
 // A real postage stamp: perforated edge, cream paper, a framed photo window and a small footer. Sizes inside are in container units (cqw).
@@ -60,7 +56,8 @@ export function stampEl(tale, { size = '16px', mini = false, postmark = true, de
   const photo = tale.photo
     ? h('img.photo', { src: full ? tale.photo : (tale.thumb || tale.photo), loading: 'lazy', decoding: 'async', alt: tale.title || 'Photo', draggable: 'false' })
     : h('div.photo-empty', { 'aria-hidden': 'true' }, h('span', '+'));
-  const box = h('div.stamp-photo', photo, h('div.light-overlay'));
+  if (tale.photo) photo.style.filter = filterCss(light);
+  const box = h('div.stamp-photo', photo);
   if (tale.photo) {                                 // a soft shimmer until the picture has arrived
     const done = () => box.classList.remove('loading');
     if (photo.complete && photo.naturalWidth) { /* already there */ } else { box.classList.add('loading'); photo.addEventListener('load', done, { once: true }); photo.addEventListener('error', done, { once: true }); }

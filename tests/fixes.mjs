@@ -86,14 +86,15 @@ if (process.env.FAKECAM) {
   const p = await page({}); await start(p);
   await p.click('#tabbar .tab-new'); await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
   await p.fill('.thought-input', 'x'); await p.click('.thought .bottom .btn-primary'); await p.waitForTimeout(300);
-  ok('"Original" is offered first', (await p.locator('.chips .chip').first().innerText()) === 'Original');
-  ok('the photo starts exactly as taken (Original), no filter added', await p.locator('.frame-hero .stamp.light-none').count() === 1);
-  await p.click('.chip:has-text("After dark")'); ok('a light can be picked', await p.locator('.frame-hero .stamp.light-dark').count() === 1);
-  await p.click('.chip:has-text("After dark")'); ok('tapping the picked light again removes it', await p.locator('.frame-hero .stamp.light-none').count() === 1);
-  await p.click('.chip:has-text("After dark")'); await p.click('.chip:has-text("Original")'); ok('Original switches back to the raw photo', await p.locator('.frame-hero .stamp.light-none').count() === 1);
-  const filt = await p.evaluate(() => getComputedStyle(document.querySelector('.frame-hero .stamp.light-none img.photo')).filter);
-  const ov = await p.evaluate(() => getComputedStyle(document.querySelector('.frame-hero .stamp.light-none .light-overlay')).backgroundImage);
-  ok('no filter or tint is applied in Original', (filt === 'none' || filt === '') && (ov === 'none' || ov === ''), `${filt} / ${ov}`);
+  ok('the section is called Filters, not Light', (await p.locator('.frame-controls .label').first().textContent()) === 'Filters');
+  const names = await p.locator('.chips .chip').allInnerTexts();
+  ok('four filters: Original, Warm, Soft, Black & white', names.join('|') === 'Original|Warm|Soft|Black & white', names.join('|'));
+  ok('the photo starts exactly as taken (Original)', await p.locator('.frame-hero .stamp.light-none').count() === 1);
+  const filtOf = () => p.evaluate(() => getComputedStyle(document.querySelector('.frame-hero img.photo')).filter);
+  ok('no filter is applied in Original', ['none', ''].includes(await filtOf()), await filtOf());
+  await p.click('.chip:has-text("Black & white")'); ok('Black & white can be picked', await p.locator('.frame-hero .stamp.light-dark').count() === 1 && (await filtOf()).includes('grayscale'), await filtOf());
+  await p.click('.chip:has-text("Warm")'); ok('Warm can be picked', (await filtOf()).includes('sepia'), await filtOf());
+  await p.click('.chip:has-text("Original")'); ok('Original switches back to the raw photo', await p.locator('.frame-hero .stamp.light-none').count() === 1 && ['none', ''].includes(await filtOf()));
   await p.click('text=Stamp it'); await p.waitForSelector('.decorate'); await p.click('text=Skip for now'); await p.waitForSelector('.ready'); await p.click('text=Post to my calendar'); await p.waitForTimeout(800);
   ok('the original look is saved with the tale', await p.evaluate(() => window.__lt.store.tales.find((t) => !t.sample)?.light) === 'none');
   await p.context().close();
@@ -113,17 +114,11 @@ for (const [w, h] of [[393, 670], [390, 844], [360, 640]]) {
 
 // ===== 4. VOICE: unsupported or failing browsers fall back to the keyboard microphone with a clear message =====
 {
-  const p = await page({}, () => { delete window.SpeechRecognition; delete window.webkitSpeechRecognition; }); await start(p);
+  const p = await page({}); await start(p);
   await p.click('#tabbar .tab-new'); await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
   await p.click('.dictate'); await p.waitForTimeout(200);
-  ok('no speech support: the cursor goes in the box and the keyboard microphone is explained', (await p.locator('.mic-status').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
+  ok('speak instead of typing: the cursor goes in the box and the keyboard microphone is explained', (await p.locator('.mic-status').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
   await p.context().close();
-  const q = await page({}, () => { window.SpeechRecognition = window.webkitSpeechRecognition = class { start() { setTimeout(() => this.onerror?.({ error: 'service-not-allowed' }), 30); } stop() {} }; }); await start(q);
-  await q.click('#tabbar .tab-new'); await q.setInputFiles('input[type=file]:not([capture])', gallery); await q.waitForTimeout(1000);
-  await q.click('.dictate'); await q.waitForTimeout(300);
-  const msg = (await q.locator('.mic-status').innerText()).toLowerCase();
-  ok('phone dictation switched off: says exactly where to turn it on, and offers the keyboard microphone', msg.includes('dictation') && msg.includes('keyboard'), msg);
-  await q.context().close();
 }
 
 // ===== 1. SIGN-IN SPEED: the app does not wait for photos before letting you in =====

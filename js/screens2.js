@@ -76,7 +76,7 @@ register('signin', (p) => {
     h('div.si-note', { 'aria-hidden': 'true' }, 'Good people,', h('br'), 'good days'),
     auth.provider === 'demo' ? h('p.demo-note', h('b', 'Demo mode.'), ` Real sign-in switches on when the server is connected. Any email works, and the code is ${DEMO_CODE}.`) : null,
     auth.provider === 'supabase' ? h('details.diag', h('summary', 'Trouble signing in? Show details'), h('pre', ['Version: 3 (home screen)', ...auth.diag, authLogText() ? '--- recent sign-in events ---\n' + authLogText() : ''].join('\n'))) : null,
-    h('p.fine.center', 'By continuing you agree to our ', h('a', { href: 'terms.html', target: '_blank', rel: 'noopener' }, 'Terms'), ' and ', h('a', { href: 'privacy.html', target: '_blank', rel: 'noopener' }, 'Privacy'), '.', h('br'), 'For ages 18 and up.'));
+    h('p.fine.center', 'By continuing you agree to our ', h('a', { href: 'terms.html', onClick: (e) => { e.preventDefault(); go('legal', { doc: 'terms' }); } }, 'Terms'), ' and ', h('a', { href: 'privacy.html', onClick: (e) => { e.preventDefault(); go('legal', { doc: 'privacy' }); } }, 'Privacy'), '.', h('br'), 'For ages 18 and up.'));
 });
 register('code', (p) => {
   const email = p.email || '';
@@ -400,8 +400,8 @@ register('account', () => {
       canOfferInstall() ? row('Add to Home Screen', 'Open it like an app', chev(), addToHomeScreen) : null,
       row('Download my tales', canDownload ? 'Every photo, note and voice' : 'Available while you’re subscribed', chev(), canDownload ? downloadScrapbook : subscribeToDownload)),
     h('div.alist.links',
-      h('a.arow', { href: 'terms.html', target: '_blank', rel: 'noopener' }, h('span.arow-t', h('b', 'Terms')), chev()),
-      h('a.arow', { href: 'privacy.html', target: '_blank', rel: 'noopener' }, h('span.arow-t', h('b', 'Privacy')), chev()),
+      h('a.arow', { href: 'terms.html', onClick: (e) => { e.preventDefault(); go('legal', { doc: 'terms' }); } }, h('span.arow-t', h('b', 'Terms')), chev()),
+      h('a.arow', { href: 'privacy.html', onClick: (e) => { e.preventDefault(); go('legal', { doc: 'privacy' }); } }, h('span.arow-t', h('b', 'Privacy')), chev()),
       h('a.arow', { href: 'mailto:hellolittletales@gmail.com' }, h('span.arow-t', h('b', 'Help · hellolittletales@gmail.com')), chev())),
     h('div.acct-actions',
       h('button.btn-secondary', { onClick: async () => { const doIt = async () => { await signOut(); state.month = null; go('welcome', {}, { replace: true }); toast('Signed out'); }; const n = await pendingCount(); if (!n) return doIt(); confirmSheet(n === 1 ? 'One tale hasn\u2019t been saved online yet' : `${n} tales haven\u2019t been saved online yet`, 'They are waiting for an internet connection. If you sign out now they will be lost. Connect to the internet, wait a moment, then try again.', 'Sign out anyway', doIt); } }, 'Sign out'),
@@ -421,3 +421,16 @@ function confirmSheet(title, body, action, run) {
     h('button.btn-danger', { onClick: async () => { close(); await run(); } }, action),
     linkBtn('Keep things as they are', () => close())));
 }
+
+// Terms and Privacy are read inside the app (a home-screen app has no browser bar to come back from).
+register('legal', (p) => {
+  const doc = p.doc === 'privacy' ? 'privacy' : 'terms';
+  const body = h('div.legal-body', h('p.fine', 'Opening…'));
+  fetch(doc + '.html').then((r) => { if (!r.ok) throw 0; return r.text(); }).then((txt) => {
+    const main = new DOMParser().parseFromString(txt, 'text/html').querySelector('main');
+    main?.querySelector('a.top')?.remove();
+    if (!main) throw 0;
+    body.replaceChildren(...Array.from(main.childNodes).map((n) => document.importNode(n, true)));
+  }).catch(() => body.replaceChildren(h('p', 'We couldn’t load this page right now. Please check your internet and try again, or open '), h('a', { href: doc + '.html', target: '_blank', rel: 'noopener' }, 'it in your browser'), '.'));
+  return h('div.legal', h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }), h('div.topbar-title', doc === 'privacy' ? 'Privacy' : 'Terms'), h('span.topbar-spacer')), body);
+});

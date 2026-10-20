@@ -2,8 +2,9 @@ import { h, icon, makeThumb, buzz, dotDate, dayTitle, MAX_PER_DAY, MAX_THOUGHT, 
 import { store } from './store.js';
 import { state, register, go, back, toast, sheet } from './nav.js';
 import { stampEl, pageEl, LIGHTS, blockColor } from './stamp.js';
+import { filterCss } from './filters.js';
 import { makeEditor } from './decorate.js';
-import { Recorder, MAX_SECONDS, micMessage, Dictation, dictationSupported, playChime, playParty, playStamp } from './recorder.js';
+import { Recorder, MAX_SECONDS, micMessage, playChime, playParty, playStamp } from './recorder.js';
 import { LOGO, artSvg } from './art.js';
 import { seedSamples, samplePhoto, seedTrialWeek } from './sample.js';
 import { logAttemptOnline, isFounder, syncState } from './sync.js';
@@ -173,7 +174,7 @@ const dayLabel = (ds) => (ds === todayStr() ? 'Today · ' : '') + shortDate(ds).
 const cameraScreen = (p) => {
   const edit = p.editId ? store.byId(p.editId) : null;
   if (!edit && !state.draft) state.draft = newDraft();
-  let stream, facing = 'environment', demoRaf = 0;
+  let stream, facing = 'environment', demoRaf = 0, mirrored = false, lastBg = 0, frozen = false;
   const bgCanvas = h('canvas.cam-bg', { 'aria-hidden': 'true', width: 48, height: 64 });
   const video = h('video.cam-src', { autoplay: true, playsinline: true, muted: true });
   const view = h('canvas.cam-view', { 'aria-hidden': 'true' });
@@ -192,10 +193,14 @@ const cameraScreen = (p) => {
     stop();
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 1920 } }, audio: false });
-      video.srcObject = stream; msg.hidden = true; if (!drawing) paint();
+      // A front (selfie) camera works like a mirror: what you see is what you get, so the preview and the saved photo are both mirrored.
+      // The back camera is never mirrored. (Laptop webcams don't say which they are; they count as front cameras.)
+      const fm = stream.getVideoTracks()[0]?.getSettings?.().facingMode;
+      mirrored = fm ? fm === 'user' : (/android|iphone|ipad|ipod/i.test(navigator.userAgent) ? facing === 'user' : true);
+      video.srcObject = stream; msg.hidden = true; frozen = false; if (!drawing) paint();
     } catch {
       if (window.__DEMO_CAMERA) {
-        try { const ds = demoStream(); stream = ds; video.srcObject = ds; msg.hidden = true; if (!drawing) paint(); hint.textContent = 'Demo camera for this preview. Your real camera works on your own address.'; return; } catch {}
+        try { const ds = demoStream(); stream = ds; mirrored = facing === 'user'; video.srcObject = ds; msg.hidden = true; if (!drawing) paint(); hint.textContent = 'Demo camera for this preview. Your real camera works on your own address.'; return; } catch {}
       }
       msg.hidden = false;
       msg.replaceChildren(h('p', 'We couldn’t open the camera here. You can use your phone’s own camera, or choose a photo from your gallery.'),
@@ -227,27 +232,41 @@ const cameraScreen = (p) => {
     return { sx: (vw - sw) / 2, sy: (vh - sh) / 2, sw, sh };
   }
   function paint() {
+    if (frozen) return;
     if (video.videoWidth && video.readyState >= 2) {
       const { sx, sy, sw, sh } = cropBox();
-      const w = Math.max(2, Math.round(view.clientWidth * Math.min(2, devicePixelRatio || 1))), hgt = Math.round(w * sh / sw);
+      const w = Math.max(2, Math.round(view.clientWidth * Math.min(1.5, devicePixelRatio || 1))), hgt = Math.round(w * sh / sw);
       if (view.width !== w || view.height !== hgt) { view.width = w; view.height = hgt; }
-      view.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, view.width, view.height);
-      // the soft colour wash behind the stamp comes from the same raw frame, so nothing on screen is flipped
-      const bw = Math.min(video.videoWidth, video.videoHeight * 0.75), bh = bw / 0.75;
-      bgCanvas.getContext('2d').drawImage(video, (video.videoWidth - bw) / 2, (video.videoHeight - bh) / 2, bw, bh, 0, 0, bgCanvas.width, bgCanvas.height);
+      const g = view.getContext('2d', { alpha: false });
+      if (mirrored) { g.save(); g.translate(view.width, 0); g.scale(-1, 1); g.drawImage(video, sx, sy, sw, sh, 0, 0, view.width, view.height); g.restore(); }
+      else g.drawImage(video, sx, sy, sw, sh, 0, 0, view.width, view.height);
+      // the soft colour wash behind the stamp only needs a few updates a second (it is tiny and blurred by being stretched)
+      const now = performance.now();
+      if (now - lastBg > 300) {
+        lastBg = now;
+        const bw = Math.min(video.videoWidth, video.videoHeight * 0.75), bh = bw / 0.75;
+        bgCanvas.getContext('2d').drawImage(video, (video.videoWidth - bw) / 2, (video.videoHeight - bh) / 2, bw, bh, 0, 0, bgCanvas.width, bgCanvas.height);
+      }
     }
     drawing = (video.requestVideoFrameCallback ? video.requestVideoFrameCallback(paint) : requestAnimationFrame(paint));
   }
   function snap() {
+    if (frozen) return;
     if (!video.videoWidth) { gallery.click(); return; }
     if (!edit && !canStart(state.draft.date)) return;
     const { sx, sy, sw, sh } = cropBox();
     const c = document.createElement('canvas'); const k = Math.min(1, 1280 / Math.max(sw, sh));
     c.width = Math.round(sw * k); c.height = Math.round(sh * k);
-    c.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    const g = c.getContext('2d');
+    if (mirrored) { g.translate(c.width, 0); g.scale(-1, 1); }
+    g.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    frozen = true;                                   // the picture holds still while it is saved: no more drawing work, so the animation stays smooth
     buzz(14); flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
     stage.classList.add('punch');
-    setTimeout(() => accept(c.toDataURL('image/jpeg', 0.84)), 260);
+    // encoding happens off the main thread, so the press animation never stutters
+    const done = (url) => setTimeout(() => accept(url), 200);
+    if (c.toBlob) c.toBlob((blob) => { const fr = new FileReader(); fr.onload = () => done(fr.result); fr.readAsDataURL(blob); }, 'image/jpeg', 0.84);
+    else done(c.toDataURL('image/jpeg', 0.84));
   }
   const hint = h('p.cam-hint', 'Fill the stamp with your moment');
 
@@ -341,7 +360,6 @@ register('thought', (p) => {
 
   const status = h('p.mic-status', { role: 'status', 'aria-live': 'polite' });
   const say = (msg, bad = false) => { status.textContent = msg || ''; status.classList.toggle('bad', !!bad); };
-  let dict = null, dictating = false;
 
   function renderVoice(note) {
     voiceArea.replaceChildren();
@@ -361,7 +379,6 @@ register('thought', (p) => {
       say(''); t.audio = r.blob; t.audioDur = r.duration; renderVoice();
     };
     const startRec = async () => {
-      if (dictating) { dict?.stop(); }
       say('Starting the microphone\u2026');
       rec = new Recorder((lvl, secs) => {
         wave.querySelectorAll('i').forEach((b, i) => { b.style.height = Math.max(8, Math.min(100, lvl * 130 * (0.5 + Math.abs(Math.sin(i * 1.3 + secs * 6))))) + '%'; });
@@ -384,28 +401,14 @@ register('thought', (p) => {
   }
   renderVoice();
 
-  // Speak instead of typing: the words appear in the box and stay editable.
+  // Speak instead of typing: every phone keyboard has its own microphone key that types into any text box, and it is far more reliable
+  // than a web page listening itself. So the button puts the cursor in the box and says where that key is.
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const dictBtn = h('button.dictate', { type: 'button' }, h('span.btn-ic', { html: icon.mic }), h('span.dl', 'Speak instead of typing'));
-  const setDict = (on) => { dictating = on; dictBtn.classList.toggle('on', on); dictBtn.querySelector('.dl').textContent = on ? 'Listening\u2026 tap to stop' : 'Speak instead of typing'; };
-  // Reliable fallback: every phone keyboard has its own microphone key that types into any text box. If in-page voice typing is unavailable or
-  // fails, we put the cursor in the box and say exactly where that key is.
-  const keyboardFallback = (why) => {
-    ta.focus();
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    say((why ? why + ' ' : '') + (ios ? 'Tap the microphone key at the bottom right of your keyboard and speak.' : 'Tap the microphone icon on your keyboard and speak.'), !!why);
-  };
   dictBtn.addEventListener('click', () => {
-    if (dictating) { dict?.stop(); return; }
-    if (recording) { say('Finish your voice note first, then you can dictate.', true); return; }
-    if (!dictationSupported()) { keyboardFallback(''); return; }
-    say('');
-    dict = new Dictation({
-      max: MAX_THOUGHT,
-      onText: (txt) => { ta.value = txt; t.thought = txt; count.textContent = `${txt.length}/${MAX_THOUGHT}`; },
-      onState: (st) => { setDict(st === 'listening'); if (st === 'listening') { say('Listening. Speak now, then tap again to stop.'); } else if (!dict?.failed) say(ta.value ? 'Done. You can edit the words above.' : ''); },
-      onError: (ev) => { setDict(false); keyboardFallback(micMessage(ev)); },
-    });
-    dict.start(ta.value);
+    if (recording) { say('Finish your voice note first, then you can speak your words.', true); return; }
+    ta.focus();
+    say(ios ? 'Tap the microphone key at the bottom right of your keyboard and speak.' : 'Tap the microphone icon on your keyboard and speak.');
   });
 
   const heroTale = edit ? t : state.draft;
@@ -421,7 +424,7 @@ register('thought', (p) => {
       if (edit) { edit.thought = t.thought; edit.audio = t.audio; edit.audioDur = t.audioDur; await store.save(edit); toast('Saved'); back('calendar'); }
       else go('frame');
     })));
-  el._cleanup = () => { if (recording) rec?.cancel(); try { dict?.stop(); } catch {} };
+  el._cleanup = () => { if (recording) rec?.cancel(); };
   return el;
 });
 
@@ -440,11 +443,11 @@ register('frame', (p) => {
   const heroBox = h('div.frame-hero');
   const draw = () => heroBox.replaceChildren(h('div.fh-panel', { 'aria-hidden': 'true' }), h('div.fh-stamp', stampEl(t, { size: '21.6px', postmark: false })));
   draw();
-  const SW = { none: 'conic-gradient(from 200deg, #F6E3A1, #F3C9C3, #BFD7EC, #C9D8BD, #F6E3A1)', morning: 'linear-gradient(#DCEAF6, #fff)', golden: 'linear-gradient(#FFD79A, #F0A768)', dark: 'linear-gradient(#4C5A86, #1F2745)' };
-  const chips = h('div.chips', { role: 'radiogroup', 'aria-label': 'Light' });
+  const chips = h('div.chips', { role: 'radiogroup', 'aria-label': 'Filters' });
+  const swatch = (l) => { const sw = h('span.sw'); const src = t.thumb || t.photo; if (src) { sw.style.backgroundImage = `url("${src}")`; sw.style.filter = filterCss(l.id); } return sw; };
   const drawChips = () => chips.replaceChildren(...LIGHTS.map((l) =>
-    h('button.chip.lt-' + l.id + (t.light === l.id ? '.on' : ''), { role: 'radio', 'aria-checked': String(t.light === l.id), onClick: () => { t.light = (t.light === l.id && l.id !== 'none') ? 'none' : l.id; draw(); drawChips(); } },
-      h('span.sw', { style: { background: SW[l.id] } }), l.label)));
+    h('button.chip.lt-' + l.id + ((t.light || 'golden') === l.id ? '.on' : ''), { role: 'radio', 'aria-checked': String((t.light || 'golden') === l.id), onClick: () => { t.light = l.id; draw(); drawChips(); } },
+      swatch(l), l.label)));
   drawChips();
   const title = h('input.title-input', { type: 'text', id: 'title', maxlength: 32, placeholder: 'Give it a little title', 'aria-label': 'Title' });
   title.value = t.title || '';
@@ -459,8 +462,8 @@ register('frame', (p) => {
     h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }), h('div.topbar-title', 'Frame your stamp'), h('span.topbar-spacer')),
     heroBox,
     h('div.frame-controls',
-      h('p.label', 'Light'), chips,
-      h('p.fine', 'Your photo stays exactly as taken unless you pick a light.'),
+      h('p.label', 'Filters'), chips,
+      h('p.fine', 'Your photo stays exactly as taken unless you pick a filter.'),
       h('label.label', { for: 'title' }, 'Title'), h('div.title-wrap', title, tcount)),
     h('div.bottom', primary(edit ? 'Save' : 'Stamp it', next), edit ? null : linkBtn('Skip for now', next)));
 });
