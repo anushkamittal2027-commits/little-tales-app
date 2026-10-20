@@ -8,7 +8,7 @@ Deno.env.set('RAZORPAY_KEY_ID', 'rzp_test'); Deno.env.set('RAZORPAY_KEY_SECRET',
 const handlers: Record<string, (r: Request) => Promise<Response> | Response> = {};
 let current = '';
 (Deno as any).serve = (h: any) => { handlers[current] = h; };
-for (const name of ['lifecycle', 'nudges', 'razorpay-webhook', 'dodo-webhook', 'create-subscription', 'cancel-subscription', 'delete-account']) { current = name; await import(`../../functions/${name}/index.ts?${name}`); }
+for (const name of ['lifecycle', 'nudges', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription', 'create-subscription', 'cancel-subscription', 'delete-account']) { current = name; await import(`../../functions/${name}/index.ts?${name}`); }
 const { db, resetDb } = await import('./stub_supabase.ts');
 const { sent } = await import('./stub_webpush.ts');
 
@@ -18,6 +18,8 @@ let razorpayOk = true;
 globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
   const u = String(url); calls.push({ url: u, init });
   if (u.includes('api.resend.com')) return new Response('{}', { status: 200 });
+  if (u.includes('dodopayments.com/checkouts')) return new Response(JSON.stringify({ checkout_url: 'https://test.checkout.dodopayments.com/session/cks_1' }), { status: 200 });
+  if (u.includes('dodopayments.com/subscriptions/')) return new Response('{}', { status: 200 });
   if (u.includes('api.razorpay.com/v1/subscriptions') && u.endsWith('/cancel')) return new Response(JSON.stringify(razorpayOk ? { id: 'sub_1' } : { error: { description: 'nope' } }), { status: razorpayOk ? 200 : 400 });
   if (u.includes('api.razorpay.com/v1/subscriptions')) return new Response(JSON.stringify({ id: 'sub_new', short_url: 'https://rzp.io/x' }), { status: 200 });
   return realFetch(url as any, init);
@@ -203,4 +205,29 @@ Deno.test('dodo webhook: late, unknown or incomplete messages never change a pay
   assertEquals(db.tables.subscriptions.length, 0);
   await dodo('subscription.active', { metadata: { user_id: U9 }, product_id: 'pdt_y' });                  // plan found from the product
   assertEquals(db.tables.subscriptions[0].plan, 'yearly');
+});
+
+// ---- Dodo checkout and cancel ----
+Deno.test('dodo checkout: says "opening soon" until keys exist, then returns the hosted page for the right product', async () => {
+  resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' };
+  assertEquals((await post('create-dodo-checkout', { plan: 'yearly' }, 'bad')).status, 401);
+  assertEquals((await post('create-dodo-checkout', { plan: 'free' })).status, 400);
+  assertEquals((await post('create-dodo-checkout', { plan: 'yearly' })).status, 503);          // no API key yet
+  Deno.env.set('DODO_API_KEY', 'k');
+  db.tables.subscriptions.push({ user_id: 'u1', status: 'active', dodo_subscription_id: 'sub_d1' });
+  assertEquals((await post('create-dodo-checkout', { plan: 'yearly' })).status, 409);          // never charge twice
+  db.tables.subscriptions.length = 0;
+  const r = await post('create-dodo-checkout', { plan: 'yearly' }); assertEquals(r.status, 200);
+  assert((await r.json()).checkout_url.startsWith('https://'));
+  const c = calls.find((x) => x.url.endsWith('/checkouts'))!; const sent = JSON.parse(String(c.init!.body));
+  assertEquals(sent.product_cart[0].product_id, 'pdt_y'); assertEquals(sent.metadata, { user_id: 'u1', plan: 'yearly' });
+  assert(c.url.startsWith('https://test.dodopayments.com'));
+});
+Deno.test('dodo cancel: stops renewals at the end of the period', async () => {
+  resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' };
+  assertEquals((await post('cancel-dodo-subscription', {})).status, 404);
+  db.tables.subscriptions.push({ user_id: 'u1', status: 'active', dodo_subscription_id: 'sub_d1' });
+  assertEquals((await post('cancel-dodo-subscription', {})).status, 200);
+  const c = calls.find((x) => x.url.endsWith('/subscriptions/sub_d1'))!;
+  assertEquals(c.init!.method, 'PATCH'); assertEquals(JSON.parse(String(c.init!.body)), { cancel_at_next_billing_date: true });
 });

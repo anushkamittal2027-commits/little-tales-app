@@ -80,4 +80,5 @@ Razorpay Dashboard, Settings, Webhooks, Add: URL `https://vnorlnjsvknhsvjfczyl.s
 2. In Dodo (Test mode first), Developer, Webhooks, Add endpoint: URL `https://vnorlnjsvknhsvjfczyl.supabase.co/functions/v1/dodo-webhook`, and tick subscription.active, subscription.renewed, subscription.plan_changed, subscription.on_hold, subscription.past_due, subscription.failed, subscription.cancelled, subscription.expired and payment.succeeded.
 3. Save the endpoint's signing secret in Supabase (never in chat): `npx supabase secrets set DODO_WEBHOOK_SECRET=whsec_...`
 4. Save the two product ids: `npx supabase secrets set DODO_PRODUCT_MONTHLY=pdt_... DODO_PRODUCT_YEARLY=pdt_...`
-5. Deploy the function: `npx supabase functions deploy dodo-webhook`
+5. Save the API key and the mode: `npx supabase secrets set DODO_API_KEY=... DODO_ENV=test` (use `DODO_ENV=live` with the live key and live product ids when going live).
+6. Deploy: `node tools/deploy-server.mjs` (deploys dodo-webhook, create-dodo-checkout and cancel-dodo-subscription with the rest). Until the API key exists, tapping Pay shows "Payments are opening soon".

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const REF = 'vnorlnjsvknhsvjfczyl';
-const FUNCTIONS = ['delete-account', 'nudges', 'lifecycle', 'create-subscription', 'cancel-subscription', 'razorpay-webhook', 'dodo-webhook'];
+const FUNCTIONS = ['delete-account', 'nudges', 'lifecycle', 'create-subscription', 'cancel-subscription', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription'];
 const say = (m) => console.log('\n==> ' + m);
 const run = (args, opts = {}) => {
   const r = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['--yes', 'supabase', ...args], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', ...opts });

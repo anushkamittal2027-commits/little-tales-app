@@ -288,7 +288,7 @@ register('checkout', (p) => {
   });
   const real = auth.provider === 'supabase';
   const draw = () => {
-    if (real) { fields.replaceChildren(h('p.fine', 'You’ll pay in a secure window by UPI AutoPay or card. We never see or store your card or UPI details.')); return; }
+    if (real) { fields.replaceChildren(h('p.fine', 'You’ll pay on a secure page by card, UPI or wallet. We never see or store your payment details.')); return; }
     fields.replaceChildren(...(method === 'upi'
       ? [h('label', 'UPI ID', h('input', { type: 'text', inputmode: 'email', autocomplete: 'off', placeholder: 'name@bank', 'aria-label': 'UPI ID' })), h('p.fine', 'You’ll approve the monthly or yearly auto-pay in your UPI app.')]
       : [h('label', 'Card number', h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: '1234 5678 9012 3456', 'aria-label': 'Card number' })),

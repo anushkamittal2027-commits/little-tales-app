@@ -3,6 +3,7 @@
 import { client, auth } from './auth.js';
 import { pullAccount, pullTales } from './sync.js';
 import { account } from './account.js';
+import { PAYMENT_PROVIDER } from './config.js';
 
 const loadScript = () => new Promise((res, rej) => {
   if (window.Razorpay) return res();
@@ -12,6 +13,7 @@ const loadScript = () => new Promise((res, rej) => {
 
 // Resolves 'paid' when the member is subscribed, 'closed' if they closed the window, or throws a readable error.
 export async function payOnline(planId) {
+  if (PAYMENT_PROVIDER === 'dodo') return payDodo(planId);
   const c = await client();
   const { data, error } = await c.functions.invoke('create-subscription', { body: { plan: planId } });
   if (error || !data?.subscription_id) throw new Error(data?.error || 'We couldn’t start the payment. Please try again in a moment.');
@@ -38,6 +40,29 @@ export async function payOnline(planId) {
 
 export async function cancelOnline() {
   const c = await client();
-  const { data, error } = await c.functions.invoke('cancel-subscription');
+  const { data, error } = await c.functions.invoke(PAYMENT_PROVIDER === 'dodo' ? 'cancel-dodo-subscription' : 'cancel-subscription');
   if (error || data?.error) throw new Error(data?.error || 'We couldn’t cancel right now. Please try again.');
+}
+
+// Dodo Payments: the member pays on Dodo's own page and comes back to /?paid=1; the webhook then marks them subscribed.
+async function payDodo(planId) {
+  const c = await client();
+  const { data, error } = await c.functions.invoke('create-dodo-checkout', { body: { plan: planId } });
+  let msg = data?.error;
+  if (!msg && error?.context?.json) msg = (await error.context.json().catch(() => null))?.error;
+  if (error || !data?.checkout_url) throw new Error(msg || 'We couldn’t start the payment. Please try again in a moment.');
+  location.assign(data.checkout_url);
+  return new Promise(() => {});          // the page is leaving; nothing more to do here
+}
+
+// Called on start when Dodo has sent the member back. Returns true once the subscription shows up.
+export async function finishDodoReturn() {
+  if (!/[?&]paid=1/.test(location.search)) return null;
+  try { history.replaceState(null, '', location.pathname); } catch {}
+  for (let i = 0; i < 15; i++) {
+    await pullAccount();
+    if (account.subscription) { pullTales().catch(() => {}); return true; }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  return false;
 }

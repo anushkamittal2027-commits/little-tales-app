@@ -21,3 +21,5 @@ export const CANONICAL_ORIGIN = 'https://littletales.me';
 export const GOOGLE_CLIENT_ID = '';
 // Microsoft Clarity (anonymous usage recordings and heatmaps). Only loaded on the real website, never on localhost or in tests.
 export const CLARITY_ID = 'yzzxnf3q1w';
+// Which company takes the payments: 'dodo' (Dodo Payments, hosted checkout page) or 'razorpay' (older, India only).
+export const PAYMENT_PROVIDER = 'dodo';

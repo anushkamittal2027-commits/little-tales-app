@@ -1,5 +1,5 @@
 import { store } from './store.js';
-import { start, setGuard, go, refresh, currentName, setNewAction } from './nav.js';
+import { start, setGuard, go, refresh, currentName, setNewAction, toast } from './nav.js';
 import { startToday } from './screens.js';
 import './screens2.js';
 import './screens3.js';
@@ -13,6 +13,7 @@ import { setDayOffset, buzz } from './util.js';
 import { auth, initAuth } from './auth.js';
 import { loadAnalytics } from './analytics.js';
 import { BACKDROP_HTML } from './backdrop.js';
+import { finishDodoReturn } from './pay.js';
 
 // Android/Chrome offers "install" through this event; we show our own button on the install screen.
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__installPrompt = e; });
@@ -91,6 +92,9 @@ async function boot() {
   start(first);
   setTimeout(loadAnalytics, 1500);               // after the first screen is up, so it never slows opening
   if (auth.user && auth.provider === 'supabase' && !signedInSynced) syncInBackground();
+  if (auth.user && auth.provider === 'supabase' && /[?&]paid=1/.test(location.search)) {      // back from the payment page
+    finishDodoReturn().then((ok) => { if (ok === true) go('success', { plan: account.subscription?.plan || 'yearly' }, { replace: true }); else if (ok === false) toast('Your payment is being confirmed. Your tales unlock within a minute.'); });
+  }
   if (new URLSearchParams(location.search).get('new') === '1' && trialInfo().status !== 'new' && !['locked', 'deleted'].includes(trialInfo().status)) { history.replaceState(null, '', location.pathname); const { startToday } = await import('./screens.js'); startToday?.(); }
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

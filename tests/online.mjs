@@ -83,11 +83,11 @@ await p.evaluate(async () => { await window.__lt.sync.savePushOnline({ toJSON: (
 s = await server();
 ok('reminders switched on for the member on the server', s.profiles['u-a@example.com']?.notify_push === true);
 
-// paying (Razorpay window is pretended: it "pays" and the server marks the member subscribed)
-await p.evaluate(() => { window.Razorpay = class { constructor(o) { this.o = o; } on() {} open() { const d = JSON.parse(localStorage.getItem('mockdb')); d.subs[d.session.id] = { user_id: d.session.id, plan: 'yearly', status: 'active', started_at: new Date().toISOString() }; localStorage.setItem('mockdb', JSON.stringify(d)); this.o.handler({}); } }; window.__lt.go('checkout', { plan: 'yearly' }); });
+// paying (Dodo's page is pretended: the mock "pays", the webhook marks the member subscribed, and the browser comes back with ?paid=1)
+await p.evaluate(() => window.__lt.go('checkout', { plan: 'yearly' }));
 await wait(500);
 ok('real checkout has no practice form', await p.locator('.practice, .pay-fields input').count() === 0);
-await p.click('.checkout .btn-primary'); await p.waitForSelector('.success', { timeout: 8000 });
+await p.click('.checkout .btn-primary'); await p.waitForSelector('.success', { timeout: 15000 });
 ok('after paying the member is subscribed', await p.evaluate(() => window.__lt.trialInfo().status) === 'subscribed');
 
 // another person on the same phone
