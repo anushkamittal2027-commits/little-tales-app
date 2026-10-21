@@ -41,5 +41,7 @@ for (const f of FUNCTIONS) { console.log('   - ' + f); run(['functions', 'deploy
 console.log('\n==============================================================');
 console.log('DONE. The server functions and secrets are online.');
 console.log('Last step: do docs/SCHEDULE_STEP.md (paste two SQL blocks in Supabase).');
-console.log('(The website already contains the matching reminder key, so nothing else needs uploading.)');
+console.log('Reminder PUBLIC key (safe to send to Claude; it is not secret):');
+console.log(keys.publicKey);
+console.log('If this differs from VAPID_PUBLIC_KEY in js/config.js, send it to Claude so the website uses the same one.');
 console.log('==============================================================');
