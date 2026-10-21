@@ -9,8 +9,10 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const REF = 'vnorlnjsvknhsvjfczyl';
 const FUNCTIONS = ['delete-account', 'nudges', 'lifecycle', 'create-subscription', 'cancel-subscription', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription'];
 const say = (m) => console.log('\n==> ' + m);
+// On Windows the command runs through cmd.exe, where < > & and spaces must be quoted (this is what broke the MAIL_FROM secret).
+const q = (a) => (process.platform === 'win32' && /[\s<>&|^]/.test(a) ? `"${a}"` : a);
 const run = (args, opts = {}) => {
-  const r = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['--yes', 'supabase', ...args], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', ...opts });
+  const r = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['--yes', 'supabase', ...args.map(q)], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', ...opts });
   if (r.status !== 0) { console.error('\nThat step did not finish. Copy the red text above and send it to Claude.'); process.exit(1); }
 };
 
