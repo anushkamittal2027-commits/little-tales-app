@@ -23,7 +23,7 @@ await p.fill('.signin input[type=email]', 'me@example.com'); await p.click('text
 ok('code screen shown', await p.locator('.code-input').count() >= 1);
 await p.fill('.code-input', '00000000'); await p.waitForTimeout(900);
 ok('wrong code stays on code screen', await p.locator('.code-input').count() >= 1 && await p.locator('.terms').count() === 0);
-await p.fill('.code-input', '12345678'); await p.waitForTimeout(1200);
+await p.fill('.code-input', '123456'); await p.waitForTimeout(1200);
 ok('terms screen shown', await p.locator('.terms').count() === 1);
 await shot('01-terms');
 ok('start button disabled until ticked', await p.locator('.terms .btn-primary').isDisabled());

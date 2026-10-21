@@ -32,7 +32,7 @@ ok('Google round trip signs you in and shows the free-week page', await p.locato
 await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('mockdb')); d.session = null; localStorage.setItem('mockdb', JSON.stringify(d)); }); await p.goto(URL); await wait(1000);
 await p.click('text=Start my album'); await wait(400);
 await p.fill('.signin input[type=email]', 'a@example.com'); await p.click('text=Email me a code'); await wait(400);
-await p.fill('.code-input', '12345678'); await wait(1500);
+await p.fill('.code-input', '123456'); await wait(1500);
 ok('new member lands on the free-week page', await p.locator('.terms').count() === 1);
 await p.click('.check'); await p.click('text=Start my free week'); await wait(1200);
 let s = await server();
@@ -96,7 +96,7 @@ await p.click('text=Sign out'); await wait(1500);
 ok('sign out clears this phone', (await p.evaluate(() => window.__lt.store.tales.length)) === 0);
 await p.click('text=Start my album').catch(() => {}); await wait(400);
 await p.fill('.signin input[type=email]', 'b@example.com'); await p.click('text=Email me a code'); await wait(400);
-await p.fill('.code-input', '12345678'); await wait(1500);
+await p.fill('.code-input', '123456'); await wait(1500);
 ok('a different member starts fresh (free-week page, no tales)', await p.locator('.terms').count() === 1 && (await p.evaluate(() => window.__lt.store.tales.length)) === 0);
 
 console.log(fails || errs ? `\nFAILED: ${fails} failed checks, ${errs} console errors` : '\nALL GOOD: 0 failed checks, 0 console errors');

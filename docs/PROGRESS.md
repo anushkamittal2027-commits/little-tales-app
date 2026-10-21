@@ -91,7 +91,7 @@ Two test suites run the whole app in a phone-sized browser. **59 checks pass, 0 
 - Your Supabase project is connected (`js/config.js`); database files `001_init.sql` and `003_grants.sql` were run successfully.
 
 ### Sign-in (practice mode)
-- Welcome, then **Sign in** (Google button, or email and a 8-digit code), then the free-week page. Account shows your email and **Sign out**. Until Supabase is connected it runs in practice mode: any email works and the code is 123456. `js/auth.js` switches to real Supabase login once the keys are in `js/config.js`.
+- Welcome, then **Sign in** (Google button, or email and a 6-digit code), then the free-week page. Account shows your email and **Sign out**. Until Supabase is connected it runs in practice mode: any email works and the code is 123456. `js/auth.js` switches to real Supabase login once the keys are in `js/config.js`.
 
 ### Polish
 - Glass look across all screens, smooth screen transitions, calm animations (and they switch off for people who ask their phone for reduced motion).

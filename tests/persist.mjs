@@ -23,7 +23,7 @@ await ctx.route('https://vnorlnjsvknhsvjfczyl.supabase.co/**', async (route) => 
 p.on('console', (m) => console.log('  console:', m.text().slice(0, 160))); p.on('pageerror', (e) => console.log('PAGE ERROR', e.message));
 await p.goto('http://localhost:8130/'); await p.waitForTimeout(1500);
 await p.click('text=Start my album'); await p.waitForTimeout(600); await p.fill('.signin input[type=email]', 'real@example.com'); await p.click('text=Email me a code'); await p.waitForTimeout(500);
-await p.waitForTimeout(800); console.log('screen:', await p.evaluate(() => document.getElementById('app').dataset.screen), log.slice(-4), await p.locator('.pay-err').first().innerText().catch(() => 'no err')); await p.fill('.code-input', '12345678'); await p.waitForTimeout(2500);
+await p.waitForTimeout(800); console.log('screen:', await p.evaluate(() => document.getElementById('app').dataset.screen), log.slice(-4), await p.locator('.pay-err').first().innerText().catch(() => 'no err')); await p.fill('.code-input', '123456'); await p.waitForTimeout(2500);
 console.log('after code:', await p.evaluate(() => document.getElementById('app').dataset.screen));
 const keys = await p.evaluate(() => Object.keys(localStorage)); console.log('storage keys:', keys);
 await p.reload(); await p.waitForTimeout(2500);

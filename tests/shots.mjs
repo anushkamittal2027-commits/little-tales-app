@@ -16,7 +16,7 @@ await shot('01-welcome');
 await p.click('text=Start my album'); await shot('02-signin');
 await p.fill('.signin input[type=email]', 'anushka@example.com'); await p.click('text=Email me a code'); await p.waitForTimeout(400);
 await p.fill('.code-input', '1234'); await shot('03-code');
-await p.fill('.code-input', '12345678'); await p.waitForTimeout(900);
+await p.fill('.code-input', '123456'); await p.waitForTimeout(900);
 await shot('04-terms');
 await p.click('.check'); await p.click('text=Start my free week'); await p.waitForTimeout(600);
 await shot('05-intro1'); await p.click('text=Next'); await shot('06-intro2'); await p.click('text=Next'); await shot('07-intro3');

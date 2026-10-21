@@ -11,7 +11,7 @@ export const ONLINE = !forceDemo && !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_AN
 
 export const APP_VERSION = 'v3 · ' + new Date().toISOString().slice(0, 10);
 // How many digits the emailed sign-in code has. Supabase's default is 8 (Authentication, Providers, Email, "Email OTP Length"). Keep the two the same.
-export const CODE_LENGTH = 8;
+export const CODE_LENGTH = 6;
 // Emails allowed to open the hidden founder panel (tap the logo 5 times) on the live site. Everyone else never sees it.
 export const FOUNDER_EMAILS = ['hellolittletales@gmail.com'];
 // The one real address of the app. Visitors who arrive on the old free address are moved here, so everyone shares one saved sign-in.

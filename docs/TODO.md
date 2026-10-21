@@ -34,4 +34,4 @@ Microsoft Clarity project id: yzzxnf3q1w (installed in js/analytics.js; app cont
 
 ## To review later (asked by the founder)
 - Review the Terms and Privacy pages: https://littletales.me/terms and https://littletales.me/privacy (drafts in docs/legal/).
-- Shorter sign-in code: Supabase allows 6 to 10 digits only (not 4 or 5). Move 8 -> 6 by changing Supabase (Authentication, Providers, Email, Email OTP Length) to 6 AND `CODE_LENGTH` in js/config.js to 6 at the same time.
+- Shorter sign-in code: Supabase allows 6 to 10 digits only (not 4 or 5). Done: moved 8 -> 6 by changing Supabase (Authentication, Providers, Email, Email OTP Length) to 6 AND `CODE_LENGTH` in js/config.js to 6 at the same time.

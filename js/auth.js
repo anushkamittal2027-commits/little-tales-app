@@ -1,5 +1,5 @@
 // Sign-in. Two providers behind one small interface, so the screens never change:
-//  - "demo": for development and previews (no server). Any email works; the code is 12345678.
+//  - "demo": for development and previews (no server). Any email works; the code is 123456.
 //  - "supabase": real Google sign-in and email codes. Switched on automatically when js/config.js is filled in.
 import { CONFIG, ONLINE, CODE_LENGTH, GOOGLE_CLIENT_ID } from './config.js';
 import { store } from './store.js';
