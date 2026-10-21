@@ -8,7 +8,7 @@ export async function transcribe(blob) {
   const { data, error } = await c.functions.invoke('transcribe', { body: fd });
   let body = data;
   if (error && error.context?.json) body = await error.context.json().catch(() => null);
-  if (body?.code === 'not_configured') { const e = new Error('not_configured'); e.code = 'not_configured'; throw e; }
+  if (body?.code === 'not_configured' || error?.context?.status === 404) { const e = new Error('not_configured'); e.code = 'not_configured'; throw e; }
   if (error || typeof body?.text !== 'string') throw new Error(body?.error || 'We couldn’t turn that into words. Please try again.');
   return body.text;
 }

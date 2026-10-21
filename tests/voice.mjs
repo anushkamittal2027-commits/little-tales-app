@@ -20,9 +20,14 @@ await p.click('.hh-cta'); await p.waitForTimeout(300);
 await p.screenshot({ path: '/tmp/s/v1.png' }); await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
 ok('thought screen shown', await p.locator('.thought').count() === 1);
 
-// speak instead of typing: the keyboard microphone is pointed out and the box gets the cursor
+// speak instead of typing (practice mode uses the browser's own listening: words appear in the box and stay editable)
 await p.click('.dictate'); await p.waitForTimeout(200);
-ok('speak button focuses the box and explains the keyboard microphone', (await p.locator('.dict-tip').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
+ok('speak button shows it is listening', (await p.locator('.dictate .dl').innerText()).includes('Listening'));
+await p.evaluate(() => { const r = window.__sr; r.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: 'The chai was perfect today' }], { isFinal: true })] }); });
+ok('spoken words land in the text box', (await p.inputValue('.thought-input')) === 'The chai was perfect today', await p.inputValue('.thought-input'));
+await p.click('.dictate'); await p.waitForTimeout(200);
+await p.fill('.thought-input', (await p.inputValue('.thought-input')) + ' and warm');
+ok('the text stays editable', (await p.inputValue('.thought-input')).endsWith('and warm'));
 
 // voice note: tap to start, tap to stop
 await p.click('.mic'); await p.waitForTimeout(1500);

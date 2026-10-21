@@ -241,7 +241,7 @@ register('paywall', (p) => {
   };
   draw();
   const picks = [...store.tales].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3);
-  const demo = ['everyday-lake', 'everyday-hiker', 'everyday-books'].map((n, i) => ({ date: addDays(todayStr(), -i), photo: samplePhoto(n), light: 'none' }));
+  const demo = ['e-sunflowers', 'e-lookout', 'e-van'].map((n, i) => ({ date: addDays(todayStr(), -i), photo: samplePhoto(n), light: 'none' }));
   const three = [0, 1, 2].map((i) => picks[i] || demo[i]);
   return h('div.paywall',
     h('div.pw-band', { 'aria-hidden': 'true' }),

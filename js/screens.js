@@ -61,7 +61,7 @@ function canStart(date) {
 const STAR = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6l6.6 16.6L56 24l-13.6 11L47 52 32 42.6 17 52l4.6-17L8 24l17.4-1.4z" fill="#F2C94C" stroke="#E0AE2C" stroke-width="2" stroke-linejoin="round"/></svg>';
 const SPARK = '<svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 2v30M2 17h30M6.5 6.5l21 21M27.5 6.5l-21 21" stroke="#E7B93E" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
 register('welcome', () => {
-  const demo = { date: todayStr(), photo: samplePhoto('everyday-lake'), light: 'none' };
+  const demo = { date: todayStr(), photo: samplePhoto('e-van'), light: 'none' };
   return h('div.welcome',
     h('div.welcome-head', h('h1', 'Little Tales'), h('p', 'Turn little moments', h('br'), 'into memories.')),
     h('div.welcome-art', { 'aria-hidden': 'true' },
