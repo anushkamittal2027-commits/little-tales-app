@@ -28,6 +28,7 @@ export class Dictation {
     this.final = '';
     const r = this.rec = new SR();
     r.lang = navigator.language || 'en-IN'; r.continuous = !IOS; r.interimResults = true; r.maxAlternatives = 1;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch {}   // an iPhone aborts listening while the page is set to play-only sound
     r.onstart = () => this.onState?.('listening');
     r.onresult = (ev) => {
       let interim = '';
@@ -39,7 +40,7 @@ export class Dictation {
     };
     r.onerror = (ev) => { if (ev.error === 'aborted' && this.stopping) return; this.failed = true; this.onError?.(ev); };
     r.onnomatch = () => { this.failed = true; this.onError?.({ error: 'no-speech' }); };
-    r.onend = () => { this.onState?.('idle'); this.rec = null; };
+    r.onend = () => { try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch {} this.onState?.('idle'); this.rec = null; };
     try { r.start(); } catch (e) { this.onError?.(e); return false; }
     return true;
   }

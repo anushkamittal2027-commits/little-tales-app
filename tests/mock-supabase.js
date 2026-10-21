@@ -73,6 +73,7 @@
     },
     functions: { async invoke(name) {
       if (name === 'create-subscription') return { data: { subscription_id: 'sub_test', key_id: 'rzp_test_x' }, error: null };
+      if (name === 'transcribe') return window.__TRANSCRIBE === 'not_configured' ? { data: { code: 'not_configured', error: 'soon' }, error: null } : { data: { text: 'The chai was perfect today' }, error: null };
       if (name === 'create-dodo-checkout') { const d = db(); d.subs[d.session.id] = { user_id: d.session.id, plan: 'yearly', status: 'active', started_at: new Date().toISOString() }; save(d); return { data: { checkout_url: location.origin + location.pathname + '?paid=1' }, error: null }; }   // pretends the member paid and Dodo's webhook arrived
       if (name === 'cancel-subscription' || name === 'cancel-dodo-subscription') return { data: { ok: true }, error: null }; if (name === 'delete-account') { const d = db(); const uid = d.session?.id; for (const k of Object.keys(d.tales)) if (d.tales[k].user_id === uid) delete d.tales[k]; delete d.profiles[uid]; d.session = null; save(d); } return { data: {}, error: null }; } },
   };

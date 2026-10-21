@@ -30,11 +30,11 @@ register('intro', () => {
   const photo = (n) => samplePhoto(n);
   const slides = [
     { t: 'Catch a moment', p: 'Take a photo or pick one from your gallery. Up to three little tales a day.',
-      art: () => [['w1', { photo: photo('string-lights'), date: '2026-10-12', light: 'none' }, '15px'], ['w2', { photo: photo('rain-bokeh'), date: '2026-10-14', light: 'none' }, '14px'], ['w3', { photo: photo('skyline-dusk'), date: '2026-10-16', light: 'none' }, '17px', true]] },
+      art: () => [['w1', { photo: photo('everyday-lake'), date: '2026-10-12', light: 'none' }, '15px'], ['w2', { photo: photo('everyday-books'), date: '2026-10-14', light: 'none' }, '14px'], ['w3', { photo: photo('everyday-hiker'), date: '2026-10-16', light: 'none' }, '17px', true]] },
     { t: 'Say how it felt', p: 'Write a line, say it out loud, or both. Your voice stays with the stamp.',
-      art: () => [['w3', { photo: photo('misty-hills'), date: '2026-10-16', light: 'none' }, '17px', true], ['wmic', null]] },
+      art: () => [['w3', { photo: photo('everyday-house'), date: '2026-10-16', light: 'none' }, '17px', true], ['wmic', null]] },
     { t: 'Watch it become a stamp', p: 'Your photo is cut into a little postage stamp. Decorate it with tape and stickers, then post it to your calendar.',
-      art: () => [['w2', { photo: photo('skyline-dusk'), date: '2026-10-16', light: 'golden' }, '14px'], ['w3', { photo: photo('string-lights'), date: '2026-10-17', light: 'none' }, '17px', true], ['w1', { photo: photo('rain-bokeh'), date: '2026-10-15', light: 'none' }, '14px']] },
+      art: () => [['w2', { photo: photo('everyday-hiker'), date: '2026-10-16', light: 'golden' }, '14px'], ['w3', { photo: photo('everyday-lake'), date: '2026-10-17', light: 'none' }, '17px', true], ['w1', { photo: photo('everyday-books'), date: '2026-10-15', light: 'none' }, '14px']] },
   ];
   let i = 0;
   const wrap = h('div.intro');

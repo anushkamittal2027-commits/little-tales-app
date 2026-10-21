@@ -8,7 +8,7 @@ Deno.env.set('RAZORPAY_KEY_ID', 'rzp_test'); Deno.env.set('RAZORPAY_KEY_SECRET',
 const handlers: Record<string, (r: Request) => Promise<Response> | Response> = {};
 let current = '';
 (Deno as any).serve = (h: any) => { handlers[current] = h; };
-for (const name of ['lifecycle', 'nudges', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription', 'create-subscription', 'cancel-subscription', 'delete-account']) { current = name; await import(`../../functions/${name}/index.ts?${name}`); }
+for (const name of ['lifecycle', 'nudges', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription', 'transcribe', 'create-subscription', 'cancel-subscription', 'delete-account']) { current = name; await import(`../../functions/${name}/index.ts?${name}`); }
 const { db, resetDb } = await import('./stub_supabase.ts');
 const { sent } = await import('./stub_webpush.ts');
 
@@ -18,6 +18,7 @@ let razorpayOk = true;
 globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
   const u = String(url); calls.push({ url: u, init });
   if (u.includes('api.resend.com')) return new Response('{}', { status: 200 });
+  if (u.includes('api.openai.com/v1/audio/transcriptions')) return new Response(JSON.stringify({ text: ' Hello there ' }), { status: 200 });
   if (u.includes('dodopayments.com/checkouts')) return new Response(JSON.stringify({ checkout_url: 'https://test.checkout.dodopayments.com/session/cks_1' }), { status: 200 });
   if (u.includes('dodopayments.com/subscriptions/')) return new Response('{}', { status: 200 });
   if (u.includes('api.razorpay.com/v1/subscriptions') && u.endsWith('/cancel')) return new Response(JSON.stringify(razorpayOk ? { id: 'sub_1' } : { error: { description: 'nope' } }), { status: razorpayOk ? 200 : 400 });
@@ -230,4 +231,17 @@ Deno.test('dodo cancel: stops renewals at the end of the period', async () => {
   assertEquals((await post('cancel-dodo-subscription', {})).status, 200);
   const c = calls.find((x) => x.url.endsWith('/subscriptions/sub_d1'))!;
   assertEquals(c.init!.method, 'PATCH'); assertEquals(JSON.parse(String(c.init!.body)), { cancel_at_next_billing_date: true });
+});
+
+// ---- Speak instead of typing ----
+Deno.test('transcribe: needs sign-in, says "opening soon" without a key, then returns the words', async () => {
+  resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' };
+  const send = (token: string, f?: File) => { const fd = new FormData(); if (f) fd.append('audio', f); return handlers['transcribe'](new Request('http://f', { method: 'POST', body: fd, headers: { Authorization: 'Bearer ' + token } })); };
+  const clip = new File([new Uint8Array(500)], 'speech.webm', { type: 'audio/webm' });
+  assertEquals((await send('bad', clip)).status, 401);
+  assertEquals((await send('good-token', clip)).status, 503);
+  Deno.env.set('OPENAI_API_KEY', 'k');
+  assertEquals((await send('good-token')).status, 400);
+  assertEquals((await send('good-token', new File([new Uint8Array(4 * 1024 * 1024)], 'big.webm'))).status, 413);
+  const r = await send('good-token', clip); assertEquals(r.status, 200); assertEquals((await r.json()).text, 'Hello there');
 });

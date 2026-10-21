@@ -1,4 +1,4 @@
-// One command that switches on the server side: reminder keys, secrets and the 7 server functions.
+// One command that switches on the server side: reminder keys, secrets and the server functions.
 // Run:  node tools/deploy-server.mjs      (needs Node and an internet connection; nothing is sent to anyone but your own Supabase project)
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const REF = 'vnorlnjsvknhsvjfczyl';
-const FUNCTIONS = ['delete-account', 'nudges', 'lifecycle', 'create-subscription', 'cancel-subscription', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription'];
+const FUNCTIONS = ['delete-account', 'nudges', 'lifecycle', 'create-subscription', 'cancel-subscription', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription', 'transcribe'];
 const say = (m) => console.log('\n==> ' + m);
 // On Windows the command runs through cmd.exe, where < > & and spaces must be quoted (this is what broke the MAIL_FROM secret).
 const q = (a) => (process.platform === 'win32' && /[\s<>&|^]/.test(a) ? `"${a}"` : a);

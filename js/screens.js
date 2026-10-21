@@ -3,8 +3,10 @@ import { store } from './store.js';
 import { state, register, go, back, toast, sheet } from './nav.js';
 import { stampEl, pageEl, LIGHTS, blockColor } from './stamp.js';
 import { filterCss } from './filters.js';
+import { transcribe } from './speech.js';
+import { auth } from './auth.js';
 import { makeEditor } from './decorate.js';
-import { Recorder, MAX_SECONDS, micMessage, playChime, playParty, playStamp } from './recorder.js';
+import { Recorder, MAX_SECONDS, micMessage, Dictation, dictationSupported, playChime, playParty, playStamp } from './recorder.js';
 import { LOGO, artSvg } from './art.js';
 import { seedSamples, samplePhoto, seedTrialWeek } from './sample.js';
 import { logAttemptOnline, isFounder, syncState } from './sync.js';
@@ -59,7 +61,7 @@ function canStart(date) {
 const STAR = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6l6.6 16.6L56 24l-13.6 11L47 52 32 42.6 17 52l4.6-17L8 24l17.4-1.4z" fill="#F2C94C" stroke="#E0AE2C" stroke-width="2" stroke-linejoin="round"/></svg>';
 const SPARK = '<svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 2v30M2 17h30M6.5 6.5l21 21M27.5 6.5l-21 21" stroke="#E7B93E" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
 register('welcome', () => {
-  const demo = { date: todayStr(), photo: samplePhoto('misty-hills'), light: 'none' };
+  const demo = { date: todayStr(), photo: samplePhoto('everyday-lake'), light: 'none' };
   return h('div.welcome',
     h('div.welcome-head', h('h1', 'Little Tales'), h('p', 'Turn little moments', h('br'), 'into memories.')),
     h('div.welcome-art', { 'aria-hidden': 'true' },
@@ -406,14 +408,38 @@ register('thought', (p) => {
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const dictBtn = h('button.dictate', { type: 'button' }, h('span.btn-ic', { html: icon.mic }), h('span.dl', 'Speak instead of typing'));
   const tip = h('div.dict-tip', { hidden: true, role: 'status' });
-  dictBtn.addEventListener('click', () => {
+  const showTip = (lead, rest = '') => { tip.hidden = false; tip.replaceChildren(h('b', lead), ' ' + rest); };
+  const keyboardTip = () => { ta.focus(); showTip(ios ? 'Tap the little microphone on your keyboard' : 'Tap the microphone on your keyboard', '(bottom right) and speak. ' + (ios ? 'No microphone key? Open Settings, General, Keyboard, and switch on Enable Dictation.' : '')); };
+  const setLabel = (txt, on) => { dictBtn.querySelector('.dl').textContent = txt; dictBtn.classList.toggle('on', !!on); };
+  const addWords = (txt) => { const t2 = (ta.value.trim() ? ta.value.trim() + ' ' : '') + txt.trim(); ta.value = t2.slice(0, MAX_THOUGHT); t.thought = ta.value; count.textContent = `${ta.value.length}/${MAX_THOUGHT}`; };
+  let dictRec = null, dictBusy = false, serverSpeech = auth.provider === 'supabase', webSpeech = null;
+  dictBtn.addEventListener('click', async () => {
+    if (dictBusy) return;
     if (recording) { say('Finish your voice note first, then you can speak your words.', true); return; }
-    ta.focus();
-    dictBtn.classList.add('on'); setTimeout(() => dictBtn.classList.remove('on'), 1600);
-    tip.hidden = false;
-    tip.replaceChildren(h('b', ios ? 'Tap the little microphone on your keyboard' : 'Tap the microphone on your keyboard'), ' (bottom right) and speak. ' + (ios ? 'No microphone key? Open Settings, General, Keyboard, and switch on Enable Dictation.' : ''));
+    if (webSpeech) { webSpeech.stop(); return; }
+    if (dictRec) {                                          // second tap: stop and write it down
+      const r = await dictRec.stop(); dictRec = null; tip.hidden = true;
+      if (!r || r.duration < 0.6) { setLabel('Speak instead of typing'); say('That was very short. Tap and speak a little longer.', true); return; }
+      dictBusy = true; setLabel('Writing it down\u2026', true);
+      try { const words = await transcribe(r.blob); if (words) { addWords(words); say('Done. You can edit the words above.'); } else say('We didn\u2019t catch any words. Try again a little closer.', true); }
+      catch (e) { if (e.code === 'not_configured') { serverSpeech = false; say(''); keyboardTip(); } else say(e.message, true); }
+      dictBusy = false; setLabel('Speak instead of typing'); return;
+    }
     say('');
-    setTimeout(() => ta.scrollIntoView({ block: 'center', behavior: 'smooth' }), 250);
+    if (serverSpeech) {                                     // works on every phone: we record, the server writes the words
+      const rec2 = new Recorder(() => {});
+      try { await rec2.start(); } catch (e) { say(micMessage(e), true); return; }
+      dictRec = rec2; setLabel('Listening\u2026 tap to stop', true); showTip('Speak now.', 'Tap the button again when you are done.');
+      return;
+    }
+    if (dictationSupported()) {                             // practice mode: the browser's own listening
+      webSpeech = new Dictation({ max: MAX_THOUGHT,
+        onText: (txt) => { ta.value = txt; t.thought = txt; count.textContent = `${txt.length}/${MAX_THOUGHT}`; },
+        onState: (st) => { setLabel(st === 'listening' ? 'Listening\u2026 tap to stop' : 'Speak instead of typing', st === 'listening'); if (st !== 'listening') webSpeech = null; },
+        onError: () => { webSpeech = null; setLabel('Speak instead of typing'); keyboardTip(); } });
+      webSpeech.start(ta.value); return;
+    }
+    keyboardTip();
   });
 
   const heroTale = edit ? t : state.draft;
@@ -429,7 +455,7 @@ register('thought', (p) => {
       if (edit) { edit.thought = t.thought; edit.audio = t.audio; edit.audioDur = t.audioDur; await store.save(edit); toast('Saved'); back('calendar'); }
       else go('frame');
     })));
-  el._cleanup = () => { if (recording) rec?.cancel(); };
+  el._cleanup = () => { if (recording) rec?.cancel(); try { dictRec?.cancel(); webSpeech?.stop(); } catch {} };
   return el;
 });
 
