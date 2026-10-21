@@ -397,3 +397,6 @@
 .legal-body { padding: 4px 20px 40px; font: 15px/1.65 var(--sans); color: var(--ink); }
 .legal-body h1, .legal-body h2 { font-family: var(--serif); line-height: 1.2; } .legal-body h1 { font-size: 26px; margin: 8px 0 12px; } .legal-body h2 { font-size: 19px; margin: 24px 0 6px; }
 .legal-body a { color: var(--link); } .legal-body ul { padding-left: 20px; }
+
+.dict-tip { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: var(--olive-wash); color: var(--ink); font: 500 13px/1.45 var(--sans); }
+.dictate { height: 44px; touch-action: manipulation; }

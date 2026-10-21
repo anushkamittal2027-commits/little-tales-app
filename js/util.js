@@ -49,7 +49,7 @@ export function h(tag, attrs, ...kids) {
 }
 
 // Turn a photo (File or canvas source) into a shrunk JPEG data URL.
-export async function fileToPhoto(file, maxSide = 1280) {
+export async function fileToPhoto(file, maxSide = 1600) {
   let bmp;
   try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
   catch {
@@ -60,16 +60,16 @@ export async function fileToPhoto(file, maxSide = 1280) {
   }
   return drawToJpeg(bmp, bmp.width, bmp.height, maxSide);
 }
-export function drawToJpeg(src, w, h, maxSide = 1280) {
+export function drawToJpeg(src, w, h, maxSide = 1600) {
   const k = Math.min(1, maxSide / Math.max(w, h));
   const c = document.createElement('canvas');
   c.width = Math.round(w * k); c.height = Math.round(h * k);
   c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.82);
+  return c.toDataURL('image/jpeg', 0.88);
 }
 
 // A small JPEG for lists (calendar, latest tales, day view), so big photos only load on the page itself.
-export async function makeThumb(src, max = 360) {
+export async function makeThumb(src, max = 480) {
   const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
   const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
   const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);

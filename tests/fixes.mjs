@@ -117,7 +117,7 @@ for (const [w, h] of [[393, 670], [390, 844], [360, 640]]) {
   const p = await page({}); await start(p);
   await p.click('#tabbar .tab-new'); await p.setInputFiles('input[type=file]:not([capture])', gallery); await p.waitForTimeout(1000);
   await p.click('.dictate'); await p.waitForTimeout(200);
-  ok('speak instead of typing: the cursor goes in the box and the keyboard microphone is explained', (await p.locator('.mic-status').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
+  ok('speak instead of typing: the cursor goes in the box and the keyboard microphone is explained', (await p.locator('.dict-tip').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
   await p.context().close();
 }
 

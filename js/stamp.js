@@ -53,8 +53,10 @@ export { LIGHTS, FILTERS } from './filters.js';
 // A real postage stamp: perforated edge, cream paper, a framed photo window and a small footer. Sizes inside are in container units (cqw).
 export function stampEl(tale, { size = '16px', mini = false, postmark = true, developing = false, full = false } = {}) {
   const light = tale.light || 'golden';
+  // small stamps use the light thumbnail; anything bigger than ~12px (a 120px-wide stamp) uses the full picture so it stays sharp
+  const big = !mini && !(/^[\d.]+px$/.test(String(size)) && parseFloat(size) <= 12);
   const photo = tale.photo
-    ? h('img.photo', { src: full ? tale.photo : (tale.thumb || tale.photo), loading: 'lazy', decoding: 'async', alt: tale.title || 'Photo', draggable: 'false' })
+    ? h('img.photo', { src: (full || big) ? tale.photo : (tale.thumb || tale.photo), loading: 'lazy', decoding: 'async', alt: tale.title || 'Photo', draggable: 'false' })
     : h('div.photo-empty', { 'aria-hidden': 'true' }, h('span', '+'));
   if (tale.photo) photo.style.filter = filterCss(light);
   const box = h('div.stamp-photo', photo);

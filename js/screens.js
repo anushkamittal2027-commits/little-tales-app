@@ -255,7 +255,7 @@ const cameraScreen = (p) => {
     if (!video.videoWidth) { gallery.click(); return; }
     if (!edit && !canStart(state.draft.date)) return;
     const { sx, sy, sw, sh } = cropBox();
-    const c = document.createElement('canvas'); const k = Math.min(1, 1280 / Math.max(sw, sh));
+    const c = document.createElement('canvas'); const k = Math.min(1, 1600 / Math.max(sw, sh));
     c.width = Math.round(sw * k); c.height = Math.round(sh * k);
     const g = c.getContext('2d');
     if (mirrored) { g.translate(c.width, 0); g.scale(-1, 1); }
@@ -265,8 +265,8 @@ const cameraScreen = (p) => {
     stage.classList.add('punch');
     // encoding happens off the main thread, so the press animation never stutters
     const done = (url) => setTimeout(() => accept(url), 200);
-    if (c.toBlob) c.toBlob((blob) => { const fr = new FileReader(); fr.onload = () => done(fr.result); fr.readAsDataURL(blob); }, 'image/jpeg', 0.84);
-    else done(c.toDataURL('image/jpeg', 0.84));
+    if (c.toBlob) c.toBlob((blob) => { const fr = new FileReader(); fr.onload = () => done(fr.result); fr.readAsDataURL(blob); }, 'image/jpeg', 0.9);
+    else done(c.toDataURL('image/jpeg', 0.9));
   }
   const hint = h('p.cam-hint', 'Fill the stamp with your moment');
 
@@ -405,10 +405,15 @@ register('thought', (p) => {
   // than a web page listening itself. So the button puts the cursor in the box and says where that key is.
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const dictBtn = h('button.dictate', { type: 'button' }, h('span.btn-ic', { html: icon.mic }), h('span.dl', 'Speak instead of typing'));
+  const tip = h('div.dict-tip', { hidden: true, role: 'status' });
   dictBtn.addEventListener('click', () => {
     if (recording) { say('Finish your voice note first, then you can speak your words.', true); return; }
     ta.focus();
-    say(ios ? 'Tap the microphone key at the bottom right of your keyboard and speak.' : 'Tap the microphone icon on your keyboard and speak.');
+    dictBtn.classList.add('on'); setTimeout(() => dictBtn.classList.remove('on'), 1600);
+    tip.hidden = false;
+    tip.replaceChildren(h('b', ios ? 'Tap the little microphone on your keyboard' : 'Tap the microphone on your keyboard'), ' (bottom right) and speak. ' + (ios ? 'No microphone key? Open Settings, General, Keyboard, and switch on Enable Dictation.' : ''));
+    say('');
+    setTimeout(() => ta.scrollIntoView({ block: 'center', behavior: 'smooth' }), 250);
   });
 
   const heroTale = edit ? t : state.draft;
@@ -416,7 +421,7 @@ register('thought', (p) => {
     stepBar(2, !edit ? linkBtn('Retake', () => { go('camera', {}, { replace: true }); }) : null),
     h('div.thought-hero', h('div.th-stamp', stampEl(heroTale, { size: '9.2px', postmark: false })),
       h('div', h('h1', 'How did it feel?'), h('p.lead.small', 'Write a line, say it out loud, or both.'))),
-    h('section.tcard', h('p.kicker', 'A short thought'), h('div.text-wrap', ta), h('div.tc-row', dictBtn, count)),
+    h('section.tcard', h('p.kicker', 'A short thought'), h('div.text-wrap', ta), h('div.tc-row', dictBtn, count), tip),
     status,
     h('section.tcard.vcard', h('p.kicker', 'Voice note'), voiceArea),
     h('div.bottom', primary(edit ? 'Save changes' : 'Next', async () => {

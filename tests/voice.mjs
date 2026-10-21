@@ -22,7 +22,7 @@ ok('thought screen shown', await p.locator('.thought').count() === 1);
 
 // speak instead of typing: the keyboard microphone is pointed out and the box gets the cursor
 await p.click('.dictate'); await p.waitForTimeout(200);
-ok('speak button focuses the box and explains the keyboard microphone', (await p.locator('.mic-status').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
+ok('speak button focuses the box and explains the keyboard microphone', (await p.locator('.dict-tip').innerText()).toLowerCase().includes('microphone') && await p.evaluate(() => document.activeElement?.classList.contains('thought-input')));
 
 // voice note: tap to start, tap to stop
 await p.click('.mic'); await p.waitForTimeout(1500);

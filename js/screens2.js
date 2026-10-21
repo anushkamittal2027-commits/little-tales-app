@@ -145,8 +145,8 @@ register('terms', () => {
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone;
 async function turnOnNudges() {
-  if (!('Notification' in window)) { toast('Reminders aren\u2019t available in this browser'); return false; }
-  if (isIOS() && !isStandalone()) { toast('iPhone only allows reminders for sites kept on the Home Screen. Everything else works in the browser.'); return false; }
+  if (isIOS() && !isStandalone()) { toast('On iPhone, reminders work once Little Tales is on your Home Screen. Here is how:'); setTimeout(addToHomeScreen, 400); return false; }
+  if (!('Notification' in window)) { toast('This browser can\u2019t show reminders. Try Chrome, or add Little Tales to your Home Screen.'); return false; }
   let p = 'denied'; try { p = await Notification.requestPermission(); } catch {}
   await patchAccount({ notify: { granted: p === 'granted', asked: true } });
   if (p === 'granted') subscribePush();
@@ -245,7 +245,7 @@ register('paywall', (p) => {
   const three = [0, 1, 2].map((i) => picks[i] || demo[i]);
   return h('div.paywall',
     h('div.pw-band', { 'aria-hidden': 'true' }),
-    h('div.topbar', locked ? h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back('locked'), html: icon.back }) : (day7 ? h('span.topbar-spacer') : h('button.icon-btn', { 'aria-label': 'Close', onClick: () => back(), html: icon.close }))),
+    h('div.topbar', locked ? h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back('locked'), html: icon.back }) : (day7 ? h('span.topbar-spacer') : h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back('account'), html: icon.back }))),
     h('div.pw-stamps', { 'aria-hidden': 'true' },
       h('div.pws.a', stampEl(three[1], { size: '9.6px', postmark: false })),
       h('div.pws.b', stampEl(three[2], { size: '9.6px', postmark: false })),
