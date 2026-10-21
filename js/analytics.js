@@ -1,6 +1,6 @@
 // Microsoft Clarity: shows how people use the app (where they tap, where they get stuck). Everything inside the app is masked in
 // recordings (index.html marks #app with data-clarity-mask), so photos, voice notes, thoughts and names are never captured.
-import { CLARITY_ID, CANONICAL_ORIGIN } from './config.js';
+import { CLARITY_ID, CANONICAL_ORIGIN, SENTRY_DSN } from './config.js';
 
 export const shouldLoad = (host = location.hostname, proto = location.protocol, dnt = navigator.doNotTrack) =>
   proto === 'https:' && host === new URL(CANONICAL_ORIGIN).hostname && dnt !== '1';
@@ -13,4 +13,15 @@ export function loadAnalytics() {
     const t = document.createElement('script'); t.async = true; t.src = 'https://www.clarity.ms/tag/' + CLARITY_ID;
     document.head.appendChild(t);
   } catch { /* analytics must never break the app */ }
+}
+
+// Sentry: tells us when something breaks for someone, with no photos, thoughts or names attached.
+export function loadErrorReporting() {
+  try {
+    if (!SENTRY_DSN || !shouldLoad() || window.Sentry || window.__NO_ANALYTICS) return;
+    const t = document.createElement('script'); t.async = true; t.crossOrigin = 'anonymous';
+    t.src = 'https://browser.sentry-cdn.com/8.38.0/bundle.min.js';
+    t.onload = () => { try { window.Sentry.init({ dsn: SENTRY_DSN, sendDefaultPii: false, tracesSampleRate: 0, release: 'littletales@' + new Date().toISOString().slice(0, 10) }); } catch {} };
+    document.head.appendChild(t);
+  } catch { /* error reporting must never break the app */ }
 }

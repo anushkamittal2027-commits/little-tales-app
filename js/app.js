@@ -11,7 +11,7 @@ import { unlockAudio } from './recorder.js';
 import { CANONICAL_ORIGIN } from './config.js';
 import { setDayOffset, buzz } from './util.js';
 import { auth, initAuth } from './auth.js';
-import { loadAnalytics } from './analytics.js';
+import { loadAnalytics, loadErrorReporting } from './analytics.js';
 import { BACKDROP_HTML } from './backdrop.js';
 import { finishDodoReturn } from './pay.js';
 
@@ -90,7 +90,7 @@ async function boot() {
     : trialInfo().status === 'new' ? { name: 'terms', params: {}, n: 1 } : { name: 'home', params: {}, n: 1 };
   if (auth.user && auth.provider === 'supabase' && !signedInSynced && !store.tales.length) { sync.syncState.pulling = true; setTimeout(() => { sync.syncState.pulling = false; }, 30000); }
   start(first);
-  setTimeout(loadAnalytics, 1500);               // after the first screen is up, so it never slows opening
+  setTimeout(() => { loadAnalytics(); loadErrorReporting(); }, 1500);               // after the first screen is up, so it never slows opening
   if (auth.user && auth.provider === 'supabase' && !signedInSynced) syncInBackground();
   if (auth.user && auth.provider === 'supabase' && /[?&]paid=1/.test(location.search)) {      // back from the payment page
     finishDodoReturn().then((ok) => { if (ok === true) go('success', { plan: account.subscription?.plan || 'yearly' }, { replace: true }); else if (ok === false) toast('Your payment is being confirmed. Your tales unlock within a minute.'); });

@@ -23,3 +23,5 @@ export const GOOGLE_CLIENT_ID = '';
 export const CLARITY_ID = 'yzzxnf3q1w';
 // Which company takes the payments: 'dodo' (Dodo Payments, hosted checkout page) or 'razorpay' (older, India only).
 export const PAYMENT_PROVIDER = 'dodo';
+// Sentry error reporting (free). Paste the project's DSN here (it is public, not secret) and the live site will report crashes to Sentry. Empty = off.
+export const SENTRY_DSN = '';

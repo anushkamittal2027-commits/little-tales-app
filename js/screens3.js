@@ -10,6 +10,7 @@ import { startToday, trialPill, founderPanel, sundayBanner } from './screens.js'
 import { installCard } from './install.js';
 import { isFounder, syncState } from './sync.js';
 import { samplePhoto } from './sample.js';
+import { promptFor } from './prompts.js';
 import { computeStreak } from './streak.js';
 
 const primary = (label, onClick, attrs = {}) => h('button.btn-primary', { onClick, ...attrs }, label);
@@ -86,6 +87,7 @@ register('home', () => {
     h('span.hh-star', { 'aria-hidden': 'true', html: GINGHAM_STAR }),
     h('button.btn-primary.hh-cta', { onClick: () => startToday(), disabled: !left }, left ? [h('span.btn-ic', { html: icon.camera }), 'Make today’s stamp'] : 'Today is full'));
 
+  const promptRow = left ? h('button.home-prompt', { type: 'button', onClick: () => startToday() }, h('span.pc-kicker', 'Today\u2019s prompt'), h('span.pc-text', promptFor(today))) : null;
   const { count: streak, postedToday } = computeStreak(store.tales, today);
   const streakRow = streak >= 2
     ? h('button.streak', { onClick: () => go('calendar') },
@@ -115,7 +117,7 @@ register('home', () => {
     tile(icon.film, '#3D6A99', 'Your week', week),
     tile(icon.settings, '#6E4A12', 'Settings & account', () => go('account')));
 
-  return h('div.home', head, sundayBanner(info), hero, streakRow, memories, tiles, installCard(() => go('home', {}, { replace: true })));
+  return h('div.home', head, sundayBanner(info), hero, promptRow, streakRow, memories, tiles, installCard(() => go('home', {}, { replace: true })));
 });
 
 // ---------- scrapbook studio ----------

@@ -4,6 +4,7 @@ import { state, register, go, back, toast, sheet } from './nav.js';
 import { stampEl, pageEl, LIGHTS, blockColor } from './stamp.js';
 import { filterCss } from './filters.js';
 import { transcribe } from './speech.js';
+import { promptFor } from './prompts.js';
 import { auth } from './auth.js';
 import { makeEditor } from './decorate.js';
 import { Recorder, MAX_SECONDS, micMessage, Dictation, dictationSupported, playChime, playParty, playStamp } from './recorder.js';
@@ -355,7 +356,12 @@ register('thought', (p) => {
   const voiceArea = h('div.voice-area');
   let rec, recording = false, el;
 
-  const ta = h('textarea.thought-input', { rows: 3, maxlength: MAX_THOUGHT, placeholder: 'Or write a line… (up to 140 characters)', 'aria-label': 'Your thought' });
+  const taDate = edit ? edit.date : state.draft.date;
+  let shuffle = 0;
+  const ta = h('textarea.thought-input', { rows: 3, maxlength: MAX_THOUGHT, placeholder: promptFor(taDate), 'aria-label': 'Your thought' });
+  const promptText = h('span.pc-text', promptFor(taDate));
+  const promptCard = h('div.prompt-card', h('span.pc-kicker', 'A little prompt'), promptText,
+    h('button.pc-more', { type: 'button', 'aria-label': 'Another prompt', onClick: () => { shuffle++; const q = promptFor(taDate, shuffle); promptText.textContent = q; ta.placeholder = q; } }, 'Another'));
   ta.value = t.thought || '';
   const count = h('span.count', `${ta.value.length}/${MAX_THOUGHT}`);
   ta.addEventListener('input', () => { t.thought = ta.value; count.textContent = `${ta.value.length}/${MAX_THOUGHT}`; });
@@ -447,7 +453,7 @@ register('thought', (p) => {
     stepBar(2, !edit ? linkBtn('Retake', () => { go('camera', {}, { replace: true }); }) : null),
     h('div.thought-hero', h('div.th-stamp', stampEl(heroTale, { size: '9.2px', postmark: false })),
       h('div', h('h1', 'How did it feel?'), h('p.lead.small', 'Write a line, say it out loud, or both.'))),
-    h('section.tcard', h('p.kicker', 'A short thought'), h('div.text-wrap', ta), h('div.tc-row', dictBtn, count), tip),
+    h('section.tcard', h('p.kicker', 'A short thought'), promptCard, h('div.text-wrap', ta), h('div.tc-row', dictBtn, count), tip),
     status,
     h('section.tcard.vcard', h('p.kicker', 'Voice note'), voiceArea),
     h('div.bottom', primary(edit ? 'Save changes' : 'Next', async () => {

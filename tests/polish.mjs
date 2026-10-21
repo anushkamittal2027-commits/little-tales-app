@@ -22,6 +22,17 @@ ok('Original leaves pixels alone', px.none.join() === '200,80,40');
 ok('Black & white makes equal red, green and blue', Math.abs(px.bw[0] - px.bw[1]) <= 1 && Math.abs(px.bw[1] - px.bw[2]) <= 1, px.bw.join());
 ok('Warm changes the colour', px.warm.join() !== '200,80,40', px.warm.join());
 
+// daily prompts: same day = same prompt, different days differ, shuffle gives another, festival stickers exist
+if (!process.env.BUILT) {
+  const r = await p.evaluate(async () => {
+    const { promptFor, PROMPT_COUNT } = await import('./js/prompts.js'); const { TRAYS } = await import('./js/art.js');
+    const days = Array.from({ length: 30 }, (_, i) => promptFor('2026-11-' + String(i + 1).padStart(2, '0')));
+    return { same: promptFor('2026-10-21') === promptFor('2026-10-21'), distinct: new Set(days).size, shuffled: promptFor('2026-10-21', 1) !== promptFor('2026-10-21'), n: PROMPT_COUNT, fest: TRAYS.stickers.filter((a) => a.group === 'Festivals').map((a) => a.name) };
+  });
+  ok('the same day gives the same prompt', r.same); ok('a month of days gives mostly different prompts', r.distinct >= 24, String(r.distinct));
+  ok('Another gives a different prompt', r.shuffled); ok('at least 60 prompts', r.n >= 60, String(r.n));
+  ok('Festivals has the Diwali stickers', r.fest.length >= 9 && r.fest.includes('Diya') && r.fest.includes('Rangoli'), r.fest.join(', '));
+}
 // Terms and Privacy open inside the app (needs the built site: BUILT=1 URL=http://localhost:8130/)
 const hasLt = await p.evaluate(() => !!window.__lt);
 if (hasLt) {

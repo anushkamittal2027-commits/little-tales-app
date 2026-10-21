@@ -188,8 +188,8 @@ const N = (body, defs = '', vb = '0 0 100 100') => {
   const f = (body.includes('__ID__s)') ? FSH : '') + (body.includes('__ID__g)') ? FGR : '') + (body.includes('__ID__i)') ? FINK : '');
   return wrap(vb, `<defs>${f}${defs}</defs>${body}`, 'class="art"');
 };
-const VT = 'Vintage & travel', RO = 'Realistic objects', ED = 'Editorial', LJ = 'Little joys', BO = 'Botanical', FD = 'Food & drink';
-export const STICKER_GROUPS = [VT, RO, ED, LJ, BO, FD];
+const FE = 'Festivals', VT = 'Vintage & travel', RO = 'Realistic objects', ED = 'Editorial', LJ = 'Little joys', BO = 'Botanical', FD = 'Food & drink';
+export const STICKER_GROUPS = [FE, VT, RO, ED, LJ, BO, FD];
 
 const VINTAGE = [
   {
@@ -594,7 +594,53 @@ const FOOD = [
       rg('ch', [[0, '#E4465C'], [.6, '#B0192F'], [1, '#6E0F20']], .35, .3, .8)) },
 ];
 
-const STICKERS = [...VINTAGE, ...REAL, ...EDIT, ...JOYS, ...BOTANICAL, ...FOOD];
+
+// ---------- Festivals (Diwali first) ----------
+const MG = '#F29A1F', MG2 = '#D9740F', DI = '#C9622B';
+const burst = (cx, cy, n, r1, r2, cols, w = 3) => Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2, rr = r2 - (i % 2) * 7; return `<path d="M${f1(cx + Math.cos(a) * r1)} ${f1(cy + Math.sin(a) * r1)}L${f1(cx + Math.cos(a) * rr)} ${f1(cy + Math.sin(a) * rr)}" stroke="${cols[i % cols.length]}" stroke-width="${w}"/>`; }).join('');
+const FEST = [
+  { id: 'diya', name: 'Diya', group: FE,
+    svg: N(`<path d="M50 14C62 28 66 40 50 52C34 40 38 28 50 14Z" fill="#FFC53D"/><path d="M50 30C56 38 56 44 50 49C44 44 44 38 50 30Z" fill="#F26B2B"/>` +
+      `<g ${FS}><path d="M12 56C14 76 30 88 50 88C70 88 86 76 88 56Z" fill="${u('dy')}"/></g><ellipse cx="50" cy="56" rx="38" ry="8" fill="#8A3C16"/><ellipse cx="50" cy="56" rx="32" ry="5" fill="#5A2410"/>` +
+      `<path d="M30 70C38 78 62 78 70 70" stroke="#FFD98A" stroke-width="2.4"/><circle cx="34" cy="64" r="2.2" fill="#FFD98A"/><circle cx="50" cy="68" r="2.2" fill="#FFD98A"/><circle cx="66" cy="64" r="2.2" fill="#FFD98A"/>` +
+      `<path d="M20 60C21 66 24 70 28 73" stroke="#fff" stroke-width="2.6" opacity=".45"/>`, lg('dy', [[0, '#E88B4B'], [1, '#B04A1B']])) },
+  { id: 'rangoli', name: 'Rangoli', group: FE,
+    svg: N(`<circle cx="50" cy="50" r="44" fill="#FFF3DC" stroke="${MG2}" stroke-width="2"/>` +
+      Array.from({ length: 8 }, (_, i) => `<g transform="rotate(${i * 45} 50 50)"><path d="M50 10C58 22 58 34 50 42C42 34 42 22 50 10Z" fill="${['#E8445B', '#F29A1F', '#3E9E8E', '#7B4FB8'][i % 4]}"/><circle cx="50" cy="8" r="3" fill="${MG}"/></g>`).join('') +
+      `<circle cx="50" cy="50" r="15" fill="#FFC53D" stroke="${MG2}" stroke-width="2"/><circle cx="50" cy="50" r="8" fill="#E8445B"/><circle cx="50" cy="50" r="3" fill="#FFF3DC"/>` +
+      Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * Math.PI * 2 + .2; return `<circle cx="${f1(50 + Math.cos(a) * 31)}" cy="${f1(50 + Math.sin(a) * 31)}" r="1.8" fill="${MG2}"/>`; }).join('')) },
+  { id: 'sparkler', name: 'Sparkler', group: FE,
+    svg: N(`<path d="M30 92L58 46" stroke="#5B4636" stroke-width="3.6"/><path d="M58 46L64 36" stroke="#C9C2B8" stroke-width="2.4"/>` +
+      burst(66, 30, 14, 5, 28, ['#FFC53D', '#FF7A3D', '#FFE9A8'], 2.6) + `<circle cx="66" cy="30" r="5" fill="#FFF4C2"/>` +
+      `<circle cx="24" cy="22" r="2.4" fill="#FFC53D"/><circle cx="90" cy="60" r="2.4" fill="#FF7A3D"/><circle cx="84" cy="10" r="2" fill="#FFE9A8"/>`) },
+  { id: 'firework', name: 'Firework', group: FE,
+    svg: N(`<circle cx="50" cy="48" r="4" fill="#fff"/>` + burst(50, 48, 18, 8, 40, ['#E8445B', '#FFC53D', '#3E9E8E', '#7B4FB8'], 3.2) +
+      [[14, 14], [86, 18], [20, 82], [82, 80], [50, 94]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="3" fill="${['#FFC53D', '#E8445B', '#3E9E8E', '#FF7A3D', '#7B4FB8'][i]}"/>`).join('')) },
+  { id: 'kandil', name: 'Akash kandil', group: FE,
+    svg: (() => { const pts = Array.from({ length: 16 }, (_, i) => { const a = -Math.PI / 2 + (i / 16) * Math.PI * 2, r = i % 2 ? 22 : 38; return `${f1(50 + Math.cos(a) * r)},${f1(46 + Math.sin(a) * r)}`; }).join(' ');
+      return N(`<path d="M50 2V10" stroke="${K.ink}" stroke-width="2.4"/><g ${FS}><polygon points="${pts}" fill="${u('kd')}" stroke="#B23A4B" stroke-width="2"/></g><circle cx="50" cy="46" r="11" fill="#FFF0B0"/><circle cx="50" cy="46" r="6" fill="#FFC53D"/>` +
+        `<path d="M50 84V94M44 84L40 94M56 84L60 94" stroke="${MG}" stroke-width="3"/><circle cx="50" cy="96" r="2.6" fill="${MG}"/><circle cx="40" cy="96" r="2.2" fill="${MG}"/><circle cx="60" cy="96" r="2.2" fill="${MG}"/>`, lg('kd', [[0, '#F0627A'], [1, '#C2354F']])); })() },
+  { id: 'marigold-toran', name: 'Marigold garland', group: FE,
+    svg: N(`<path d="M8 28C30 54 70 54 92 28" stroke="#4C7A3A" stroke-width="2.4"/>` +
+      [[14, 33], [26, 43], [38, 49], [50, 51], [62, 49], [74, 43], [86, 33]].map(([x, y], i) => `<g transform="translate(${x} ${y})"><circle r="9" fill="${i % 2 ? MG : '#FFB02E'}" stroke="${MG2}" stroke-width="1.6"/><circle r="5.5" fill="${i % 2 ? '#FFC53D' : MG2}" opacity=".85"/><circle r="2" fill="#7A3A0A"/></g><path d="M${x} ${y + 9}C${x - 3} ${y + 16} ${x - 5} ${y + 20} ${x - 4} ${y + 25}C${x + 2} ${y + 22} ${x + 3} ${y + 17} ${x} ${y + 9}Z" fill="#5F8F3D"/>`).join('')) },
+  { id: 'ladoo', name: 'Mithai plate', group: FE,
+    svg: N(`<g ${FS}><ellipse cx="50" cy="74" rx="44" ry="14" fill="#F4ECDA" stroke="${K.brass}" stroke-width="2.4"/></g>` +
+      [[34, 58], [66, 58], [50, 44]].map(([x, y], i) => `<g ${FS}><circle cx="${x}" cy="${y}" r="15" fill="${u('ld')}"/></g>` + Array.from({ length: 9 }, (_, k) => `<circle cx="${f1(x + Math.cos(k * 2.1 + i) * 8)}" cy="${f1(y + Math.sin(k * 1.7 + i) * 8)}" r="1.1" fill="#B06B12" opacity=".7"/>`).join('')).join('') +
+      `<path d="M44 38C50 34 56 34 60 38" stroke="#fff" stroke-width="2.4" opacity=".5"/>`, rg('ld', [[0, '#FFC95A'], [1, '#E8921F']], .35, .3, .9)) },
+  { id: 'happy-diwali', name: 'Happy Diwali', group: FE,
+    svg: N(`<g ${FS}><rect x="4" y="6" width="112" height="46" rx="10" fill="#7B1F3A"/></g><rect x="9" y="11" width="102" height="36" rx="7" stroke="#FFC53D" stroke-width="1.4" stroke-dasharray="3 3"/>` +
+      hand(60, 25, 'Happy', 13, '#FFE9A8', 'transform="rotate(-3 60 25)"') + tx(60, 42, 'DIWALI', 14, '#FFC53D', 'letter-spacing="3"', SER, 700) +
+      `<circle cx="16" cy="29" r="3" fill="#FFC53D"/><circle cx="104" cy="29" r="3" fill="#FFC53D"/>`, '', '0 0 120 58') },
+  { id: 'shubh-deepavali', name: 'Shubh Deepavali', group: FE,
+    svg: N(`<g ${FS}><rect x="4" y="6" width="112" height="46" rx="4" fill="#FFF3DC"/></g><path d="M10 14H110M10 44H110" stroke="${MG2}" stroke-width="1.2"/>` +
+      Array.from({ length: 9 }, (_, i) => `<path d="M${12 + i * 12} 14l4 -5l4 5Z M${12 + i * 12} 44l4 5l4 -5Z" fill="${i % 2 ? '#E8445B' : MG}"/>`).join('') +
+      hand(60, 32, 'Shubh Deepavali', 13.5, '#7B1F3A', 'transform="rotate(-2 60 32)"'), '', '0 0 120 58') },
+  { id: 'diya-row', name: 'Row of diyas', group: FE,
+    svg: N([17, 50, 83].map((x, i) => `<path d="M${x} ${28 - (i % 2) * 2}C${x + 7} ${38 - (i % 2) * 2} ${x + 8} ${44} ${x} ${50}C${x - 8} ${44} ${x - 7} ${38 - (i % 2) * 2} ${x} ${28 - (i % 2) * 2}Z" fill="#FFC53D"/><path d="M${x} 38C${x + 3} 42 ${x + 3} 46 ${x} 49C${x - 3} 46 ${x - 3} 42 ${x} 38Z" fill="#F26B2B"/><g ${FS}><path d="M${x - 15} 54C${x - 14} 66 ${x - 6} 74 ${x} 74C${x + 6} 74 ${x + 14} 66 ${x + 15} 54Z" fill="${DI}"/></g><ellipse cx="${x}" cy="54" rx="15" ry="4" fill="#5A2410"/>`).join('') +
+      `<path d="M2 80H98" stroke="${K.brass}" stroke-width="2.2" opacity=".6"/>`, '', '0 0 100 90') },
+];
+
+const STICKERS = [...FEST, ...VINTAGE, ...REAL, ...EDIT, ...JOYS, ...BOTANICAL, ...FOOD];
 
 // ---------- Doodles ----------
 const D = (body) => wrap('0 0 120 70', body);
