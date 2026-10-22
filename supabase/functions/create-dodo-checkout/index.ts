@@ -31,6 +31,9 @@ Deno.serve(async (req) => {
     }),
   });
   const out = await r.json().catch(() => ({}));
-  if (!r.ok || !out.checkout_url) return json({ error: 'We couldn’t start the payment. Please try again in a moment.' }, 502);
+  if (!r.ok || !out.checkout_url) {
+    console.error('Dodo checkout failed', r.status, JSON.stringify(out).slice(0, 400));   // visible in Supabase, Edge Functions, Logs
+    return json({ error: 'We couldn’t start the payment. Please try again in a moment.', code: 'dodo_' + r.status }, 502);
+  }
   return json({ checkout_url: out.checkout_url });
 });

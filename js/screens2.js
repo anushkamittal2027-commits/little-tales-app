@@ -13,7 +13,8 @@ import { addToHomeScreen, canOfferInstall } from './install.js';
 import { CODE_LENGTH } from './config.js';
 import { auth, signInWithGoogle, sendEmailCode, verifyEmailCode, signOut, DEMO_CODE, authLogText, googleButtonAvailable, signInWithGoogleToken } from './auth.js';
 import { renderGoogleButton } from './google.js';
-import { makeVideo, pickTales, videoKind, videoTitle, canMakeVideo } from './video.js';
+import { makeVideo, pickTales, videoKind, videoTitle, canMakeVideo, prepareAudio } from './video.js';
+import { TRACKS, previewTrack, stopPreview } from './music.js';
 import { makeZip, dataUrlToBytes, textBytes, saveBlob } from './zip.js';
 
 const primary = (label, onClick, attrs = {}) => h('button.btn-primary', { onClick, ...attrs }, label);
@@ -176,23 +177,29 @@ register('weekvideo', (p) => {
   const stage = h('div.vstage');
   wrapEl.append(h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => (mode === 'trial' ? finish() : back()), html: icon.back })), stage);
 
-  const showPlayer = (blob) => {
+  const showPlayer = (blob, { fresh = false } = {}) => {
     const url = URL.createObjectURL(blob);
     const vid = h('video.vplayer', { src: url, controls: true, playsinline: true, autoplay: true });
+    const again = () => { store.setMeta('video:' + key, null).catch(() => {}); go('weekvideo', { mode }, { replace: true }); };
+    // a saved copy that the phone can no longer play is thrown away and made again, instead of showing a broken player
+    vid.addEventListener('error', () => { if (!fresh) { toast('Making your video again\u2026'); again(); } });
     stage.replaceChildren(h('div.vframe', vid),
       h('div.vactions', mode === 'trial' ? primary('Keep going', finish) : primary('Done', () => back()),
-        h('button.link', { onClick: () => saveBlob(blob, `little-tales-${key}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`) }, 'Save video')));
+        h('button.link', { onClick: () => saveBlob(blob, `little-tales-${key}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`) }, 'Save video'),
+        h('button.link', { onClick: again }, 'Make it again with different music')));
     wrapEl._url = url;
   };
   const start = async () => {
+    const audio = prepareAudio();                  // must happen inside the tap, before anything else
+    stopPreview();
     const canvas = h('canvas.vcanvas');
     const bar = h('div.vbar', h('i'));
     stage.replaceChildren(h('div.vframe.making', canvas), h('div.vmaking', h('b', 'Making your video…'), h('span', 'It plays as it’s made. Back in a moment.')), bar);
     try {
-      const out = await makeVideo(tales, { canvas, soft: kind === 'soft', subscribed: sub, rangeText: `${shortDate(from)} – ${shortDate(to)}`.toUpperCase(), onProgress: (f) => { bar.firstChild.style.width = Math.round(f * 100) + '%'; } });
-      await store.setMeta('video:' + key, out.blob);
+      const out = await makeVideo(tales, { canvas, soft: kind === 'soft', subscribed: sub, audio, music: account.settings.videoMusic || 'sunny', rangeText: `${shortDate(from)} – ${shortDate(to)}`.toUpperCase(), onProgress: (f) => { bar.firstChild.style.width = Math.round(f * 100) + '%'; } });
+      try { await store.setMeta('video:' + key, { type: out.blob.type, buf: await out.blob.arrayBuffer() }); } catch { /* not saving is fine: it can be made again */ }
       await patchAccount({ videos: { ...account.videos, [key]: true } });
-      showPlayer(out.blob);
+      showPlayer(out.blob, { fresh: true });
     } catch (e) {
       console.warn(e);
       stage.replaceChildren(h('div.vempty', h('h2', 'We couldn’t make the video here'), h('p', 'Your tales are safe. Try again on your own phone’s browser.'), mode === 'trial' ? primary('Keep going', finish) : primary('Back', () => back())));
@@ -209,11 +216,17 @@ register('weekvideo', (p) => {
       h('div.kicker', mode === 'trial' ? 'Day 7' : 'This Sunday'),
       h('h1', kind === 'soft' ? h('span', videoTitle(tales.length)) : h('span', 'Your ', h('em', 'week'))),
       h('p', `${tales.length} ${tales.length === 1 ? 'tale' : 'tales'} from ${shortDate(from)} to ${shortDate(to)}.`),
+      h('div.vmusic', h('p.label', 'Music'),
+        h('div.vmusic-row', ...[...TRACKS, { id: 'none', name: 'No music' }].map((tk) => h('button.chip' + ((account.settings.videoMusic || 'sunny') === tk.id ? '.on' : ''), { type: 'button', onClick: (e) => {
+          account.settings.videoMusic = tk.id; saveAccount();
+          e.currentTarget.parentNode.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === e.currentTarget));
+          if (tk.id === 'none') stopPreview(); else { try { const AC = window.AudioContext || window.webkitAudioContext; window.__vpAC = window.__vpAC || new AC(); window.__vpAC.resume?.(); previewTrack(window.__vpAC, tk.id); } catch {} }
+        } }, tk.name)))),
       primary('Make my video', start)));
     // if we already made it, show it straight away
-    store.getMeta('video:' + key).then((b) => { if (b && b.size) { stage.replaceChildren(); showPlayer(b); } });
+    store.getMeta('video:' + key).then((b) => { const blob = b && b.buf ? new Blob([b.buf], { type: b.type || 'video/mp4' }) : (b && b.size ? b : null); if (blob) { stage.replaceChildren(); showPlayer(blob); } });
   }
-  wrapEl._cleanup = () => { if (wrapEl._url) URL.revokeObjectURL(wrapEl._url); };
+  wrapEl._cleanup = () => { stopPreview(); if (wrapEl._url) URL.revokeObjectURL(wrapEl._url); };
   return wrapEl;
 });
 

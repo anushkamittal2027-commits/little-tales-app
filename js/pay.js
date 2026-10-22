@@ -48,9 +48,9 @@ export async function cancelOnline() {
 async function payDodo(planId) {
   const c = await client();
   const { data, error } = await c.functions.invoke('create-dodo-checkout', { body: { plan: planId } });
-  let msg = data?.error;
-  if (!msg && error?.context?.json) msg = (await error.context.json().catch(() => null))?.error;
-  if (error || !data?.checkout_url) throw new Error(msg || 'We couldn’t start the payment. Please try again in a moment.');
+  let msg = data?.error, code = data?.code;
+  if (!msg && error?.context?.json) { const b = await error.context.json().catch(() => null); msg = b?.error; code = b?.code; }
+  if (error || !data?.checkout_url) throw new Error((msg || 'We couldn’t start the payment. Please try again in a moment.') + (code ? ` (${code})` : ''));
   location.assign(data.checkout_url);
   return new Promise(() => {});          // the page is leaving; nothing more to do here
 }

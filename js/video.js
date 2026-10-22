@@ -4,6 +4,7 @@
 import { filteredImage } from './filters.js';
 import { stampPathPx } from './stamp.js';
 import { dotDate, parseDate } from './util.js';
+import { toBuffer } from './music.js';
 
 export const W = 720, H = 1280;
 const INK = '#1E1B2E', CREAM = '#FBF5EA';
@@ -86,7 +87,16 @@ function drawPostmark(ctx, tale, cx, cy, r, k, rot) {
   ctx.restore();
 }
 
-export async function makeVideo(tales, { canvas, soft, subscribed, rangeText = '', onProgress } = {}) {
+// Phones only allow sound after a tap, so the audio engine must be created and started inside the tap that begins the video (before any waiting).
+export function prepareAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+    const actx = new AC(); actx.resume?.();
+    return { actx, dest: actx.createMediaStreamDestination() };
+  } catch { return null; }
+}
+
+export async function makeVideo(tales, { canvas, soft, subscribed, rangeText = '', onProgress, audio = null, music = 'none' } = {}) {
   if (!canMakeVideo()) throw new Error('Video is not supported on this browser');
   const n = tales.length; if (!n) throw new Error('No tales');
   const per = n > 12 ? 1.7 : n > 6 ? 2.2 : 2.7, INTRO = 2.4, OUTRO = 2.6;
@@ -98,9 +108,9 @@ export async function makeVideo(tales, { canvas, soft, subscribed, rangeText = '
   // Audio: a short snippet of each voice note, mixed into the video.
   let actx = null, dest = null, buffers = [];
   const AC = window.AudioContext || window.webkitAudioContext;
-  if (AC) {
+  if (audio || AC) {
     try {
-      actx = new AC(); dest = actx.createMediaStreamDestination();
+      const a = audio || prepareAudio(); actx = a.actx; dest = a.dest;
       buffers = await Promise.all(tales.map(async (t) => { try { return t.audio ? await actx.decodeAudioData(await t.audio.arrayBuffer()) : null; } catch { return null; } }));
       if (actx.state === 'suspended') await actx.resume();
     } catch { actx = null; dest = null; }
@@ -168,6 +178,9 @@ export async function makeVideo(tales, { canvas, soft, subscribed, rangeText = '
     const st = actx.currentTime + 0.15 + INTRO + i * per + 0.5; g.gain.setValueAtTime(0, st); g.gain.linearRampToValueAtTime(1, st + 0.15); g.gain.setValueAtTime(1, st + Math.min(b.duration, per - 0.9) - 0.2); g.gain.linearRampToValueAtTime(0, st + Math.min(b.duration, per - 0.9));
     src.connect(g); g.connect(dest); src.start(st, 0, Math.min(b.duration, per - 0.9));
   });
+  if (actx && dest && music && music !== 'none') {          // happy background tune, quieter than the voice notes
+    try { const src = actx.createBufferSource(); src.buffer = toBuffer(actx, music, total + 1); const g = actx.createGain(); g.gain.value = .32; src.connect(g); g.connect(dest); src.start(actx.currentTime + 0.15); } catch { /* the video still works without music */ }
+  }
   rec.start(250);
   const t0 = performance.now() + 150;
   await new Promise((res) => {
@@ -180,5 +193,5 @@ export async function makeVideo(tales, { canvas, soft, subscribed, rangeText = '
   });
   rec.stop(); stream.getTracks().forEach((tr) => tr.stop()); actx?.close?.();
   const blob = await done;
-  return { blob, mime: blob.type, duration: total, count: n };
+  return { blob, mime: blob.type, duration: total, count: n, hasAudio: !!(dest && dest.stream.getAudioTracks().length) };
 }
