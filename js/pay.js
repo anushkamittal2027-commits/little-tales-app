@@ -55,14 +55,17 @@ async function payDodo(planId) {
   return new Promise(() => {});          // the page is leaving; nothing more to do here
 }
 
-// Called on start when Dodo has sent the member back. Returns true once the subscription shows up.
-export async function finishDodoReturn() {
+// Called on start when Dodo has sent the member back. The payment company tells our server a moment after the payment,
+// so keep checking for up to two minutes. Returns true once the subscription shows up, false if it has not yet.
+export async function finishDodoReturn(onWaiting) {
   if (!/[?&]paid=1/.test(location.search)) return null;
   try { history.replaceState(null, '', location.pathname); } catch {}
-  for (let i = 0; i < 15; i++) {
+  onWaiting?.(true);
+  for (let i = 0; i < 40; i++) {
     await pullAccount();
-    if (account.subscription) { pullTales().catch(() => {}); return true; }
-    await new Promise((r) => setTimeout(r, 2000));
+    if (account.subscription) { onWaiting?.(false); pullTales().catch(() => {}); return true; }
+    await new Promise((r) => setTimeout(r, 3000));
   }
+  onWaiting?.(false);
   return false;
 }

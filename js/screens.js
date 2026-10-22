@@ -141,9 +141,9 @@ register('calendar', () => {
 });
 
 export function trialPill(info) {
-  const label = { trial: `Day ${info.day} of ${TRIAL_DAYS} \u00b7 free`, day7: 'Last free day', subscribed: 'Member' }[info.status];
+  const label = { trial: `Day ${info.day} of ${TRIAL_DAYS} \u00b7 free`, day7: 'Last free day', subscribed: '\u2605 Member' }[info.status];
   if (!label) return null;
-  return h('button.pill' + (info.status === 'day7' ? '.hot' : ''), { onClick: () => go(info.status === 'subscribed' ? 'account' : 'paywall', { from: 'pill' }) }, label);
+  return h('button.pill' + (info.status === 'day7' ? '.hot' : info.status === 'subscribed' ? '.member' : ''), { onClick: () => go(info.status === 'subscribed' ? 'account' : 'paywall', { from: 'pill' }) }, label);
 }
 export function sundayBanner(info) {
   if (info.status !== 'subscribed' || new Date(Date.now() + (account.dayOffset || 0) * 864e5).getDay() !== 0 || account.videos['week-' + todayStr()]) return null;

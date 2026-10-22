@@ -18,6 +18,7 @@ const DEFAULT = {
   notify: { granted: false, asked: false },
   installHinted: false,
   introSeen: false,
+  memberWelcomed: false,         // the welcome-to-the-family celebration has been shown
   celebratedFirst: false,        // the first-tale celebration has been shown
   milestones: [],                // streak milestones already celebrated
   settings: { gst: false, sound: true },      // founder-only: show "+ GST" prices once registered

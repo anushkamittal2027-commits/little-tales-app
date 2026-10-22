@@ -5,15 +5,16 @@ import './screens2.js';
 import './screens3.js';
 import { seedSamples } from './sample.js';
 import { ensureStampClip } from './stamp.js';
-import { account, loadAccount, trialInfo, jumpTo, hooks as accountHooks } from './account.js';
+import { account, loadAccount, trialInfo, jumpTo, patchAccount, PLANS, hooks as accountHooks } from './account.js';
 import * as sync from './sync.js';
 import { unlockAudio } from './recorder.js';
 import { CANONICAL_ORIGIN } from './config.js';
-import { setDayOffset, buzz } from './util.js';
+import { setDayOffset, buzz, h } from './util.js';
 import { auth, initAuth } from './auth.js';
 import { loadAnalytics, loadErrorReporting } from './analytics.js';
 import { BACKDROP_HTML } from './backdrop.js';
 import { finishDodoReturn } from './pay.js';
+import { celebrateMember } from './delight.js';
 
 // Android/Chrome offers "install" through this event; we show our own button on the install screen.
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__installPrompt = e; });
@@ -46,6 +47,14 @@ window.addEventListener('pointerdown', (e) => {
     if (el && !el.disabled && !el.closest('.camera')) buzz(6);
   } catch {}
 }, { passive: true });
+
+// The first time someone is a member: back to Home, confetti and a thank-you.
+async function welcomeMemberIfNew() {
+  if (!account.subscription || account.memberWelcomed) return;
+  await patchAccount({ memberWelcomed: true });
+  if (!['home'].includes(currentName())) go('home', {}, { replace: true });
+  setTimeout(() => celebrateMember(PLANS[account.subscription.plan]?.name), 500);
+}
 
 async function boot() {
   ensureStampClip();
@@ -93,8 +102,11 @@ async function boot() {
   setTimeout(() => { loadAnalytics(); loadErrorReporting(); }, 1500);               // after the first screen is up, so it never slows opening
   if (auth.user && auth.provider === 'supabase' && !signedInSynced) syncInBackground();
   if (auth.user && auth.provider === 'supabase' && /[?&]paid=1/.test(location.search)) {      // back from the payment page
-    finishDodoReturn().then((ok) => { if (ok === true) go('success', { plan: account.subscription?.plan || 'yearly' }, { replace: true }); else if (ok === false) toast('Your payment is being confirmed. Your tales unlock within a minute.'); });
+    const wait = h('div.cel-backdrop.confirming', h('div.celebrate', h('div.spin'), h('h2', 'Confirming your payment\u2026'), h('p.cel-body', 'This takes a few seconds. Please keep this page open.')));
+    finishDodoReturn((on) => { if (on) document.getElementById('app')?.append(wait); else wait.remove(); }).then((ok) => { if (ok === true) welcomeMemberIfNew(); else if (ok === false) toast('Your payment is being confirmed. We will unlock everything as soon as it arrives.'); });
   }
+  welcomeMemberIfNew();                       // a subscription that arrived while the app was closed is celebrated the next time it opens
+  document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && auth.user && auth.provider === 'supabase' && !account.memberWelcomed) { try { await sync.pullAccount(); } catch {} welcomeMemberIfNew(); } });
   if (new URLSearchParams(location.search).get('new') === '1' && trialInfo().status !== 'new' && !['locked', 'deleted'].includes(trialInfo().status)) { history.replaceState(null, '', location.pathname); const { startToday } = await import('./screens.js'); startToday?.(); }
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

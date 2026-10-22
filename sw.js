@@ -1,5 +1,5 @@
 // Little Tales service worker: works offline, opens fast, and shows the gentle nudges.
-const CACHE = 'little-tales-v14';
+const CACHE = 'little-tales-v15';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest',
   'css/fonts.css', 'css/base.css', 'css/stamp.css', 'css/screens.css', 'css/decor.css',
   'js/app.js', 'js/nav.js', 'js/util.js', 'js/store.js', 'js/account.js', 'js/art.js', 'js/stamp.js', 'js/screens.js', 'js/screens2.js',

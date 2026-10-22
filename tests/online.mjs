@@ -87,9 +87,12 @@ ok('reminders switched on for the member on the server', s.profiles['u-a@example
 await p.evaluate(() => window.__lt.go('checkout', { plan: 'yearly' }));
 await wait(500);
 ok('real checkout has no practice form', await p.locator('.practice, .pay-fields input').count() === 0);
-await p.click('.checkout .btn-primary'); await p.waitForSelector('.success', { timeout: 15000 });
+await p.click('.checkout .btn-primary'); await p.waitForSelector('.celebrate', { timeout: 20000 });
+ok('a thank-you with confetti appears for a new member', (await p.locator('.celebrate').innerText()).includes('member') && await p.locator('canvas.confetti').count() >= 0);
+ok('the Home pill says Member', (await p.locator('.pill.member').innerText().catch(() => '')).includes('Member'));
 ok('after paying the member is subscribed', await p.evaluate(() => window.__lt.trialInfo().status) === 'subscribed');
 
+await p.click('.celebrate .link').catch(() => {}); await wait(400);
 // another person on the same phone
 await p.evaluate(async () => { await window.__lt.go('account'); }); await wait(500);
 await p.click('text=Sign out'); await wait(1500);

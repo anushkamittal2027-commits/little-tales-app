@@ -34,7 +34,7 @@ export function confetti(ms = 2600) {
   requestAnimationFrame(tick);
 }
 
-function card({ kicker, title, body, tale }) {
+function card({ kicker, title, body, tale, dismiss = 'Maybe later' }) {
   confetti();
   const root = document.getElementById('app');
   const close = () => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 200); };
@@ -49,7 +49,7 @@ function card({ kicker, title, body, tale }) {
       h('p.cel-kicker', kicker),
       h('h2', { id: 'celebrate-title' }, title), h('p.cel-body', body),
       tale ? share : null,
-      h('button.link', { onClick: close }, 'Maybe later')));
+      h('button.link', { onClick: close }, dismiss)));
   root.append(wrap);
 }
 
@@ -61,4 +61,10 @@ export function celebrateFirst(tale) {
 
 export function celebrateStreak(n, tale) {
   card({ kicker: 'keep the flame going', title: `${n} days in a row!`, body: n >= 30 ? 'A whole habit of noticing. That’s really something.' : 'You keep coming back to what matters. Lovely.', tale });
+}
+
+// Shown once when someone becomes a member: confetti and a thank-you.
+export function celebrateMember(planName = '') {
+  card({ kicker: 'Welcome', title: 'You\u2019re a Little Tales member', body: `Thank you! ${planName ? planName + ' plan is on. ' : ''}Your calendar is open, your tales are unlocked, and your week video will arrive every Sunday.`, dismiss: 'Let\u2019s go' });
+  setTimeout(() => confetti(2400), 900);
 }

@@ -413,3 +413,6 @@
 .vmusic-row .chip { flex-direction: row; height: 40px; padding: 0 14px; border-radius: 999px; font-size: 13px; }
 .vmusic-row .chip.on { padding: 0 13px; }
 .vactions { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pill.member { background: var(--olive-wash); color: var(--olive); font-weight: 700; }
+.confirming { z-index: 80; } .confirming .spin { width: 34px; height: 34px; margin: 0 auto 12px; border-radius: 50%; border: 4px solid var(--olive-wash); border-top-color: var(--olive); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

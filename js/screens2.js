@@ -7,6 +7,7 @@ import { samplePhoto } from './sample.js';
 import { LOGO } from './art.js';
 import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, cancelSubscription, purgeAllTales, resetDemo, PLANS, TRIAL_DAYS, HOLD_DAYS } from './account.js';
 import { subscribePush } from './push.js';
+import { confetti } from './delight.js';
 import { deleteAccountOnline, pendingCount } from './sync.js';
 import { payOnline, cancelOnline } from './pay.js';
 import { addToHomeScreen, canOfferInstall } from './install.js';
@@ -325,6 +326,7 @@ register('checkout', (p) => {
 
 register('success', (p) => {
   const plan = PLANS[p.plan] || PLANS.yearly;
+  patchAccount({ memberWelcomed: true }); setTimeout(() => confetti(), 300);
   return h('div.success',
     h('div.burst', ...Array.from({ length: 14 }, (_, i) => h('i', { style: { '--a': (i * 360 / 14) + 'deg', '--c': ['#FF4FA3', '#C6F135', '#FFD93D', '#25C7B7', '#3B5BFF', '#FF6B4A'][i % 6] } }))),
     h('div.ok', { html: icon.check }),
