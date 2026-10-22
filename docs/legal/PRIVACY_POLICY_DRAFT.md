@@ -2,7 +2,7 @@
 
 **A plain-words policy. Please also have a lawyer review it against India's Digital Personal Data Protection Act, 2023.**
 
-Last updated: 17 October 2026
+Last updated: 23 October 2026
 
 ## Who we are
 Little Tales (LittleTales) is run by its founder, Anushka Mittal, from Gurgaon, Haryana, India. You can reach us at hellolittletales@gmail.com. Our contact for privacy questions and complaints (grievance officer) is Anushka Mittal, reachable at hellolittletales@gmail.com.
@@ -13,10 +13,11 @@ Little Tales turns your photos and thoughts into stamps in a private scrapbook. 
 ## What we collect
 - **Your sign-in details:** your email address and, if you use Google sign-in, your name and Google profile picture address.
 - **Your tales:** the photos you take or upload, the voice notes you record, the words you write, the titles, the dates you tag, and the stickers and tape you place.
-- **Your plan:** whether you are on the free week or subscribed, and your payment status. **We never see or store your card number or UPI details.** Payments are handled by Razorpay.
+- **Your plan:** whether you are on the free week or subscribed, and your payment status. **We never see or store your card number or UPI details.** Payments are handled by Dodo Payments, who act as the seller of record and keep your payment details.
 - **Reminders:** if you turn them on, a code from your phone that lets us send you notifications, and your time zone.
 - **The 4th-tale count:** we count how often someone tries to make a fourth tale in one day, so we can decide if three a day is the right limit. This does not include what is in your tales.
-- **Basic technical data** like the type of phone and browser, to keep the app working.
+- **What you say, if you use "Speak instead of typing":** the short recording is sent to a speech-to-text service (OpenAI) to turn it into words, and the words come back to you. We do not keep the recording, and it is only sent when you tap that button.
+- **Basic technical data** like the type of phone and browser, and error reports (see Sentry below), to keep the app working.
 - **How the app is used:** we use Microsoft Clarity to see how people use the app (for example which buttons are tapped and where people get stuck) so we can improve it. **Your photos, voice notes, thoughts, titles and names are masked and are not recorded.**
 
 ## What we do not do
@@ -31,7 +32,9 @@ To run your scrapbook, keep it safe across your phones, remind you when you ask 
 ## Who helps us run the app (our service providers)
 - **Supabase**: stores your account, tales, photos and voice notes.
 - **Cloudflare**: delivers the app to your phone.
-- **Razorpay**: handles payments.
+- **Dodo Payments**: handles payments and taxes as the seller of record. They see your name, email, billing country and payment details when you subscribe; we never see your card or UPI details.
+- **Sentry**: tells us when the app breaks, with technical details only (no photos, voice notes, thoughts or names).
+- **OpenAI**: turns a short recording into text, only when you use "Speak instead of typing". Under its API terms it does not use this audio to train its models by default.
 - **Resend**: sends sign-in codes and warning emails.
 - **Google**: only if you choose Google sign-in.
 - **Microsoft Clarity**: shows us how the app is used, with your content masked.

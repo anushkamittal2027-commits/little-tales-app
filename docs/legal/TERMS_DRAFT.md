@@ -14,9 +14,9 @@ You must be 18 or older. You are responsible for what you add and must have the 
 Your free week starts the day you first sign in and lasts 7 days (a day ends at midnight in your own time zone). No card is needed to start. On day 7 we show you a "Your week" video and the plans.
 
 ## Subscriptions
-- **Monthly** Rs 149 or **Yearly** Rs 999. Prices are in Indian rupees. If GST applies to us, it is shown clearly at checkout before you pay.
+- **Monthly** Rs 149 or **Yearly** Rs 999. Prices are shown in Indian rupees; depending on your country, the payment page may show the amount in your own currency. If GST applies to us, it is shown clearly at checkout before you pay.
 - One plan, everything included.
-- Payments are handled by Razorpay (UPI AutoPay or card). You can cancel any time from your Account. Your plan renews automatically each month or year until you cancel. If you cancel, you keep access until the end of the period you have already paid for. We do not refund part-used periods, except where the law requires it. If something went wrong with a payment, write to hellolittletales@gmail.com and we will look into it.
+- Payments are handled by Dodo Payments (card, UPI or wallet, depending on your country), who act as the seller of record. You can cancel any time from your Account. Your plan renews automatically each month or year until you cancel. If you cancel, you keep access until the end of the period you have already paid for. We do not refund part-used periods, except where the law requires it. If something went wrong with a payment, write to hellolittletales@gmail.com and we will look into it.
 - We may change prices. We will tell you before a change affects you.
 
 ## If you do not subscribe
