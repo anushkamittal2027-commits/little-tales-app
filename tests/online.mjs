@@ -93,6 +93,13 @@ ok('the Home pill says Member', (await p.locator('.pill.member').innerText().cat
 ok('after paying the member is subscribed', await p.evaluate(() => window.__lt.trialInfo().status) === 'subscribed');
 
 await p.click('.celebrate .link').catch(() => {}); await wait(400);
+// a plan that arrives while the app is closed is celebrated the next time it opens (once)
+await p.evaluate(async () => { await window.__lt.store.setMeta('account', { ...JSON.parse(JSON.stringify(window.__lt.account)), memberWelcomed: false }); });
+await p.reload(); await wait(2500);
+ok('opening the app later still celebrates a new member, once', await p.locator('.celebrate').count() === 1);
+await p.click('.celebrate .link').catch(() => {}); await wait(300);
+await p.reload(); await wait(2500);
+ok('and not a second time', await p.locator('.celebrate').count() === 0);
 // another person on the same phone
 await p.evaluate(async () => { await window.__lt.go('account'); }); await wait(500);
 await p.click('text=Sign out'); await wait(1500);

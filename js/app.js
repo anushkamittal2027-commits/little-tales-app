@@ -30,6 +30,7 @@ const TOUCH_SAFE = ['home', 'calendar', 'studio', 'account', 'day'];
 // Tales and plan arrive from the server in the background; redraw only when someone is just looking around.
 async function syncInBackground() {
   try { await sync.onSignedIn(); } catch (e) { console.warn('Sync failed', e); sync.syncState.pulling = false; }
+  welcomeMemberIfNew();                         // the plan arrives from the server a moment after the app opens
 }
 
 // One address, one saved sign-in: the old free address sends people to the real one.
