@@ -25,3 +25,5 @@ export const CLARITY_ID = 'yzzxnf3q1w';
 export const PAYMENT_PROVIDER = 'dodo';
 // Sentry error reporting (free). Paste the project's DSN here (it is public, not secret) and the live site will report crashes to Sentry. Empty = off.
 export const SENTRY_DSN = '';
+// Sentry's "Loader Script" key (the 32 characters in https://js.sentry-cdn.com/<key>.min.js). Public, not secret. Used when SENTRY_DSN is empty.
+export const SENTRY_KEY = 'b60fce93fa1803baa9280be80a3275ca';
