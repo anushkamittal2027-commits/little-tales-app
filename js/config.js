@@ -3,7 +3,7 @@
 export const CONFIG = {
   SUPABASE_URL: 'https://vnorlnjsvknhsvjfczyl.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZub3JsbmpzdmtuaHN2amZjenlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNDQ4MjIsImV4cCI6MjEwNzcyMDgyMn0.CPu0W18FmAxPnfaqqJHMZ6PtNsGBnEzFpF7ZBFmIxtk',
-  VAPID_PUBLIC_KEY: 'BH3ytCLodzzZpbkk9xAVl3f0bJ6MLIbITSDMGMrzXmszQYGfcm_zW6P5SG2HbIBhjsh1kgIL1jGFKG2l_nsCyfw',
+  VAPID_PUBLIC_KEY: 'BNMt9ZmAkIDm869fqViKEuclLlOKC4gW4lbPQYnrh40v2oMvv2bAXuTnJ5m-ClR_ikCM-CjP1LJ_eSq_1DTwsLg',
 };
 // Practice mode (no server) is forced by tests and the private preview, or by adding ?demo=1 to the address.
 const forceDemo = typeof window !== 'undefined' && (window.__DEMO_AUTH || /[?&]demo=1/.test(location.search));

@@ -33,17 +33,26 @@ say('1/5  Signing in to Supabase (a browser page opens: click Allow)');
 run(['login']);
 say('2/5  Connecting this folder to your project');
 run(['link', '--project-ref', REF]);
-say('3/5  Making the reminder keys');
-const keys = vapid();
+say('3/5  Reminder keys');
+// The reminder keys must never change once members have switched reminders on, so they are only made when Supabase has none yet.
+const have = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['--yes', 'supabase', 'secrets', 'list', '--project-ref', REF], { cwd: root, shell: process.platform === 'win32', encoding: 'utf8' });
+const hasVapid = have.status === 0 && /VAPID_PRIVATE_KEY/.test(have.stdout || '');
+let keys = null;
+if (hasVapid) console.log('   Reminder keys already saved in Supabase: leaving them as they are.');
 say('4/5  Saving the secrets in Supabase (they stay in Supabase, not in the website)');
-run(['secrets', 'set', `VAPID_PUBLIC_KEY=${keys.publicKey}`, `VAPID_PRIVATE_KEY=${keys.privateKey}`, 'MAIL_FROM=Little Tales <hellolittletales@gmail.com>', '--project-ref', REF]);
+if (!hasVapid) {
+  keys = vapid();
+  run(['secrets', 'set', `VAPID_PUBLIC_KEY=${keys.publicKey}`, `VAPID_PRIVATE_KEY=${keys.privateKey}`, 'MAIL_FROM=Little Tales <hellolittletales@gmail.com>', '--project-ref', REF]);
+}
 say('5/5  Putting the server functions online');
 for (const f of FUNCTIONS) { console.log('   - ' + f); run(['functions', 'deploy', f, '--project-ref', REF, '--use-api']); }
 
 console.log('\n==============================================================');
 console.log('DONE. The server functions and secrets are online.');
 console.log('Last step: do docs/SCHEDULE_STEP.md (paste two SQL blocks in Supabase).');
-console.log('Reminder PUBLIC key (safe to send to Claude; it is not secret):');
-console.log(keys.publicKey);
-console.log('If this differs from VAPID_PUBLIC_KEY in js/config.js, send it to Claude so the website uses the same one.');
+if (keys) {
+  console.log('NEW reminder PUBLIC key (safe to send to Claude; it is not secret):');
+  console.log(keys.publicKey);
+  console.log('Send it to Claude so the website uses the same one.');
+}
 console.log('==============================================================');
