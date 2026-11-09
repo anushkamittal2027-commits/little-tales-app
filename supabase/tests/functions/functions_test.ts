@@ -223,6 +223,14 @@ Deno.test('dodo checkout: says "opening soon" until keys exist, then returns the
   const c = calls.find((x) => x.url.endsWith('/checkouts'))!; const sent = JSON.parse(String(c.init!.body));
   assertEquals(sent.product_cart[0].product_id, 'pdt_y'); assertEquals(sent.metadata, { user_id: 'u1', plan: 'yearly' });
   assert(c.url.startsWith('https://test.dodopayments.com'));
+  assertEquals(sent.discount_codes, undefined);                                                  // no coupon, none sent
+});
+Deno.test('dodo checkout: passes a tidy coupon code on to Dodo and rejects a malformed one', async () => {
+  resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' }; Deno.env.set('DODO_API_KEY', 'k');
+  assertEquals((await post('create-dodo-checkout', { plan: 'monthly', coupon: 'no spaces!' })).status, 400);
+  const r = await post('create-dodo-checkout', { plan: 'monthly', coupon: ' family50 ' }); assertEquals(r.status, 200);
+  const sent = JSON.parse(String(calls.find((x) => x.url.endsWith('/checkouts'))!.init!.body));
+  assertEquals(sent.discount_codes, ['FAMILY50']); assertEquals(sent.metadata.coupon, 'FAMILY50');
 });
 Deno.test('dodo cancel: stops renewals at the end of the period', async () => {
   resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' };

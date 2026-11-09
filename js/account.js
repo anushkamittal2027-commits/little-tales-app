@@ -5,9 +5,20 @@ import { todayStr, daysBetween, addDays, setDayOffset, toDateStr } from './util.
 
 export const TRIAL_DAYS = 7;
 export const HOLD_DAYS = 30;
+// Prices by region. They must match the products in Dodo: one product per plan, priced in US dollars, with a fixed
+// Indian price added under Localized Pricing. Dodo decides from the billing country; we guess the same from the time zone.
+export const PRICES = {
+  in: { currency: 'INR', symbol: '₹', monthly: 149, yearly: 1440 },
+  intl: { currency: 'USD', symbol: '$', monthly: 6, yearly: 60 },
+};
+export function region() {
+  try { return /^Asia\/(Kolkata|Calcutta)$/.test(Intl.DateTimeFormat().resolvedOptions().timeZone) ? 'in' : 'intl'; } catch { return 'intl'; }
+}
+const P = PRICES[region()];
+export const money = (n) => P.symbol + (Number.isInteger(n) ? n : n.toFixed(2));
 export const PLANS = {
-  monthly: { id: 'monthly', name: 'Monthly', price: 149, per: 'month', note: 'Billed every month' },
-  yearly: { id: 'yearly', name: 'Yearly', price: 999, per: 'year', note: 'About Rs 83 a month', best: true },
+  monthly: { id: 'monthly', name: 'Monthly', price: P.monthly, per: 'month', note: 'Billed every month' },
+  yearly: { id: 'yearly', name: 'Yearly', price: P.yearly, per: 'year', note: `About ${money(Math.round(P.yearly / 12))} a month`, best: true },
 };
 
 const DEFAULT = {

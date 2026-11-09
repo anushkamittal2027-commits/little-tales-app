@@ -71,7 +71,8 @@
         async list(prefix) { return ok(Object.keys(db().files).filter((k) => k.startsWith(bucket + '/' + prefix + '/')).map((k) => ({ name: k.split('/').pop() }))); },
       }),
     },
-    functions: { async invoke(name) {
+    functions: { async invoke(name, opts) {
+      { const d0 = db(); d0.lastInvoke = { name, body: opts?.body ?? null }; save(d0); }
       if (name === 'create-subscription') return { data: { subscription_id: 'sub_test', key_id: 'rzp_test_x' }, error: null };
       if (name === 'transcribe') return window.__TRANSCRIBE === 'not_configured' ? { data: { code: 'not_configured', error: 'soon' }, error: null } : { data: { text: 'The chai was perfect today' }, error: null };
       if (name === 'create-dodo-checkout') { const d = db(); d.subs[d.session.id] = { user_id: d.session.id, plan: 'yearly', status: 'active', started_at: new Date().toISOString() }; save(d); return { data: { checkout_url: location.origin + location.pathname + '?paid=1' }, error: null }; }   // pretends the member paid and Dodo's webhook arrived

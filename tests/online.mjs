@@ -86,8 +86,12 @@ ok('reminders switched on for the member on the server', s.profiles['u-a@example
 // paying (Dodo's page is pretended: the mock "pays", the webhook marks the member subscribed, and the browser comes back with ?paid=1)
 await p.evaluate(() => window.__lt.go('checkout', { plan: 'yearly' }));
 await wait(500);
-ok('real checkout has no practice form', await p.locator('.practice, .pay-fields input').count() === 0);
+ok('real checkout has no practice form, only a coupon box', await p.locator('.practice').count() === 0 && await p.locator('.pay-fields input').count() === 1);
+await p.fill('.pay-fields .coupon', 'bad code!'); await p.click('.checkout .btn-primary'); await wait(300);
+ok('a malformed coupon is caught before paying', /coupon code/.test(await p.locator('.pay-err').textContent()));
+await p.fill('.pay-fields .coupon', 'family50');
 await p.click('.checkout .btn-primary'); await p.waitForSelector('.celebrate', { timeout: 20000 });
+ok('the coupon code is sent to the server', JSON.stringify((await server()).lastInvoke?.body) === JSON.stringify({ plan: 'yearly', coupon: 'FAMILY50' }));
 ok('a thank-you with confetti appears for a new member', (await p.locator('.celebrate').innerText()).includes('member') && await p.locator('canvas.confetti').count() >= 0);
 ok('the Home pill says Member', (await p.locator('.pill.member').innerText().catch(() => '')).includes('Member'));
 ok('after paying the member is subscribed', await p.evaluate(() => window.__lt.trialInfo().status) === 'subscribed');

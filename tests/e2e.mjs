@@ -4,7 +4,7 @@ import fs from 'fs';
 const OUT = process.env.SHOTS || '/tmp/e2e-shots'; fs.mkdirSync(OUT, { recursive: true });
 const URL = process.env.URL || 'http://localhost:8123/';
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
-const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, permissions: ['camera', 'microphone', 'notifications'], hasTouch: true, acceptDownloads: true });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, permissions: ['camera', 'microphone', 'notifications'], hasTouch: true, acceptDownloads: true, timezoneId: 'Asia/Kolkata' });
 const p = await ctx.newPage();
 let fails = 0, errs = 0;
 p.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) { errs++; console.log('  console error:', m.text().slice(0, 140)); } });

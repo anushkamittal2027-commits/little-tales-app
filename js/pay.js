@@ -12,8 +12,8 @@ const loadScript = () => new Promise((res, rej) => {
 });
 
 // Resolves 'paid' when the member is subscribed, 'closed' if they closed the window, or throws a readable error.
-export async function payOnline(planId) {
-  if (PAYMENT_PROVIDER === 'dodo') return payDodo(planId);
+export async function payOnline(planId, coupon = '') {
+  if (PAYMENT_PROVIDER === 'dodo') return payDodo(planId, coupon);
   const c = await client();
   const { data, error } = await c.functions.invoke('create-subscription', { body: { plan: planId } });
   if (error || !data?.subscription_id) throw new Error(data?.error || 'We couldn’t start the payment. Please try again in a moment.');
@@ -45,9 +45,9 @@ export async function cancelOnline() {
 }
 
 // Dodo Payments: the member pays on Dodo's own page and comes back to /?paid=1; the webhook then marks them subscribed.
-async function payDodo(planId) {
+async function payDodo(planId, coupon) {
   const c = await client();
-  const { data, error } = await c.functions.invoke('create-dodo-checkout', { body: { plan: planId } });
+  const { data, error } = await c.functions.invoke('create-dodo-checkout', { body: coupon ? { plan: planId, coupon } : { plan: planId } });
   let msg = data?.error, code = data?.code;
   if (!msg && error?.context?.json) { const b = await error.context.json().catch(() => null); msg = b?.error; code = b?.code; }
   if (error || !data?.checkout_url) throw new Error((msg || 'We couldn’t start the payment. Please try again in a moment.') + (code ? ` (${code})` : ''));

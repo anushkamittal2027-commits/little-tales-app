@@ -5,7 +5,7 @@ import { state, register, go, back, toast, sheet, currentName } from './nav.js';
 import { stampEl } from './stamp.js';
 import { samplePhoto } from './sample.js';
 import { LOGO } from './art.js';
-import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, cancelSubscription, purgeAllTales, resetDemo, PLANS, TRIAL_DAYS, HOLD_DAYS } from './account.js';
+import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, cancelSubscription, purgeAllTales, resetDemo, PLANS, TRIAL_DAYS, HOLD_DAYS, money, region } from './account.js';
 import { subscribePush } from './push.js';
 import { confetti } from './delight.js';
 import { deleteAccountOnline, pendingCount } from './sync.js';
@@ -22,8 +22,7 @@ const primary = (label, onClick, attrs = {}) => h('button.btn-primary', { onClic
 const secondary = (label, onClick) => h('button.btn-secondary', { onClick }, label);
 const linkBtn = (label, onClick) => h('button.link', { onClick }, label);
 const topBar = (right) => h('div.topbar', h('button.icon-btn', { 'aria-label': 'Back', onClick: () => back(), html: icon.back }), h('div.topbar-right', right));
-const rupees = (n) => 'Rs ' + (Number.isInteger(n) ? n : n.toFixed(2));
-const withGst = (n) => (account.settings.gst ? Math.round(n * 1.18 * 100) / 100 : n);
+const withGst = (n) => (account.settings.gst && region() === 'in' ? Math.round(n * 1.18 * 100) / 100 : n);
 
 // =====================================================
 // SIGN IN
@@ -248,10 +247,10 @@ register('paywall', (p) => {
     cards.replaceChildren(...[PLANS.monthly, PLANS.yearly].map((pl) => h('button.plan' + (plan === pl.id ? '.on' : '') + (pl.best ? '.best' : ''), { role: 'radio', 'aria-checked': String(plan === pl.id), 'aria-pressed': String(plan === pl.id), onClick: () => { plan = pl.id; draw(); } },
       pl.best ? h('span.badge', 'Best value') : null,
       h('span.plan-name', pl.name),
-      h('span.plan-price', '₹' + pl.price),
-      h('span.plan-note', pl.id === 'monthly' ? 'per month' : `₹${Math.round(pl.price / 12)} a month · save ${save}%`))));
+      h('span.plan-price', money(pl.price)),
+      h('span.plan-note', pl.id === 'monthly' ? 'per month' : `${money(Math.round(pl.price / 12))} a month · save ${save}%`))));
     cta.textContent = `Continue with ${plan}`;
-    note.textContent = account.settings.gst ? 'Prices shown without GST. 18% GST is added at checkout.' : '';
+    note.textContent = account.settings.gst && region() === 'in' ? 'Prices shown without GST. 18% GST is added at checkout.' : '';
   };
   draw();
   const picks = [...store.tales].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3);
@@ -281,12 +280,15 @@ register('checkout', (p) => {
   let method = 'upi';
   const fields = h('div.pay-fields');
   const err = h('p.pay-err');
-  const payBtn = primary(`Pay ${rupees(total)}`, async () => {
+  const coupon = h('input.coupon', { type: 'text', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', maxlength: '32', placeholder: 'Coupon code (optional)', 'aria-label': 'Coupon code' });
+  const payBtn = primary(`Pay ${money(total)}`, async () => {
     if (real) {
+      const code = coupon.value.trim().toUpperCase();
+      if (code && !/^[A-Z0-9_-]{3,32}$/.test(code)) { err.textContent = 'That coupon code doesn’t look right. Check it and try again.'; return; }
       payBtn.disabled = true; payBtn.textContent = 'Opening…'; err.textContent = '';
-      try { const r = await payOnline(plan.id); if (r === 'paid') go('success', { plan: plan.id }, { replace: true }); }
+      try { const r = await payOnline(plan.id, code); if (r === 'paid') go('success', { plan: plan.id }, { replace: true }); }
       catch (e) { err.textContent = e.message; }
-      payBtn.disabled = false; payBtn.textContent = `Pay ${rupees(total)}`; return;
+      payBtn.disabled = false; payBtn.textContent = `Pay ${money(total)}`; return;
     }
     const f = fields.querySelectorAll('input');
     if (method === 'upi') { if (!/^[\w.\-]{2,}@[a-z]{2,}$/i.test(f[0].value.trim())) { err.textContent = 'Enter a UPI ID like name@bank'; return; } }
@@ -302,7 +304,7 @@ register('checkout', (p) => {
   });
   const real = auth.provider === 'supabase';
   const draw = () => {
-    if (real) { fields.replaceChildren(h('p.fine', 'You’ll pay on a secure page by card, UPI or wallet. We never see or store your payment details.')); return; }
+    if (real) { fields.replaceChildren(h('label', 'Coupon code', coupon), h('p.fine', 'Got a code from us? Add it here and the discount shows on the next page. You’ll pay on a secure page and we never see or store your payment details. The final price is shown in your currency there.')); return; }
     fields.replaceChildren(...(method === 'upi'
       ? [h('label', 'UPI ID', h('input', { type: 'text', inputmode: 'email', autocomplete: 'off', placeholder: 'name@bank', 'aria-label': 'UPI ID' })), h('p.fine', 'You’ll approve the monthly or yearly auto-pay in your UPI app.')]
       : [h('label', 'Card number', h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: '1234 5678 9012 3456', 'aria-label': 'Card number' })),
@@ -316,9 +318,9 @@ register('checkout', (p) => {
     topBar(),
     h('h1', 'Almost ', h('em', 'there')),
     h('div.summary.glass-card',
-      h('div.srow', h('span', `Little Tales ${plan.name}`), h('b', rupees(plan.price))),
-      account.settings.gst ? h('div.srow.sub', h('span', 'GST (18%)'), h('span', rupees(gst))) : null,
-      h('div.srow.total', h('span', 'Total today'), h('b', rupees(total)))),
+      h('div.srow', h('span', `Little Tales ${plan.name}`), h('b', money(plan.price))),
+      account.settings.gst ? h('div.srow.sub', h('span', 'GST (18%)'), h('span', money(gst))) : null,
+      h('div.srow.total', h('span', 'Total today'), h('b', money(total)))),
     real ? null : h('div.practice', h('b', 'Practice mode.'), ' Nothing is charged, and nothing you type here is saved.'),
     tabs, fields, err,
     h('div.bottom', payBtn));

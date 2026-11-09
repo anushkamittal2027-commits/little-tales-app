@@ -331,6 +331,7 @@
 .srow { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F0E8DA; font-size: 15px; } .srow:last-child { border-bottom: 0; } .srow.sub { color: var(--muted); font-size: 14px; } .srow.total { font-weight: 700; } .srow b { font-family: var(--serif); font-size: 18px; }
 .practice { padding: 12px 14px; border-radius: 14px; background: var(--butter-wash); color: var(--butter-ink); font-size: 13px; line-height: 1.45; margin-bottom: 14px; }
 .paytabs { display: flex; gap: 8px; margin-bottom: 14px; } .paytab { flex: 1; height: 44px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); font-weight: 600; font-size: 14px; } .paytab.on { background: var(--olive-wash); border-color: var(--olive); color: var(--olive-deep); } .paytabs[hidden] { display: none; }
+.pay-fields .coupon { text-transform: uppercase; letter-spacing: .06em; }
 .pay-fields { display: flex; flex-direction: column; gap: 12px; } .pay-fields .fine { margin: 0 2px; } .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .success { align-items: center; justify-content: center; text-align: center; gap: 12px; }
 .success h1 { font-size: 36px; } .success p { color: var(--ink-2); max-width: 300px; line-height: 1.5; }

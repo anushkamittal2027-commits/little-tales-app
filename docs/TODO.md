@@ -51,3 +51,13 @@ Notes for whoever deploys:
 - Never replace the VAPID (reminder) keys: tools/deploy-server.mjs now leaves existing ones alone.
 - The database role `service_role` needed explicit grants (see the SQL run on 22 Oct); new tables need them too.
 - Razorpay code is still in the repo but unused (PAYMENT_PROVIDER = 'dodo' in js/config.js).
+
+## 9 November 2026: India and abroad prices, coupons, Dodo live
+- Prices (js/account.js, PRICES): India Rs 149 a month, Rs 1440 a year; everyone else $6 a month, $60 a year. The app picks India from the phone's time zone; Dodo charges by billing country.
+- Dodo LIVE products (made through the API, tax included in the price, India added under Localized Pricing):
+  - Monthly: pdt_0NrYv4CIMjTIoLNSyMiZg ($6, India Rs 149)
+  - Yearly: pdt_0NrYv4OctY1tLnocYBKBI ($60, India Rs 1440)
+- Dodo LIVE webhook: ep_3LrZVctlGl6Ol0MVSsoCp9JxgHm -> https://vnorlnjsvknhsvjfczyl.supabase.co/functions/v1/dodo-webhook
+- Coupons: made in Dodo (Live, Discounts). Members type the code in the app's checkout (sent to Dodo as discount_codes) or on Dodo's page.
+- To switch the server to live, set these Supabase secrets (Edge Functions, Secrets): DODO_ENV=live, DODO_API_KEY (the live key), DODO_PRODUCT_MONTHLY, DODO_PRODUCT_YEARLY (ids above), DODO_WEBHOOK_SECRET (Dodo Live, Developer, Webhooks, the endpoint above, Signing secret). Then redeploy create-dodo-checkout.
+- If prices change: update PRICES in js/account.js AND the product price / India rule in Dodo (both).

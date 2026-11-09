@@ -8,8 +8,11 @@ Deno.serve(async (req) => {
   const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } });
   const { data: { user } } = await userClient.auth.getUser();
   if (!user) return json({ error: 'sign in first' }, 401);
-  const { plan } = await req.json().catch(() => ({}));
+  const { plan, coupon } = await req.json().catch(() => ({}));
   if (!['monthly', 'yearly'].includes(plan)) return json({ error: 'unknown plan' }, 400);
+  // Coupon codes are made in Dodo (Discounts). We only pass a tidy code on; Dodo checks it and shows the discount.
+  const code = typeof coupon === 'string' ? coupon.trim().toUpperCase() : '';
+  if (code && !/^[A-Z0-9_-]{3,32}$/.test(code)) return json({ error: 'That coupon code doesn’t look right.', code: 'bad_coupon' }, 400);
 
   const apiKey = Deno.env.get('DODO_API_KEY');
   const product = Deno.env.get(plan === 'monthly' ? 'DODO_PRODUCT_MONTHLY' : 'DODO_PRODUCT_YEARLY');
@@ -27,11 +30,16 @@ Deno.serve(async (req) => {
       product_cart: [{ product_id: product, quantity: 1 }],
       customer: { email: user.email },
       return_url: `${origin}/?paid=1`,
-      metadata: { user_id: user.id, plan },
+      metadata: { user_id: user.id, plan, ...(code ? { coupon: code } : {}) },
+      ...(code ? { discount_codes: [code] } : {}),
     }),
   });
   const out = await r.json().catch(() => ({}));
   if (!r.ok || !out.checkout_url) {
+    if (code && r.status >= 400 && r.status < 500) {
+      console.error('Dodo refused coupon', code, r.status, JSON.stringify(out).slice(0, 300));
+      return json({ error: 'That coupon code didn’t work. It may be mistyped, used up or expired.', code: 'coupon_' + r.status }, 400);
+    }
     console.error('Dodo checkout failed', r.status, JSON.stringify(out).slice(0, 400));   // visible in Supabase, Edge Functions, Logs
     return json({ error: 'We couldn’t start the payment. Please try again in a moment.', code: 'dodo_' + r.status }, 502);
   }
