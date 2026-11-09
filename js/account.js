@@ -11,14 +11,21 @@ export const PRICES = {
   in: { currency: 'INR', symbol: '₹', monthly: 149, yearly: 1440 },
   intl: { currency: 'USD', symbol: '$', monthly: 6, yearly: 60 },
 };
-export function region() {
+// Which prices to show. The member can pick on the plans screen (kept on this phone); until then we guess from the time zone.
+const REGION_KEY = 'lt-price-region';
+export function guessRegion() {
   try { return /^Asia\/(Kolkata|Calcutta)$/.test(Intl.DateTimeFormat().resolvedOptions().timeZone) ? 'in' : 'intl'; } catch { return 'intl'; }
 }
-const P = PRICES[region()];
-export const money = (n) => P.symbol + (Number.isInteger(n) ? n : n.toFixed(2));
+export function region() {
+  try { const r = localStorage.getItem(REGION_KEY); if (r === 'in' || r === 'intl') return r; } catch {}
+  return guessRegion();
+}
+export function setRegion(r) { try { localStorage.setItem(REGION_KEY, r === 'in' ? 'in' : 'intl'); } catch {} }
+export const money = (n) => PRICES[region()].symbol + (Number.isInteger(n) ? n : n.toFixed(2));
+// Prices follow region() each time they are read, so switching country updates every screen.
 export const PLANS = {
-  monthly: { id: 'monthly', name: 'Monthly', price: P.monthly, per: 'month', note: 'Billed every month' },
-  yearly: { id: 'yearly', name: 'Yearly', price: P.yearly, per: 'year', note: `About ${money(Math.round(P.yearly / 12))} a month`, best: true },
+  monthly: { id: 'monthly', name: 'Monthly', per: 'month', note: 'Billed every month', get price() { return PRICES[region()].monthly; } },
+  yearly: { id: 'yearly', name: 'Yearly', per: 'year', best: true, get price() { return PRICES[region()].yearly; }, get note() { return `About ${money(Math.round(this.price / 12))} a month`; } },
 };
 
 const DEFAULT = {

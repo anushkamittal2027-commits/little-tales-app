@@ -5,7 +5,7 @@ import { state, register, go, back, toast, sheet, currentName } from './nav.js';
 import { stampEl } from './stamp.js';
 import { samplePhoto } from './sample.js';
 import { LOGO } from './art.js';
-import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, cancelSubscription, purgeAllTales, resetDemo, PLANS, TRIAL_DAYS, HOLD_DAYS, money, region } from './account.js';
+import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, cancelSubscription, purgeAllTales, resetDemo, PLANS, TRIAL_DAYS, HOLD_DAYS, money, region, setRegion } from './account.js';
 import { subscribePush } from './push.js';
 import { confetti } from './delight.js';
 import { deleteAccountOnline, pendingCount } from './sync.js';
@@ -242,8 +242,11 @@ register('paywall', (p) => {
   const cards = h('div.plans', { role: 'radiogroup', 'aria-label': 'Plan' });
   const note = h('p.fine.gst.center');
   const cta = primary('', () => go('checkout', { plan }));
-  const save = Math.round((1 - PLANS.yearly.price / (PLANS.monthly.price * 12)) * 100);
+  const regionPick = h('div.region-pick', { role: 'radiogroup', 'aria-label': 'Show prices for' });
   const draw = () => {
+    const save = Math.round((1 - PLANS.yearly.price / (PLANS.monthly.price * 12)) * 100);
+    regionPick.replaceChildren(h('span.rp-label', 'Prices for'), ...[['in', '🇮🇳 India'], ['intl', '🌍 Outside India']].map(([k, l]) =>
+      h('button.rp' + (region() === k ? '.on' : ''), { type: 'button', role: 'radio', 'aria-checked': String(region() === k), onClick: () => { setRegion(k); draw(); } }, l)));
     cards.replaceChildren(...[PLANS.monthly, PLANS.yearly].map((pl) => h('button.plan' + (plan === pl.id ? '.on' : '') + (pl.best ? '.best' : ''), { role: 'radio', 'aria-checked': String(plan === pl.id), 'aria-pressed': String(plan === pl.id), onClick: () => { plan = pl.id; draw(); } },
       pl.best ? h('span.badge', 'Best value') : null,
       h('span.plan-name', pl.name),
@@ -267,7 +270,7 @@ register('paywall', (p) => {
       h('h1', 'Keep your tales forever'),
       h('p', day7 ? 'Your free week ends tonight. Your week, saved. Every week after, too.' : locked ? 'Your tales are waiting. Subscribe to unlock them.' : 'Your week, saved. Every week after, too.')),
     h('ul.perks', ...['Your calendar stays open, always', 'A little film of your week, every Sunday', 'Download everything, any time'].map((t) => h('li', h('span.perk-ic', { html: PERK }), t))),
-    cards, note,
+    regionPick, cards, note,
     h('div.bottom',
       cta,
       day7 ? linkBtn('Maybe later', () => go('calendar', {}, { replace: true })) : null,
