@@ -19,7 +19,7 @@ fs.rmSync(out + 'assets/sample', { recursive: true, force: true });   // generat
 
 // app.js?v=<cache version>: a new build always loads the new app, even if a phone kept the old file.
 const version = (fs.readFileSync(root + 'sw.js', 'utf8').match(/little-tales-v(\d+)/) || [])[1] || Date.now();
-fs.writeFileSync(out + 'index.html', fs.readFileSync(root + 'index.html', 'utf8').replace('src="js/app.js"', `src="app.js?v=${version}"`));
+fs.writeFileSync(out + 'index.html', fs.readFileSync(root + 'index.html', 'utf8').replace('src="js/app.js"', `src="app.js?v=${version}"`).replace(/href="(css\/[\w-]+\.css)"/g, `href="$1?v=${version}"`));
 
 // service worker: list the real files of this build
 const list = [];
