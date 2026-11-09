@@ -42,6 +42,8 @@ export async function cancelOnline() {
   const c = await client();
   const { data, error } = await c.functions.invoke(PAYMENT_PROVIDER === 'dodo' ? 'cancel-dodo-subscription' : 'cancel-subscription');
   if (error || data?.error) throw new Error(data?.error || 'We couldn’t cancel right now. Please try again.');
+  if (data?.ended) await pullAccount().catch(() => {});   // nothing left to renew, so it ended straight away
+  return data;
 }
 
 // Dodo Payments: the member pays on Dodo's own page and comes back to /?paid=1; the webhook then marks them subscribed.

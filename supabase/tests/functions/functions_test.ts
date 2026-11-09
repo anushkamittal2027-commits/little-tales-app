@@ -20,6 +20,7 @@ globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
   if (u.includes('api.resend.com')) return new Response('{}', { status: 200 });
   if (u.includes('api.openai.com/v1/audio/transcriptions')) return new Response(JSON.stringify({ text: ' Hello there ' }), { status: 200 });
   if (u.includes('dodopayments.com/checkouts')) return new Response(JSON.stringify({ checkout_url: 'https://test.checkout.dodopayments.com/session/cks_1' }), { status: 200 });
+  if (u.includes('dodopayments.com/subscriptions/sub_gone')) return new Response('{}', { status: 404 });
   if (u.includes('dodopayments.com/subscriptions/')) return new Response('{}', { status: 200 });
   if (u.includes('api.razorpay.com/v1/subscriptions') && u.endsWith('/cancel')) return new Response(JSON.stringify(razorpayOk ? { id: 'sub_1' } : { error: { description: 'nope' } }), { status: razorpayOk ? 200 : 400 });
   if (u.includes('api.razorpay.com/v1/subscriptions')) return new Response(JSON.stringify({ id: 'sub_new', short_url: 'https://rzp.io/x' }), { status: 200 });
@@ -239,6 +240,12 @@ Deno.test('dodo cancel: stops renewals at the end of the period', async () => {
   assertEquals((await post('cancel-dodo-subscription', {})).status, 200);
   const c = calls.find((x) => x.url.endsWith('/subscriptions/sub_d1'))!;
   assertEquals(c.init!.method, 'PATCH'); assertEquals(JSON.parse(String(c.init!.body)), { cancel_at_next_billing_date: true });
+});
+Deno.test('dodo cancel: a plan Dodo no longer knows (test mode after going live) is ended here, so cancel always works', async () => {
+  resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' };
+  db.tables.subscriptions.push({ user_id: 'u1', status: 'active', plan: 'monthly', dodo_subscription_id: 'sub_gone' });
+  const r = await post('cancel-dodo-subscription', {}); assertEquals(r.status, 200);
+  assertEquals(db.tables.subscriptions[0].status, 'cancelled'); assertEquals(db.tables.subscriptions[0].plan, 'monthly');
 });
 
 // ---- Speak instead of typing ----
