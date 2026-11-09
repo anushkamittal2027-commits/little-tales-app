@@ -59,10 +59,10 @@ Notes for whoever deploys:
   - Yearly: pdt_0NrYv4OctY1tLnocYBKBI ($60, India Rs 1440)
 - Dodo LIVE webhook: ep_3LrZVctlGl6Ol0MVSsoCp9JxgHm -> https://vnorlnjsvknhsvjfczyl.supabase.co/functions/v1/dodo-webhook
 - Coupons (made in Dodo: Live, Discounts). Members type a code in the app's checkout and tap Apply (function check-coupon shows the saving); Dodo's own code box is hidden.
-  - SAVEIN (India): monthly Rs 149 -> Rs 89 (Dodo code SAVEIN, Rs 60 flat, monthly only); yearly Rs 100 off (Dodo code SAVEINY, yearly only). The app turns SAVEIN into SAVEINY on the yearly plan.
+  - SAVEIN (India): monthly Rs 149 -> Rs 99 (Dodo code SAVEIN, Rs 50 flat, monthly only); yearly Rs 100 off (Dodo code SAVEINY, yearly only). The app turns SAVEIN into SAVEINY on the yearly plan.
   - SAVE50 (abroad): 50% off monthly or yearly.
   - metadata.region on a Dodo discount ('in' or 'intl') keeps it to India or abroad. Each person can use a code once; the discount repeats on every renewal.
-  - Dodo will not take a payment under 1 USD (about Rs 88), so an India monthly price must stay at Rs 89 or more after a discount.
+  - Dodo will not take a payment under 1 USD (about Rs 88), so keep an India price at Rs 99 or more after a discount (a gap in case the rupee weakens).
   - New code for both plans: make CODE (monthly) and CODEY (yearly) in Dodo, or one code without a product limit.
 - To switch the server to live, set these Supabase secrets (Edge Functions, Secrets): DODO_ENV=live, DODO_API_KEY (the live key), DODO_PRODUCT_MONTHLY, DODO_PRODUCT_YEARLY (ids above), DODO_WEBHOOK_SECRET (Dodo Live, Developer, Webhooks, the endpoint above, Signing secret). Then redeploy create-dodo-checkout.
 - If prices change: update PRICES in js/account.js AND the product price / India rule in Dodo (both).
