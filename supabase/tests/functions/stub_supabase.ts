@@ -29,7 +29,7 @@ export function createClient(_url: string, _key: string, opts?: any) {
   const authHeader = opts?.global?.headers?.Authorization ?? '';
   return {
     from: builder,
-    rpc: (name: string, args: any) => Promise.resolve({ data: name === 'account_status' ? (db.status[args.uid] ?? { status: 'new' }) : null, error: null }),
+    rpc: (name: string, args: any) => Promise.resolve({ data: name === 'account_status' ? (db.status[args.uid] ?? { status: 'new' }) : name === 'lt_is_cron_secret' ? args.s === 'cron-secret-from-vault' : null, error: null }),
     auth: {
       getUser: () => Promise.resolve({ data: { user: authHeader.includes('good-token') ? db.user : null } }),
       admin: { deleteUser: (id: string) => { db.deleted.push(id); return Promise.resolve({ error: null }); } },

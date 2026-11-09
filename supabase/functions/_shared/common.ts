@@ -12,9 +12,13 @@ function serverKeys() {
   catch { keys.push(extra); }
   return keys.map((k) => k.trim()).filter((k) => k.length >= 8);
 }
-export const isScheduler = (req: Request) => {
+// The scheduler can also use its own password (vault secret lt_cron_secret, migration 007), which the database checks.
+export const isScheduler = async (req: Request) => {
   const got = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
-  return !!got && serverKeys().includes(got);
+  if (!got) return false;
+  if (serverKeys().includes(got)) return true;
+  const { data } = await admin.rpc('lt_is_cron_secret', { s: got });
+  return data === true;
 };
 
 export const json = (body: unknown, status = 200) =>

@@ -46,6 +46,10 @@ Deno.test('scheduled jobs also accept the newer sb_secret key', async () => {
   for (const n of ['lifecycle', 'nudges']) assertEquals((await handlers[n](new Request('http://f', { method: 'POST', body: '{}', headers: { Authorization: 'Bearer sb_secret_abcdefghijklmnopqrstuvwxyz' } }))).status, 200);
   Deno.env.delete('SUPABASE_SECRET_KEYS');
 });
+Deno.test('scheduled jobs accept the scheduler password kept in the database', async () => {
+  resetDb();
+  for (const n of ['lifecycle', 'nudges']) assertEquals((await handlers[n](new Request('http://f', { method: 'POST', body: '{}', headers: { Authorization: 'Bearer cron-secret-from-vault' } }))).status, 200);
+});
 
 Deno.test('lifecycle: warns at 7 and 1 days left, once, and not at other times', async () => {
   resetDb(); calls.length = 0;

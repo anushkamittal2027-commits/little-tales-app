@@ -15,7 +15,7 @@ const warning = (left: number) => ({
 });
 
 Deno.serve(async (req) => {
-  if (!isScheduler(req)) return json({ error: 'not allowed' }, 401);
+  if (!(await isScheduler(req))) return json({ error: 'not allowed' }, 401);
   const { data: members } = await admin.from('profiles').select('id, email, tz, notify_email');
   const out = { warned: 0, deleted: 0 };
   for (const m of members ?? []) {

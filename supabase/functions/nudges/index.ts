@@ -11,7 +11,7 @@ const COPY: Record<string, { title: string; body: string }> = {
 };
 
 Deno.serve(async (req) => {
-  if (!isScheduler(req)) return json({ error: 'not allowed' }, 401);
+  if (!(await isScheduler(req))) return json({ error: 'not allowed' }, 401);
   const { data: members } = await admin.from('profiles').select('id, tz').eq('notify_push', true);
   let sent = 0;
   for (const m of members ?? []) {
