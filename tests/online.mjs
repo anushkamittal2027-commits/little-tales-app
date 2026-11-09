@@ -93,12 +93,12 @@ await p.fill('.pay-fields .coupon', 'nope'); await p.click('.coupon-apply'); awa
 ok('an unknown coupon says so', /couldn’t find that code/.test(await p.locator('.coupon-msg').textContent()));
 await p.click('.checkout .btn-primary'); await wait(300);
 ok('paying with a typed but unapplied code asks to tap Apply', /Tap Apply/.test(await p.locator('.coupon-msg').textContent()));
-await p.fill('.pay-fields .coupon', 'sunny'); await p.click('.coupon-apply'); await wait(700);
+await p.fill('.pay-fields .coupon', 'save50'); await p.click('.coupon-apply'); await wait(700);
 ok('a good coupon shows congratulations and the saving', /Congratulations!/.test(await p.locator('.coupon-win').textContent()) && /saving \$30 every year/.test(await p.locator('.coupon-win').textContent()));
 ok('the total and pay button show the discounted price', /\$30/.test(await p.locator('.srow.total').textContent()) && /Pay \$30/.test(await p.locator('.checkout .btn-primary').textContent()) && await p.locator('.srow.save').count() === 1);
 await p.screenshot({ path: (process.env.SHOTS || '/tmp/e2e-shots') + '/coupon-applied.png' });
 await p.click('.checkout .btn-primary'); await p.waitForSelector('.celebrate', { timeout: 20000 });
-ok('the coupon code is sent to the server', JSON.stringify((await server()).lastInvoke?.body) === JSON.stringify({ plan: 'yearly', coupon: 'SUNNY', region: 'intl' }));
+ok('the coupon code is sent to the server', JSON.stringify((await server()).lastInvoke?.body) === JSON.stringify({ plan: 'yearly', coupon: 'SAVE50', region: 'intl' }));
 ok('a thank-you with confetti appears for a new member', (await p.locator('.celebrate').innerText()).includes('member') && await p.locator('canvas.confetti').count() >= 0);
 ok('the Home pill says Member', (await p.locator('.pill.member').innerText().catch(() => '')).includes('Member'));
 ok('after paying the member is subscribed', await p.evaluate(() => window.__lt.trialInfo().status) === 'subscribed');

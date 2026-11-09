@@ -1,5 +1,5 @@
 // Coupon codes live in Dodo (Live, Discounts). One code a person types can cover both plans: if the code itself is
-// not for the chosen plan, we try the same code with a "Y" on the end for the yearly plan (CHAI -> CHAIY).
+// not for the chosen plan, we try the same code with a "Y" on the end for the yearly plan (SAVEIN -> SAVEINY).
 // metadata.region on a Dodo discount ('in' or 'intl') keeps a code to India or to everyone else.
 
 // Must match PRICES in js/account.js and the products in Dodo.

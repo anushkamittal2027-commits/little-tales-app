@@ -16,9 +16,9 @@ const calls: { url: string; init?: RequestInit }[] = [];
 const realFetch = globalThis.fetch;
 let razorpayOk = true;
 const DISCOUNTS: Record<string, any> = {
-  CHAI: { code: 'CHAI', type: 'flat', amount: 1, restricted_to: ['pdt_m'], times_used: 0, currency_options: [{ currency: 'INR', max_amount_possible: 6000 }], metadata: { region: 'in' } },
-  CHAIY: { code: 'CHAIY', type: 'flat', amount: 1, restricted_to: ['pdt_y'], times_used: 0, currency_options: [{ currency: 'INR', max_amount_possible: 10000 }], metadata: { region: 'in' } },
-  SUNNY: { code: 'SUNNY', type: 'percentage', amount: 5000, restricted_to: ['pdt_m', 'pdt_y'], times_used: 0, currency_options: [], metadata: { region: 'intl' } },
+  SAVEIN: { code: 'SAVEIN', type: 'flat', amount: 1, restricted_to: ['pdt_m'], times_used: 0, currency_options: [{ currency: 'INR', max_amount_possible: 6000 }], metadata: { region: 'in' } },
+  SAVEINY: { code: 'SAVEINY', type: 'flat', amount: 1, restricted_to: ['pdt_y'], times_used: 0, currency_options: [{ currency: 'INR', max_amount_possible: 10000 }], metadata: { region: 'in' } },
+  SAVE50: { code: 'SAVE50', type: 'percentage', amount: 5000, restricted_to: ['pdt_m', 'pdt_y'], times_used: 0, currency_options: [], metadata: { region: 'intl' } },
   OLD: { code: 'OLD', type: 'percentage', amount: 1000, restricted_to: [], times_used: 0, expires_at: '2020-01-01T00:00:00Z', metadata: {} },
 };
 globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
@@ -237,23 +237,23 @@ Deno.test('dodo checkout: applies the right Dodo code for the plan and refuses c
   resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' }; Deno.env.set('DODO_API_KEY', 'k');
   assertEquals((await post('create-dodo-checkout', { plan: 'monthly', coupon: 'no spaces!' })).status, 400);
   assertEquals((await post('create-dodo-checkout', { plan: 'monthly', coupon: 'NOPE', region: 'in' })).status, 400);
-  assertEquals((await post('create-dodo-checkout', { plan: 'monthly', coupon: 'SUNNY', region: 'in' })).status, 400);   // abroad code in India
+  assertEquals((await post('create-dodo-checkout', { plan: 'monthly', coupon: 'SAVE50', region: 'in' })).status, 400);   // abroad code in India
   const sentFor = async (body: any) => { calls.length = 0; const r = await post('create-dodo-checkout', body); assertEquals(r.status, 200); return JSON.parse(String(calls.find((x) => x.url.endsWith('/checkouts'))!.init!.body)); };
-  let sent = await sentFor({ plan: 'monthly', coupon: ' chai ', region: 'in' });
-  assertEquals(sent.discount_codes, ['CHAI']); assertEquals(sent.metadata.coupon, 'CHAI'); assertEquals(sent.feature_flags.allow_discount_code, false);
-  sent = await sentFor({ plan: 'yearly', coupon: 'CHAI', region: 'in' }); assertEquals(sent.discount_codes, ['CHAIY']);
-  sent = await sentFor({ plan: 'yearly', coupon: 'SUNNY', region: 'intl' }); assertEquals(sent.discount_codes, ['SUNNY']);
+  let sent = await sentFor({ plan: 'monthly', coupon: ' savein ', region: 'in' });
+  assertEquals(sent.discount_codes, ['SAVEIN']); assertEquals(sent.metadata.coupon, 'SAVEIN'); assertEquals(sent.feature_flags.allow_discount_code, false);
+  sent = await sentFor({ plan: 'yearly', coupon: 'SAVEIN', region: 'in' }); assertEquals(sent.discount_codes, ['SAVEINY']);
+  sent = await sentFor({ plan: 'yearly', coupon: 'SAVE50', region: 'intl' }); assertEquals(sent.discount_codes, ['SAVE50']);
 });
 Deno.test('check-coupon: says how much a member saves, in their own prices', async () => {
   resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' }; Deno.env.set('DODO_API_KEY', 'k');
   const check = async (body: any) => { const r = await post('check-coupon', body); return { status: r.status, ...(await r.json()) }; };
-  assertEquals((await check({ plan: 'monthly', coupon: 'CHAI' }, )).status, 400);                       // no region given = abroad
-  assertEquals(await check({ plan: 'monthly', coupon: 'chai', region: 'in' }), { status: 200, code: 'CHAI', saving: 6000, price: 14900, total: 8900, currency: 'INR' });
-  assertEquals((await check({ plan: 'yearly', coupon: 'CHAI', region: 'in' })).total, 134000);
-  assertEquals(await check({ plan: 'yearly', coupon: 'SUNNY', region: 'intl' }), { status: 200, code: 'SUNNY', saving: 3000, price: 6000, total: 3000, currency: 'USD' });
+  assertEquals((await check({ plan: 'monthly', coupon: 'SAVEIN' }, )).status, 400);                       // no region given = abroad
+  assertEquals(await check({ plan: 'monthly', coupon: 'savein', region: 'in' }), { status: 200, code: 'SAVEIN', saving: 6000, price: 14900, total: 8900, currency: 'INR' });
+  assertEquals((await check({ plan: 'yearly', coupon: 'SAVEIN', region: 'in' })).total, 134000);
+  assertEquals(await check({ plan: 'yearly', coupon: 'SAVE50', region: 'intl' }), { status: 200, code: 'SAVE50', saving: 3000, price: 6000, total: 3000, currency: 'USD' });
   assertEquals((await check({ plan: 'monthly', coupon: 'NOPE', region: 'in' })).status, 404);
   assertEquals((await check({ plan: 'monthly', coupon: 'OLD', region: 'in' })).error, 'This code has expired.');
-  assertEquals((await post('check-coupon', { plan: 'monthly', coupon: 'CHAI' }, 'bad')).status, 401);
+  assertEquals((await post('check-coupon', { plan: 'monthly', coupon: 'SAVEIN' }, 'bad')).status, 401);
 });
 Deno.test('dodo cancel: stops renewals at the end of the period', async () => {
   resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' };
