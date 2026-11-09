@@ -5,3 +5,7 @@ dist/
 
 # daily content drafts made by /dailypublish (kept out of the public repo)
 day[0-9]*/
+
+# local tool leftovers
+supabase/.temp/
+deno.lock
