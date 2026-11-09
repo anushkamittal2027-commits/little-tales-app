@@ -130,8 +130,17 @@ export const audioState = () => (actx ? actx.state : 'none');
 // Draws a sound from a list of notes: { f0, f1 (glide to), at, dur, gain }.
 function renderWav(notes, secs, sr = 22050) {
   const n = Math.floor(sr * secs), pcm = new Float32Array(n);
-  for (const { f0, f1 = f0, at, dur, gain } of notes) {
+  for (const { f0, f1 = f0, at, dur, gain, noise } of notes) {
     const s0 = Math.floor(at * sr); let ph = 0;
+    if (noise) {               // a soft, muffled burst: paper and ink meeting (low-passed noise that dies away fast)
+      let lp = 0, seed = 7;
+      for (let j = 0; j < dur * sr && s0 + j < n; j++) {
+        seed = (seed * 16807) % 2147483647; const white = seed / 1073741823.5 - 1;
+        lp += (white - lp) * noise; const t = j / sr;
+        pcm[s0 + j] += lp * Math.exp(-t / (dur / 5)) * Math.min(1, t * 900) * gain;
+      }
+      continue;
+    }
     for (let j = 0; j < dur * sr && s0 + j < n; j++) {
       const t = j / sr, f = f0 * Math.pow(f1 / f0, t / dur); ph += (2 * Math.PI * f) / sr;
       const env = Math.min(1, t * 400) * Math.exp(-4.2 * t / dur);
@@ -149,7 +158,8 @@ function renderWav(notes, secs, sr = 22050) {
 }
 const SOUNDS = {
   chime: () => renderWav([523.25, 659.25, 783.99, 1046.5].map((f, i) => ({ f0: f, at: i * 0.14, dur: 1.4, gain: 0.34 })), 2.2),
-  stamp: () => renderWav([{ f0: 170, f1: 55, at: 0, dur: 0.18, gain: 0.9 }, { f0: 1046, at: 0.12, dur: 0.9, gain: 0.36 }, { f0: 1568, at: 0.2, dur: 1.0, gain: 0.2 }], 1.4),
+  // ink press: a deep soft thunk, the hush of paper, then a small bright ding
+  stamp: () => renderWav([{ f0: 140, f1: 48, at: 0, dur: 0.24, gain: 1.0 }, { noise: 0.18, at: 0, dur: 0.12, gain: 1.6 }, { f0: 1046, at: 0.16, dur: 0.8, gain: 0.22 }, { f0: 1568, at: 0.24, dur: 0.9, gain: 0.12 }], 1.3),
   party: () => renderWav([523.25, 659.25, 783.99, 1046.5, 1318.5, 1568, 2093].map((f, i) => ({ f0: f, at: i * 0.11, dur: 1.2, gain: 0.3 })).concat([{ f0: 523.25, at: 0.8, dur: 1.6, gain: 0.22 }, { f0: 783.99, at: 0.8, dur: 1.6, gain: 0.22 }, { f0: 1046.5, at: 0.8, dur: 1.6, gain: 0.22 }]), 2.8),
 };
 const soundUrl = (k) => (urls[k] ||= URL.createObjectURL(SOUNDS[k]()));
@@ -213,8 +223,8 @@ export async function playStamp(volume = 0.6) {
       g.gain.setValueAtTime(0.0001, t0 + start); g.gain.exponentialRampToValueAtTime(gainPeak, t0 + start + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur);
       o.connect(g).connect(out); o.start(t0 + start); o.stop(t0 + start + dur + 0.05);
     };
-    tone(170, 55, 0, 0.16, 0.9);              // the thunk
-    tone(1046, 1046, 0.12, 0.9, 0.35);        // a bright ding
-    tone(1568, 1568, 0.2, 1.0, 0.18);         // and its sparkle
+    tone(140, 48, 0, 0.22, 1.0);              // the thunk
+    tone(1046, 1046, 0.16, 0.8, 0.22);        // a small bright ding
+    tone(1568, 1568, 0.24, 0.9, 0.12);        // and its sparkle
   } catch {}
 }

@@ -59,3 +59,5 @@
 .deco-del { left: -17px; top: -17px; color: var(--danger); border-color: var(--danger); }
 .deco-handle { right: -17px; bottom: -17px; }
 .deco-del svg, .deco-handle svg { width: 15px; height: 15px; }
+.page-thought.hand { font-family: var(--hand); font-style: normal; font-weight: 500; font-size: 5cqw; line-height: 1.1; color: #3E4A6B; }
+.page-text.long .page-thought.hand { font-size: 4.3cqw; }

@@ -13,7 +13,7 @@ import { seedSamples, samplePhoto, seedTrialWeek } from './sample.js';
 import { logAttemptOnline, isFounder, syncState } from './sync.js';
 import { APP_VERSION } from './config.js';
 import { account, trialInfo, jumpTo, resetDemo, saveAccount, patchAccount, TRIAL_DAYS } from './account.js';
-import { prepareShare, shareTale } from './share.js';
+import { prepareShare, shareTale, CARD_STYLES } from './share.js';
 import { computeStreak, MILESTONES } from './streak.js';
 import { celebrateFirst, celebrateStreak } from './delight.js';
 
@@ -97,12 +97,13 @@ register('calendar', () => {
     const tales = store.forDate(ds);
     monthTales += tales.length;
     const future = ds > today, isToday = ds === today;
-    const cls = ['cell', isToday && 'today', future && 'future', tales.length && 'has'].filter(Boolean).join('.');
+    const cls = ['cell', isToday && 'today', future && 'future', tales.length && 'has', !tales.length && !isToday && !future && 'empty'].filter(Boolean).join('.');
     const cell = h('button.' + cls, {
       'aria-label': `${shortDate(ds)}${tales.length ? `, ${tales.length} tales` : ''}${isToday && !tales.length ? ', add a tale' : ''}`,
       onClick: () => {
         if (tales.length) go('day', { date: ds });
         else if (isToday) startToday();
+        else if (!future) toast(store.count(today) ? 'This day slipped by. Today’s stamp is already in 🌼' : 'This day slipped by. Today’s page is still waiting for you 🌼');
       },
     },
       tales.length
@@ -363,6 +364,16 @@ register('thought', (p) => {
   const promptCard = h('div.prompt-card', h('span.pc-kicker', 'A little prompt'), promptText,
     h('button.pc-more', { type: 'button', 'aria-label': 'Another prompt', onClick: () => { shuffle++; const q = promptFor(taDate, shuffle); promptText.textContent = q; ta.placeholder = q; } }, 'Another'));
   ta.value = t.thought || '';
+  // Typed or handwritten: how the line looks on the page. A new tale starts with the member's last choice.
+  if (!edit && t.font === undefined && account.settings.hand) t.font = 'hand';
+  const fontPick = h('div.font-pick', { role: 'radiogroup', 'aria-label': 'How your line looks' });
+  const drawFont = () => {
+    ta.classList.toggle('hand', t.font === 'hand');
+    fontPick.replaceChildren(...[['', 'Aa', 'Classic'], ['hand', '✍︎', 'Handwriting']].map(([k, ic, label]) =>
+      h('button.fp' + ((t.font || '') === k ? '.on' : '') + (k ? '.fp-hand' : ''), { type: 'button', role: 'radio', 'aria-checked': String((t.font || '') === k),
+        onClick: () => { t.font = k || undefined; patchAccount({ settings: { ...account.settings, hand: !!k } }); drawFont(); } }, h('span.fp-ic', ic), label)));
+  };
+  drawFont();
   const count = h('span.count', `${ta.value.length}/${MAX_THOUGHT}`);
   ta.addEventListener('input', () => { t.thought = ta.value; count.textContent = `${ta.value.length}/${MAX_THOUGHT}`; });
 
@@ -453,7 +464,7 @@ register('thought', (p) => {
     stepBar(2, !edit ? linkBtn('Retake', () => { go('camera', {}, { replace: true }); }) : null),
     h('div.thought-hero', h('div.th-stamp', stampEl(heroTale, { size: '9.2px', postmark: false })),
       h('div', h('h1', 'How did it feel?'), h('p.lead.small', 'Write a line, say it out loud, or both.'))),
-    h('section.tcard', h('p.kicker', 'A short thought'), promptCard, h('div.text-wrap', ta), h('div.tc-row', dictBtn, count), tip),
+    h('section.tcard', h('p.kicker', 'A short thought'), promptCard, h('div.text-wrap', ta), h('div.tc-row', dictBtn, count), fontPick, tip),
     status,
     h('section.tcard.vcard', h('p.kicker', 'Voice note'), voiceArea),
     h('div.bottom', primary(edit ? 'Save changes' : 'Next', async () => {
@@ -512,13 +523,17 @@ register('stamping', () => {
   const t = state.draft;
   if (!t || !t.photo) return redirectHome();
   const stamp = stampEl(t, { size: '23px', developing: true });
-  if (account.settings.sound !== false) setTimeout(playStamp, 700);
-  const el = h('div.stamping', h('div.stamping-stage', stamp), h('p.stamping-text', 'Stamping\u2026'));
+  // The stamp comes down, lands with a soft thunk (sound + a small buzz), the paper bounces and a ring of ink spreads out.
+  const LAND = 470;
+  const landing = setTimeout(() => { if (account.settings.sound !== false) { playStamp(); try { navigator.vibrate?.([22, 50, 12]); } catch {} } }, LAND - 40);
+  const ink = h('div.ink-ring', { 'aria-hidden': 'true' });
+  const dust = h('div.ink-dust', { 'aria-hidden': 'true' }, ...Array.from({ length: 10 }, (_, i) => h('i', { style: `--a:${i * 36 + 8}deg;--d:${54 + (i % 3) * 16}px` })));
+  const el = h('div.stamping', h('div.stamping-paper', ink, dust, h('div.stamping-stage', stamp)), h('p.stamping-text', 'Stamping\u2026'));
   let done = false;
   const next = () => { if (!done) { done = true; go('decorate', {}, { replace: true }); } };
-  const timer = setTimeout(next, 1900);
+  const timer = setTimeout(next, 2100);
   el.addEventListener('click', next);
-  el._cleanup = () => clearTimeout(timer);
+  el._cleanup = () => { clearTimeout(timer); clearTimeout(landing); };
   return el;
 });
 
@@ -633,6 +648,34 @@ register('day', (p) => {
     h('div.day-nav', pill(prev, true), pill(next, false)));
 });
 
+// Share: pick a card style (each one is drawn ahead, so the preview is the real picture and sharing opens instantly).
+function shareSheet(t) {
+  const fav = account.settings.cardStyle || 'scrapbook';
+  const styles = [...CARD_STYLES].sort((a, b) => (a.id === fav ? -1 : b.id === fav ? 1 : 0));
+  const urls = [];
+  let busy = false;
+  const cards = styles.map((st) => {
+    const img = h('img', { alt: '', hidden: true });
+    const btn = h('button.card-style' + (st.id === fav ? '.on' : ''), { type: 'button', disabled: true, 'aria-label': 'Share as ' + st.name, onClick: async () => {
+      if (busy) return; busy = true; btn.classList.add('busy');
+      patchAccount({ settings: { ...account.settings, cardStyle: st.id } });
+      try { const r = await shareTale(t, st.id); if (r === 'saved') toast('Saved as a picture'); if (r !== 'cancelled') close(); }
+      catch (e) { console.warn(e); toast('We couldn’t make the picture. Please try again.'); }
+      busy = false; btn.classList.remove('busy');
+    } }, h('span.cs-pic', img, h('span.cs-wait', { 'aria-hidden': 'true' })), h('span.cs-name', st.name));
+    return { st, img, btn };
+  });
+  const close = sheet(h('div.share-sheet', h('h2', 'Share as a picture'), h('p.fine', 'Pick a card. Your choice is remembered for next time.'), h('div.card-styles', ...cards.map((c) => c.btn))), {
+    onClose: () => urls.forEach((u) => URL.revokeObjectURL(u)),
+  });
+  (async () => {   // one at a time, the favourite first, so phones stay smooth
+    for (const c of cards) {
+      try { const pic = await prepareShare(t, c.st.id); const u = URL.createObjectURL(pic.blob); urls.push(u); c.img.src = u; c.img.hidden = false; c.btn.disabled = false; c.btn.classList.add('is-ready'); }
+      catch { c.btn.querySelector('.cs-wait').textContent = '!'; }
+    }
+  })();
+}
+
 // =====================================================
 // TALE DETAIL
 // =====================================================
@@ -647,14 +690,9 @@ register('tale', (p) => {
     h('div.page-frame', pageEl(t)),
     pill ? h('div.tale-voice', pill) : null,
     h('div.bottom',
-      h('button.btn-primary', { onClick: async (ev) => {
-        const b = ev.currentTarget; if (b.disabled) return; b.disabled = true; b.classList.add('busy');
-        try { if (await shareTale(t) === 'saved') toast('Saved as a picture'); }
-        catch (e) { console.warn(e); toast('We couldn’t make the picture. Please try again.'); }
-        b.disabled = false; b.classList.remove('busy');
-      } }, h('span.btn-ic', { html: icon.share }), 'Share as a picture'),
+      h('button.btn-primary', { onClick: () => shareSheet(t) }, h('span.btn-ic', { html: icon.share }), 'Share as a picture'),
       h('button.btn-secondary', { onClick: () => go('decorate', { id: t.id }) }, 'Decorate')));
-  setTimeout(() => { if (el.isConnected) prepareShare(t).catch(() => {}); }, 600);   // get the picture ready so sharing opens instantly
+  setTimeout(() => { if (el.isConnected) prepareShare(t, account.settings.cardStyle || 'scrapbook').catch(() => {}); }, 600);   // get the picture ready so sharing opens instantly
   el._cleanup = () => pill?._stop();
   return el;
 });

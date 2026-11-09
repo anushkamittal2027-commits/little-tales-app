@@ -7,6 +7,7 @@ import { samplePhoto } from './sample.js';
 import { LOGO } from './art.js';
 import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, cancelSubscription, purgeAllTales, resetDemo, PLANS, TRIAL_DAYS, HOLD_DAYS, money, region, setRegion } from './account.js';
 import { subscribePush } from './push.js';
+import { themeChoice, setTheme } from './theme.js';
 import { confetti } from './delight.js';
 import { deleteAccountOnline, pendingCount } from './sync.js';
 import { payOnline, cancelOnline, checkCoupon } from './pay.js';
@@ -454,6 +455,9 @@ register('account', () => {
     h('div.alist',
       row('Gentle nudges', nudgesOn ? 'Around 1 pm and 8 pm' : 'Off. Tap to turn on', sw(nudgesOn, 'Gentle nudges', null), async () => { if (nudgesOn) { toast('To turn reminders off, use your browser’s site settings.'); return; } if (await turnOnNudges()) go('account', {}, { replace: true }); }),
       row('Sound and vibration', 'Little chimes when you post', sw(soundOn, 'Sound and vibration', null), async () => { account.settings.sound = account.settings.sound === false; await saveAccount(); go('account', {}, { replace: true }); }),
+      h('div.arow.look-row', h('span.arow-t', h('b', 'Look'), h('small', 'Night is a warm, low-light look for evenings')),
+        h('div.look-pick', { role: 'radiogroup', 'aria-label': 'Look' }, ...[['day', '☀︎ Day'], ['night', '☾ Night'], ['auto', 'Auto']].map(([k, l]) =>
+          h('button.lp' + (themeChoice() === k ? '.on' : ''), { type: 'button', role: 'radio', 'aria-checked': String(themeChoice() === k), 'aria-label': k === 'auto' ? 'Match my phone' : l.slice(2), onClick: (e) => { setTheme(k); e.currentTarget.parentElement.querySelectorAll('.lp').forEach((x) => { x.classList.toggle('on', x === e.currentTarget); x.setAttribute('aria-checked', String(x === e.currentTarget)); }); } }, l)))),
       canOfferInstall() ? row('Add to Home Screen', 'Open it like an app', chev(), addToHomeScreen) : null,
       row('Download my tales', canDownload ? 'Every photo, note and voice' : 'Available while you’re subscribed', chev(), canDownload ? downloadScrapbook : subscribeToDownload)),
     h('div.alist.links',

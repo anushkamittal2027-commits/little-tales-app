@@ -1,5 +1,7 @@
 // The soft drawings around the edges of every screen (a little "day": morning at the top, flowers at the sides, evening below).
 // They sit behind the content and never block a tap. The gingham itself is plain CSS (see css/base.css).
+// A seasonal layer (js/season.js) is added on top of these: snow in winter, petals in spring, rain in the monsoon...
+import { season, seasonHTML } from './season.js';
 const A = (style, body, vb) => `<svg viewBox="${vb}" style="${style}" aria-hidden="true">${body}</svg>`;
 const forget = '<circle cx="0" cy="-6" r="5"/><circle cx="5.7" cy="-1.9" r="5"/><circle cx="3.5" cy="4.9" r="5"/><circle cx="-3.5" cy="4.9" r="5"/><circle cx="-5.7" cy="-1.9" r="5"/>';
 
@@ -21,9 +23,14 @@ export const BACKDROP_HTML = [
   A('left:-10px;bottom:128px;width:80px;transform:rotate(-8deg)', '<path d="M30 120C30 96 32 76 30 54M50 120c0-28 2-50 0-70M70 120c0-22 4-40 10-52" stroke="#7E9A5E" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M30 100c-14-2-22-12-22-26 12 6 20 14 22 26zM70 104c10-6 18-14 20-26-12 4-18 14-20 26z" fill="#9DB57F"/><path d="M18 34c0-9 5-16 12-20 7 4 12 11 12 20 0 12-5 20-12 20S18 46 18 34z" fill="#F6E3A1" stroke="#E0B94C" stroke-width="1.5"/><path d="M38 30c0-10 6-18 12-22 6 4 12 12 12 22 0 13-6 22-12 22S38 43 38 30z" fill="#F3B9B0" stroke="#E0A196" stroke-width="1.5"/><path d="M44 18c2 6 3 13 6 20M56 18c-2 6-3 13-6 20" fill="none" stroke="#E0A196" stroke-width="1.4" stroke-linecap="round"/><path d="M70 52c0-8 5-15 10-18 5 3 10 10 10 18 0 11-5 18-10 18s-10-7-10-18z" fill="#DCE8F3" stroke="#A9C6E2" stroke-width="1.5"/>', '0 0 100 120').replace('<svg ', '<svg class="bd-lower" '),
 ].join('');
 
+export function backdropHTML() { return BACKDROP_HTML + seasonHTML(); }
+export function applySeason() {
+  const app = document.getElementById('app'); if (app) app.dataset.season = season();
+  const bd = document.getElementById('backdrop'); if (bd) bd.innerHTML = backdropHTML();
+}
 export function mountBackdrop() {
   const app = document.getElementById('app');
   if (!app || document.getElementById('backdrop')) return;
-  const el = document.createElement('div'); el.id = 'backdrop'; el.setAttribute('aria-hidden', 'true'); el.innerHTML = BACKDROP_HTML;
-  app.prepend(el);
+  const el = document.createElement('div'); el.id = 'backdrop'; el.setAttribute('aria-hidden', 'true');
+  app.prepend(el); applySeason();
 }

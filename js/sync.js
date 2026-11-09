@@ -76,7 +76,10 @@ async function pushTale(id) {
     decorations: t.decorations || [], photo_path: `${uid}/${id}.jpg`, thumb_path: t.thumb ? `${uid}/${id}-thumb.jpg` : null,
     audio_path: audioPath, audio_seconds: t.audio ? t.audioDur || 0 : null, created_at: new Date(t.createdAt).toISOString(),
   };
+  if (t.font) row.font = t.font;
   let { error } = await c.from('tales').upsert(row);
+  // the "font" column is migration 008; until it has been run, save everything else and keep the handwriting choice on this phone
+  if (error && row.font && (error.code === 'PGRST204' || /font/.test(error.message || ''))) { delete row.font; ({ error } = await c.from('tales').upsert(row)); }
   // the database allowing the "original" light is migration 004; until it has been run, keep the tale safe online with the nearest look
   if (error && error.code === '23514' && row.light === 'none') ({ error } = await c.from('tales').upsert({ ...row, light: 'golden' }));
   if (error) throw error;
@@ -116,7 +119,7 @@ export async function pullTales() {
     if (local && local.remoteUpdated === stamp) continue;                       // already up to date
     try {
       const t = local || { id: r.id, createdAt: new Date(r.created_at).getTime() };
-      Object.assign(t, { date: r.tale_date, title: r.title, thought: r.thought, light: r.light || 'golden', decorations: r.decorations || [], audioDur: Number(r.audio_seconds) || 0, remoteUpdated: stamp });
+      Object.assign(t, { date: r.tale_date, title: r.title, thought: r.thought, light: r.light || 'golden', decorations: r.decorations || [], audioDur: Number(r.audio_seconds) || 0, remoteUpdated: stamp, ...(r.font !== undefined ? { font: r.font || undefined } : {}) });
       const photoBlob = await dl('photos', r.photo_path);
       t.photo = await blobToDataUrl(photoBlob);
       t.thumb = r.thumb_path ? await blobToDataUrl(await dl('photos', r.thumb_path)) : undefined;

@@ -1,0 +1,54 @@
+/* =====================================================================
+   Night: a warm "desk lamp at night" look (chosen in Me, js/theme.js).
+   Deep navy paper, cream stamps, soft golden light. Only colours change; the layout is the day one.
+   ===================================================================== */
+html[data-theme="night"] {
+  --paper: #1C2333; --card: #252D3F; --paper-2: #212839; --sand: #3A4152;
+  --ink: #F3EBDD; --ink-2: #DCD3C3; --muted: #A79F90; --faint: #847C6E;
+  --line: #3B4558; --line-2: #343D51; --ring: #2E3749;
+  --olive: #8FAE80; --olive-deep: #BFD8AE; --olive-wash: #2A3830;
+  --link: #A3C4E8; --rose-ink: #EBAFA3; --danger: #E58B7E;
+  --pink-wash: #3B2D35; --butter-wash: #3A3424; --butter-ink: #F3D88C;
+  --shadow-card: 0 18px 36px -22px rgba(0, 0, 0, .7), 0 0 0 1px var(--ring);
+  --shadow-btn: 0 12px 22px -12px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+html[data-theme="night"], html[data-theme="night"] body { background: #141A26; }
+/* the lamp: a warm glow from the top of the page */
+html[data-theme="night"] #app { background: radial-gradient(120% 55% at 50% -8%, rgba(246, 200, 110, .16), transparent 62%), var(--paper); }
+html[data-theme="night"] #app[data-bd="sky"] #backdrop, html[data-theme="night"] #app[data-bd="rose"] #backdrop { background-image: linear-gradient(90deg, rgba(160, 185, 230, .06) 50%, transparent 50%), linear-gradient(rgba(160, 185, 230, .06) 50%, transparent 50%) !important; }
+html[data-theme="night"] #backdrop > svg, html[data-theme="night"] .season .ss { opacity: .55; }
+html[data-theme="night"] .sf { opacity: .5; }
+/* primary buttons stay olive with cream text */
+html[data-theme="night"] .btn-primary { background: #6F8F62; color: #FBF6EC; }
+html[data-theme="night"] .btn-secondary { background: var(--card); color: var(--ink); border-color: var(--line); }
+/* the tab bar and sheets */
+html[data-theme="night"] #tabbar { background: rgba(28, 35, 51, .94); border-color: var(--line); }
+html[data-theme="night"] .sheet-backdrop { background: rgba(5, 8, 14, .6); }
+/* scrapbook pages stay paper, just softly lit */
+html[data-theme="night"] .page { filter: brightness(.94) sepia(.08); }
+html[data-theme="night"] .page, html[data-theme="night"] .page * { color-scheme: light; }
+html[data-theme="night"] .page .page-title, html[data-theme="night"] .page .page-thought { color: #2E3134; }
+html[data-theme="night"] .page .page-thought.hand { color: #3E4A6B; }
+html[data-theme="night"] .page .page-date { color: #6B6760; }
+/* little things that were drawn with fixed light colours */
+html[data-theme="night"] .srow { border-color: var(--line); }
+html[data-theme="night"] .arow { border-color: var(--line); }
+html[data-theme="night"] .cell.empty::before { border-color: #56607A; background: rgba(255, 255, 255, .03); }
+html[data-theme="night"] .cell.empty::after { border-color: rgba(120, 132, 160, .35); }
+html[data-theme="night"] .cell.empty .num, html[data-theme="night"] .cell.future .num { color: #7D8599; }
+html[data-theme="night"] .cell.has .num { background: rgba(28, 35, 51, .9); color: var(--ink); }
+html[data-theme="night"] .switch { background: #4A5468; }
+html[data-theme="night"] input, html[data-theme="night"] textarea { color: var(--ink); }
+html[data-theme="night"] .thought-input.hand, html[data-theme="night"] .page-thought.hand:not(.page *) { color: #C9D4F2; }
+html[data-theme="night"] .coupon-win { background: linear-gradient(135deg, #3A3424, #3B2D35 60%, #2A3830); border-color: #6E5560; }
+html[data-theme="night"] .cw-text b { color: #F2C0B4; }
+html[data-theme="night"] .rp { background: var(--card); border-color: var(--line); color: var(--ink-2); }
+html[data-theme="night"] .rp.on, html[data-theme="night"] .fp.on { background: var(--olive-wash); border-color: var(--olive); color: var(--olive-deep); }
+html[data-theme="night"] .lp.on { background: var(--card); color: var(--ink); }
+html[data-theme="night"] .toast { background: #F3EBDD; color: #1C2333; }
+html[data-theme="night"] .pw-band { background-color: #222A3B; background-image: linear-gradient(90deg, rgba(160, 185, 230, .1) 0 42%, transparent 60%), linear-gradient(rgba(160, 185, 230, .1) 0 42%, transparent 60%) !important; }
+html[data-theme="night"] .studio-item { background: #2B3346; }
+html[data-theme="night"] .banner-ic { background: var(--paper-2); }
+html[data-theme="night"] .install-card { background: var(--card); }
+html[data-theme="night"] .hh-stamp { background: #2B3346; border-color: #56607A; color: #8D95A8; }

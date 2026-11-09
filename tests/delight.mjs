@@ -130,16 +130,22 @@ async function makeTale(p, label) {
   (await import('fs')).writeFileSync('/tmp/s/share.png', Buffer.from(dataUrl.split(',')[1], 'base64'));
   // native share path
   await p.evaluate(() => { window.__shared = null; navigator.canShare = () => true; navigator.share = async (d) => { window.__shared = d; }; });
-  await p.click('.tale >> text=Share as a picture'); await p.waitForTimeout(1500);
+  // Share opens a sheet of card styles; each one is drawn ahead, then a tap shares it
+  const pick = async (name) => { await p.click('.tale >> text=Share as a picture'); await p.waitForSelector(`.card-style.is-ready[aria-label="Share as ${name}"]`, { timeout: 20000 }); };
+  await pick('Polaroid'); ok('share sheet shows 5 card styles', await p.locator('.card-style').count() === 5);
+  await p.click('.card-style[aria-label="Share as Polaroid"]'); await p.waitForTimeout(800);
   ok('tale screen: native share gets a PNG file', await p.evaluate(() => window.__shared?.files?.[0]?.type === 'image/png'));
+  ok('the chosen card style is remembered', await p.evaluate(() => window.__lt.account.settings.cardStyle === 'polaroid'));
   ok('button usable again afterwards', await p.locator('.tale .btn-primary').isEnabled());
   // cancelled share is quiet
   await p.evaluate(() => { navigator.share = async () => { const e = new Error('x'); e.name = 'AbortError'; throw e; }; });
-  await p.click('.tale >> text=Share as a picture'); await p.waitForTimeout(800);
+  await pick('Postcard'); await p.click('.card-style[aria-label="Share as Postcard"]'); await p.waitForTimeout(800);
   ok('cancelled share shows no error', !(await p.locator('.toast').innerText().catch(() => '')).includes('couldn'));
+  await p.click('.sheet-x'); await p.waitForTimeout(300);
   // no share support: downloads the picture
   await p.evaluate(() => { navigator.canShare = undefined; navigator.share = undefined; });
-  const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 6000 }).catch(() => null), p.click('.tale >> text=Share as a picture')]);
+  await pick('Film strip');
+  const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 6000 }).catch(() => null), p.click('.card-style[aria-label="Share as Film strip"]')]);
   ok('phones without sharing: the picture is saved', !!dl && /little-tale\.png$/.test(dl.suggestedFilename()), dl && dl.suggestedFilename());
   await p.screenshot({ path: '/tmp/s/tale-share.png' });
   await p.context().close();

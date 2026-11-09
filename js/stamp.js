@@ -84,7 +84,7 @@ export function pageEl(tale, { developing = false, decorLayer = true } = {}) {
     h('div.page-text' + ((tale.thought || '').length > 80 ? '.long' : ''),
       tale.title ? h('div.page-title', tale.title) : null,
       h('div.page-date', shortDate(tale.date).toUpperCase()),
-      tale.thought ? h('div.page-thought', tale.thought) : null),
+      tale.thought ? h('div.page-thought' + (tale.font === 'hand' ? '.hand' : ''), tale.thought) : null),
   ];
   page.append(...parts);
   if (decorLayer) {

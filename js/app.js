@@ -1,5 +1,5 @@
 import { store } from './store.js';
-import { start, setGuard, go, refresh, currentName, setNewAction, toast } from './nav.js';
+import { start, setGuard, go, refresh, currentName, setNewAction, toast, state } from './nav.js';
 import { startToday } from './screens.js';
 import './screens2.js';
 import './screens3.js';
@@ -12,7 +12,8 @@ import { CANONICAL_ORIGIN } from './config.js';
 import { setDayOffset, buzz, h } from './util.js';
 import { auth, initAuth } from './auth.js';
 import { loadAnalytics, loadErrorReporting } from './analytics.js';
-import { BACKDROP_HTML } from './backdrop.js';
+import { applySeason } from './backdrop.js';
+import './theme.js';
 import { finishDodoReturn } from './pay.js';
 import { celebrateMember } from './delight.js';
 
@@ -59,7 +60,7 @@ async function welcomeMemberIfNew() {
 
 async function boot() {
   ensureStampClip();
-  { const bd = document.getElementById('backdrop'); if (bd) bd.innerHTML = BACKDROP_HTML; }
+  applySeason();
   try {
     await store.load();
     await loadAccount();
@@ -86,7 +87,7 @@ async function boot() {
     if (!allowed) return null;
     return allowed.includes(name) ? null : (s === 'new' ? 'welcome' : 'locked');
   });
-  if (location.hostname === 'localhost' || window.__DEMO_CAMERA) window.__lt = { account, store, jumpTo, trialInfo, go, setDayOffset, auth, sync };
+  if (location.hostname === 'localhost' || window.__DEMO_CAMERA) window.__lt = { account, store, jumpTo, trialInfo, go, setDayOffset, auth, sync, state };
   setNewAction(startToday);
   auth.onChange = async (event, user) => {
     if (event === 'SIGNED_OUT' && !user && !auth.manualSignOut && !['welcome', 'signin', 'code'].includes(currentName())) { go('signin', { error: 'For your safety you were signed out. Please sign in again.' }, { replace: true }); return; }
