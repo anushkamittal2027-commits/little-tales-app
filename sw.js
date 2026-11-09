@@ -1,5 +1,5 @@
 // Little Tales service worker: works offline, opens fast, and shows the gentle nudges.
-const CACHE = 'little-tales-v20';
+const CACHE = 'little-tales-v21';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest',
   'css/fonts.css', 'css/base.css', 'css/stamp.css', 'css/screens.css', 'css/decor.css',
   'js/app.js', 'js/nav.js', 'js/util.js', 'js/store.js', 'js/account.js', 'js/art.js', 'js/stamp.js', 'js/screens.js', 'js/screens2.js',
@@ -18,8 +18,9 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(req).then((r) => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then((x) => x.put(req, c)); } return r; })
-      .catch(() => caches.match(req).then((hit) => hit || (req.mode === 'navigate' ? caches.match('index.html') : Response.error()))));
+    // no-cache: ask the server every time (a quick "still the same?" check), so a phone never keeps an old app for hours
+    fetch(req.mode === 'navigate' ? req : new Request(req, { cache: 'no-cache' })).then((r) => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then((x) => x.put(req, c)); } return r; })
+      .catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === 'navigate' ? caches.match('index.html') : Response.error()))));
 });
 
 // Gentle nudges from the server (Web Push)

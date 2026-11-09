@@ -17,7 +17,9 @@ const copy = (from, to) => fs.cpSync(root + from, out + to, { recursive: true })
 copy('css', 'css'); copy('assets', 'assets'); copy('manifest.webmanifest', 'manifest.webmanifest');
 fs.rmSync(out + 'assets/sample', { recursive: true, force: true });   // generation scratch files, if any
 
-fs.writeFileSync(out + 'index.html', fs.readFileSync(root + 'index.html', 'utf8').replace('src="js/app.js"', 'src="app.js"'));
+// app.js?v=<cache version>: a new build always loads the new app, even if a phone kept the old file.
+const version = (fs.readFileSync(root + 'sw.js', 'utf8').match(/little-tales-v(\d+)/) || [])[1] || Date.now();
+fs.writeFileSync(out + 'index.html', fs.readFileSync(root + 'index.html', 'utf8').replace('src="js/app.js"', `src="app.js?v=${version}"`));
 
 // service worker: list the real files of this build
 const list = [];
@@ -51,6 +53,6 @@ fs.writeFileSync(out + 'robots.txt', 'User-agent: *\nAllow: /\n\nSitemap: https:
 fs.writeFileSync(out + 'sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://littletales.me/</loc></url>\n  <url><loc>https://littletales.me/terms</loc></url>\n  <url><loc>https://littletales.me/privacy</loc></url>\n</urlset>\n');
 
 // Cloudflare Pages: safe headers (it already serves terms.html at /terms; a rewrite back to .html makes a redirect loop)
-fs.writeFileSync(out + '_headers', '/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(self), microphone=(self)\n/sw.js\n  Cache-Control: no-cache\n');
+fs.writeFileSync(out + '_headers', '/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(self), microphone=(self)\n/sw.js\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/app.js\n  Cache-Control: no-cache\n/css/*\n  Cache-Control: no-cache\n');
 const size = (d) => fs.readdirSync(d, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? size(d + '/' + e.name) : fs.statSync(d + '/' + e.name).size), 0);
 console.log('Built dist/site', (size(out) / 1048576).toFixed(1) + ' MB');
