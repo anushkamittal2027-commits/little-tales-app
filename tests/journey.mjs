@@ -13,7 +13,7 @@ p.on('pageerror', (e) => { errs++; console.log('  PAGE ERROR:', e.message); });
 const ok = (n, c, x = '') => { console.log((c ? 'PASS ' : 'FAIL ') + n + (x ? '  ' + x : '')); if (!c) fails++; };
 const today = new Date(); const pad = (n) => String(n).padStart(2, '0'); const TODAY = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 const nToday = () => p.evaluate((d) => window.__lt.store.tales.filter((t) => t.date === d).length, TODAY);
-const gallery = process.env.GALLERY || '/home/user/LittleTales/assets/photos/skyline-dusk.jpg';
+const gallery = process.env.GALLERY || new globalThis.URL('../assets/photos/skyline-dusk.jpg', import.meta.url).pathname;
 
 await p.addInitScript(() => { window.__DEMO_AUTH = true; }); await p.goto(URL); await p.waitForTimeout(1000);
 await p.click('text=Start my album'); await p.click('.google'); await p.waitForTimeout(800); await p.click('.check'); await p.click('text=Start my free week'); await p.waitForTimeout(400); await p.click('.intro-top .link'); await p.waitForTimeout(500);

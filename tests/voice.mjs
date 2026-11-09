@@ -1,7 +1,7 @@
 // Microphone and voice-to-text checks (the browser's speech recognition is pretended).  node tests/voice.mjs
 import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
 const URL = process.env.URL || 'http://localhost:8123/';
-const gallery = '/home/user/LittleTales/assets/photos/skyline-dusk.jpg';
+const gallery = new globalThis.URL('../assets/photos/skyline-dusk.jpg', import.meta.url).pathname;
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, permissions: ['microphone'], hasTouch: true });
 const p = await ctx.newPage();

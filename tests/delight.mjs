@@ -5,7 +5,7 @@ const CAM = process.env.FAKECAM ? [`--use-file-for-fake-video-capture=${process.
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', ...CAM] });
 let fails = 0, errs = 0;
 const ok = (n, c, x = '') => { console.log((c ? 'PASS ' : 'FAIL ') + n + (x ? '  ' + x : '')); if (!c) fails++; };
-const gallery = '/home/user/LittleTales/assets/photos/skyline-dusk.jpg';
+const gallery = new globalThis.URL('../assets/photos/skyline-dusk.jpg', import.meta.url).pathname;
 async function page(init) {
   const ctx = await b.newContext({ viewport: { width: 393, height: 760 }, deviceScaleFactor: 2, hasTouch: true, permissions: ['camera', 'microphone'], acceptDownloads: true });
   const p = await ctx.newPage();

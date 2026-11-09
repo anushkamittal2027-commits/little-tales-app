@@ -29,7 +29,7 @@ await p.evaluate((i) => window.__lt.go('tale', { id: i }), info.id); await shot(
 await p.evaluate(() => window.__lt.go('account', {}, { replace: true })); await shot('12-me', 600);
 await p.evaluate(() => window.__lt.go('studio', {}, { replace: true })); await shot('13-studio', 600);
 await p.evaluate(() => window.__lt.go('camera', {})); await shot('14-camera', 1800);
-const gal = '/home/user/LittleTales/assets/photos/skyline-dusk.jpg';
+const gal = new globalThis.URL('../assets/photos/skyline-dusk.jpg', import.meta.url).pathname;
 await p.setInputFiles('input[type=file]:not([capture])', gal); await shot('15-thought', 900);
 await p.fill('.thought-input', 'Slow coffee before the day got loud.'); await shot('15b-thought-filled', 300);
 await p.click('text=Next'); await shot('16-frame', 800);
