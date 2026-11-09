@@ -3,8 +3,19 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
-// Only the scheduler (holding the service key) may call the job functions.
-export const isScheduler = (req: Request) => req.headers.get('Authorization') === `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
+// Only the scheduler (holding a secret server key) may call the job functions. Supabase has two kinds of secret key:
+// the older service_role key and the newer sb_secret_ keys (SUPABASE_SECRET_KEYS, a JSON list by name). Either works.
+function serverKeys() {
+  const keys = [Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''];
+  const extra = Deno.env.get('SUPABASE_SECRET_KEYS') ?? '';
+  try { const v = JSON.parse(extra); keys.push(...(typeof v === 'string' ? [v] : Object.values(v ?? {}).filter((x) => typeof x === 'string') as string[])); }
+  catch { keys.push(extra); }
+  return keys.map((k) => k.trim()).filter((k) => k.length >= 8);
+}
+export const isScheduler = (req: Request) => {
+  const got = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
+  return !!got && serverKeys().includes(got);
+};
 
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } });

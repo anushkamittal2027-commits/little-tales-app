@@ -66,3 +66,8 @@ Notes for whoever deploys:
   - New code for both plans: make CODE (monthly) and CODEY (yearly) in Dodo, or one code without a product limit.
 - To switch the server to live, set these Supabase secrets (Edge Functions, Secrets): DODO_ENV=live, DODO_API_KEY (the live key), DODO_PRODUCT_MONTHLY, DODO_PRODUCT_YEARLY (ids above), DODO_WEBHOOK_SECRET (Dodo Live, Developer, Webhooks, the endpoint above, Signing secret). Then redeploy create-dodo-checkout.
 - If prices change: update PRICES in js/account.js AND the product price / India rule in Dodo (both).
+
+## 9 November 2026 (evening): emails and scheduled jobs
+- Scheduled jobs (pg_cron lt-nudges hourly at :05 UTC, lt-lifecycle daily 02:30 UTC) were firing but the functions answered 401: the scheduler's key (vault service_role_key) did not match the one the functions checked. Functions now accept the old service_role key or any new sb_secret key (SUPABASE_SECRET_KEYS).
+- Emails: Resend, domain littletales.me verified (records added in Cloudflare on send.* and resend._domainkey; the existing email forwarding records were not touched). RESEND_API_KEY (sending-only key) and MAIL_FROM = Little Tales <hello@littletales.me> set in Supabase secrets. Replies go to hellolittletales@gmail.com.
+- Sign-in code emails still go through Gmail SMTP (Authentication, Emails, SMTP) with a limit of 30 emails an hour (Authentication, Rate Limits). Move to smtp.resend.com (port 465, user resend, password = a Resend sending key) and raise the limit before marketing.

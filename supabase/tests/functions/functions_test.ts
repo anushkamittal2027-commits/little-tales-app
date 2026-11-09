@@ -38,6 +38,13 @@ const member = (o: any = {}) => ({ id: 'u1', email: 'a@x.y', tz: 'Asia/Kolkata',
 
 Deno.test('scheduled jobs refuse callers without the service key', async () => {
   for (const n of ['lifecycle', 'nudges']) assertEquals((await handlers[n](new Request('http://f', { method: 'POST' }))).status, 401);
+  for (const n of ['lifecycle', 'nudges']) assertEquals((await handlers[n](new Request('http://f', { method: 'POST', body: '{}', headers: { Authorization: 'Bearer sb_secret_wrong_wrong_wrong_wrong' } }))).status, 401);
+});
+Deno.test('scheduled jobs also accept the newer sb_secret key', async () => {
+  resetDb();
+  Deno.env.set('SUPABASE_SECRET_KEYS', JSON.stringify({ default: 'sb_secret_abcdefghijklmnopqrstuvwxyz' }));
+  for (const n of ['lifecycle', 'nudges']) assertEquals((await handlers[n](new Request('http://f', { method: 'POST', body: '{}', headers: { Authorization: 'Bearer sb_secret_abcdefghijklmnopqrstuvwxyz' } }))).status, 200);
+  Deno.env.delete('SUPABASE_SECRET_KEYS');
 });
 
 Deno.test('lifecycle: warns at 7 and 1 days left, once, and not at other times', async () => {
