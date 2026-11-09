@@ -14,7 +14,7 @@ You must be 18 or older. You are responsible for what you add and must have the 
 Your free week starts the day you first sign in and lasts 7 days (a day ends at midnight in your own time zone). No card is needed to start. On day 7 we show you a "Your week" video and the plans.
 
 ## Subscriptions
-- **In India:** Monthly Rs 149 or Yearly Rs 1440. **Everywhere else:** Monthly US$6 or Yearly US$60. Prices include taxes. The payment page shows the final amount, in your own currency where available, before you pay.
+- **In India:** Monthly Rs 189 or Yearly Rs 1440. **Everywhere else:** Monthly US$6 or Yearly US$60. Prices include taxes. The payment page shows the final amount, in your own currency where available, before you pay.
 - Discount codes we give out are applied at checkout and shown before you pay. Each code can be used once per person and keeps applying when your plan renews, unless we told you otherwise when we gave it to you.
 - One plan, everything included.
 - Payments are handled by Dodo Payments (card, UPI or wallet, depending on your country), who act as the seller of record. You can cancel any time from your Account. Your plan renews automatically each month or year until you cancel. If you cancel, you keep access until the end of the period you have already paid for. We do not refund part-used periods, except where the law requires it. If something went wrong with a payment, write to hellolittletales@gmail.com and we will look into it.

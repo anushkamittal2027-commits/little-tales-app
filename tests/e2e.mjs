@@ -83,7 +83,7 @@ ok('prices flat while not GST registered', !(await p.locator('.gst').innerText()
 await p.evaluate(async () => { window.__lt.account.settings.gst = true; await window.__lt.go('paywall', { from: 'pill' }); }); await p.waitForTimeout(400);
 ok('GST note appears when the switch is on', (await p.locator('.gst').innerText()).includes('GST'));
 await p.click('.plan >> nth=0'); await p.click('text=Continue'); await p.waitForTimeout(400);
-ok('checkout shows a GST line and total with GST', (await p.locator('.checkout').innerText()).includes('GST (18%)') && (await p.locator('.srow.total').innerText()).includes('175.82'));
+ok('checkout shows a GST line and total with GST', (await p.locator('.checkout').innerText()).includes('GST (18%)') && (await p.locator('.srow.total').innerText()).includes('223.02'));
 await p.evaluate(() => { window.__lt.account.settings.gst = false; });
 await p.evaluate(async () => { const a = window.__lt.account; const now = new Date(); const toSun = (7 - now.getDay()) % 7; a.dayOffset = toSun; window.__lt.setDayOffset(toSun); window.__lt.go('calendar', {}, { replace: true }); });
 await p.waitForTimeout(600);

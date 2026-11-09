@@ -4,7 +4,7 @@
 
 // Must match PRICES in js/account.js and the products in Dodo.
 export const PRICES: Record<string, { currency: string; monthly: number; yearly: number }> = {
-  in: { currency: 'INR', monthly: 14900, yearly: 144000 },     // smallest unit (paise)
+  in: { currency: 'INR', monthly: 18900, yearly: 144000 },     // smallest unit (paise)
   intl: { currency: 'USD', monthly: 600, yearly: 6000 },       // cents
 };
 

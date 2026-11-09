@@ -8,7 +8,7 @@ export const HOLD_DAYS = 30;
 // Prices by region. They must match the products in Dodo: one product per plan, priced in US dollars, with a fixed
 // Indian price added under Localized Pricing. Dodo decides from the billing country; we guess the same from the time zone.
 export const PRICES = {
-  in: { currency: 'INR', symbol: '₹', monthly: 149, yearly: 1440 },
+  in: { currency: 'INR', symbol: '₹', monthly: 189, yearly: 1440 },
   intl: { currency: 'USD', symbol: '$', monthly: 6, yearly: 60 },
 };
 // Which prices to show. The member can pick on the plans screen (kept on this phone); until then we guess from the time zone.

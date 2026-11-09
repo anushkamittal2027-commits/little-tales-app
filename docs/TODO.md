@@ -53,13 +53,13 @@ Notes for whoever deploys:
 - Razorpay code is still in the repo but unused (PAYMENT_PROVIDER = 'dodo' in js/config.js).
 
 ## 9 November 2026: India and abroad prices, coupons, Dodo live
-- Prices (js/account.js, PRICES): India Rs 149 a month, Rs 1440 a year; everyone else $6 a month, $60 a year. The app picks India from the phone's time zone; Dodo charges by billing country.
+- Prices (js/account.js, PRICES): India Rs 189 a month (was Rs 149 until 10 Nov 2026), Rs 1440 a year; everyone else $6 a month, $60 a year. The app picks India from the phone's time zone; Dodo charges by billing country.
 - Dodo LIVE products (made through the API, tax included in the price, India added under Localized Pricing):
-  - Monthly: pdt_0NrYv4CIMjTIoLNSyMiZg ($6, India Rs 149)
+  - Monthly: pdt_0NrYv4CIMjTIoLNSyMiZg ($6, India Rs 189)
   - Yearly: pdt_0NrYv4OctY1tLnocYBKBI ($60, India Rs 1440)
 - Dodo LIVE webhook: ep_3LrZVctlGl6Ol0MVSsoCp9JxgHm -> https://vnorlnjsvknhsvjfczyl.supabase.co/functions/v1/dodo-webhook
 - Coupons (made in Dodo: Live, Discounts). Members type a code in the app's checkout and tap Apply (function check-coupon shows the saving); Dodo's own code box is hidden.
-  - SAVEIN (India): monthly Rs 149 -> Rs 99 (Dodo code SAVEIN, Rs 50 flat, monthly only); yearly Rs 100 off (Dodo code SAVEINY, yearly only). The app turns SAVEIN into SAVEINY on the yearly plan.
+  - SAVEIN (India): monthly Rs 189 -> Rs 119 (Dodo code SAVEIN, Rs 70 flat, monthly only); yearly Rs 100 off (Dodo code SAVEINY, yearly only). The app turns SAVEIN into SAVEINY on the yearly plan.
   - SAVE50 (abroad): 50% off monthly or yearly.
   - metadata.region on a Dodo discount ('in' or 'intl') keeps it to India or abroad. Each person can use a code once; the discount repeats on every renewal.
   - Dodo will not take a payment under 1 USD (about Rs 88), so keep an India price at Rs 99 or more after a discount (a gap in case the rupee weakens).
