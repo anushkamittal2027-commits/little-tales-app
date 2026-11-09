@@ -77,7 +77,7 @@
       if (name === 'transcribe') return window.__TRANSCRIBE === 'not_configured' ? { data: { code: 'not_configured', error: 'soon' }, error: null } : { data: { text: 'The chai was perfect today' }, error: null };
       if (name === 'check-coupon') { const b = opts?.body || {}; const c = String(b.coupon || '').toUpperCase(); const inr = b.region === 'in';
         const price = inr ? (b.plan === 'monthly' ? 14900 : 144000) : (b.plan === 'monthly' ? 600 : 6000);
-        const saving = c === 'PYAAR' && inr ? (b.plan === 'monthly' ? 6000 : 10000) : c === 'LOVE50' && !inr ? price / 2 : null;
+        const saving = c === 'CHAI' && inr ? (b.plan === 'monthly' ? 6000 : 10000) : c === 'SUNNY' && !inr ? price / 2 : null;
         if (saving == null) return { data: null, error: { context: { json: async () => ({ error: 'We couldn’t find that code. Check the spelling and try again.' }) } } };
         return { data: { code: c, saving, price, total: price - saving, currency: inr ? 'INR' : 'USD' }, error: null }; }
       if (name === 'create-dodo-checkout') { const d = db(); d.subs[d.session.id] = { user_id: d.session.id, plan: 'yearly', status: 'active', started_at: new Date().toISOString() }; save(d); return { data: { checkout_url: location.origin + location.pathname + '?paid=1' }, error: null }; }   // pretends the member paid and Dodo's webhook arrived

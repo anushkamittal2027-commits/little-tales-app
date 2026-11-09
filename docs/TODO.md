@@ -59,8 +59,8 @@ Notes for whoever deploys:
   - Yearly: pdt_0NrYv4OctY1tLnocYBKBI ($60, India Rs 1440)
 - Dodo LIVE webhook: ep_3LrZVctlGl6Ol0MVSsoCp9JxgHm -> https://vnorlnjsvknhsvjfczyl.supabase.co/functions/v1/dodo-webhook
 - Coupons (made in Dodo: Live, Discounts). Members type a code in the app's checkout and tap Apply (function check-coupon shows the saving); Dodo's own code box is hidden.
-  - PYAAR (India): monthly Rs 149 -> Rs 89 (Dodo code PYAAR, Rs 60 flat, monthly only); yearly Rs 100 off (Dodo code PYAARY, yearly only). The app turns PYAAR into PYAARY on the yearly plan.
-  - LOVE50 (abroad): 50% off monthly or yearly.
+  - CHAI (India): monthly Rs 149 -> Rs 89 (Dodo code CHAI, Rs 60 flat, monthly only); yearly Rs 100 off (Dodo code CHAIY, yearly only). The app turns CHAI into CHAIY on the yearly plan.
+  - SUNNY (abroad): 50% off monthly or yearly.
   - metadata.region on a Dodo discount ('in' or 'intl') keeps it to India or abroad. Each person can use a code once; the discount repeats on every renewal.
   - Dodo will not take a payment under 1 USD (about Rs 88), so an India monthly price must stay at Rs 89 or more after a discount.
   - New code for both plans: make CODE (monthly) and CODEY (yearly) in Dodo, or one code without a product limit.
