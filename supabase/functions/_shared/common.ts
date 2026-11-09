@@ -27,7 +27,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
   if (!key) return false;
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: Deno.env.get('MAIL_FROM') ?? 'Little Tales <hello@littletales.me>', to, subject, html }),
+    body: JSON.stringify({ from: Deno.env.get('MAIL_FROM') ?? 'Little Tales <hello@littletales.me>', reply_to: Deno.env.get('MAIL_REPLY_TO') ?? 'hellolittletales@gmail.com', to, subject, html }),   // replies reach the founder's inbox
   });
   return r.ok;
 }
