@@ -2,17 +2,17 @@
 // and returns its address; the member pays there (we never see card details) and Dodo's webhook marks them subscribed.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { admin, json } from '../_shared/common.ts';
+import { resolveCoupon, tidyCode, validCode } from '../_shared/coupons.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return json({});
   const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } });
   const { data: { user } } = await userClient.auth.getUser();
   if (!user) return json({ error: 'sign in first' }, 401);
-  const { plan, coupon } = await req.json().catch(() => ({}));
+  const { plan, coupon, region } = await req.json().catch(() => ({}));
   if (!['monthly', 'yearly'].includes(plan)) return json({ error: 'unknown plan' }, 400);
-  // Coupon codes are made in Dodo (Discounts). We only pass a tidy code on; Dodo checks it and shows the discount.
-  const code = typeof coupon === 'string' ? coupon.trim().toUpperCase() : '';
-  if (code && !/^[A-Z0-9_-]{3,32}$/.test(code)) return json({ error: 'That coupon code doesn’t look right.', code: 'bad_coupon' }, 400);
+  const code = tidyCode(coupon);
+  if (code && !validCode(code)) return json({ error: 'That coupon code doesn’t look right.', code: 'bad_coupon' }, 400);
 
   const apiKey = Deno.env.get('DODO_API_KEY');
   const product = Deno.env.get(plan === 'monthly' ? 'DODO_PRODUCT_MONTHLY' : 'DODO_PRODUCT_YEARLY');
@@ -22,6 +22,14 @@ Deno.serve(async (req) => {
   if (have?.status === 'active') return json({ error: 'You are already subscribed.' }, 409);   // never charge twice
 
   const base = Deno.env.get('DODO_ENV') === 'live' ? 'https://live.dodopayments.com' : 'https://test.dodopayments.com';
+  // The code a member typed may stand for a plan-specific code in Dodo (see _shared/coupons.ts).
+  let dodoCode = '';
+  if (code) {
+    const c = await resolveCoupon(code, plan, region, base, apiKey, product).catch(() => null);
+    if (!c) return json({ error: 'We couldn’t check that code right now. Please try again.', code: 'coupon_check' }, 502);
+    if (!c.ok) return json({ error: c.error, code: 'bad_coupon' }, 400);
+    dodoCode = c.dodoCode;
+  }
   const origin = Deno.env.get('APP_ORIGIN') ?? 'https://littletales.me';
   const r = await fetch(`${base}/checkouts`, {
     method: 'POST',
@@ -31,7 +39,8 @@ Deno.serve(async (req) => {
       customer: { email: user.email },
       return_url: `${origin}/?paid=1`,
       metadata: { user_id: user.id, plan, ...(code ? { coupon: code } : {}) },
-      ...(code ? { discount_codes: [code] } : {}),
+      ...(dodoCode ? { discount_codes: [dodoCode] } : {}),
+      feature_flags: { allow_discount_code: false },   // codes go in our own checkout page, with the Apply button
     }),
   });
   const out = await r.json().catch(() => ({}));

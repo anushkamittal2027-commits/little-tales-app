@@ -8,18 +8,25 @@ Deno.env.set('RAZORPAY_KEY_ID', 'rzp_test'); Deno.env.set('RAZORPAY_KEY_SECRET',
 const handlers: Record<string, (r: Request) => Promise<Response> | Response> = {};
 let current = '';
 (Deno as any).serve = (h: any) => { handlers[current] = h; };
-for (const name of ['lifecycle', 'nudges', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription', 'transcribe', 'create-subscription', 'cancel-subscription', 'delete-account']) { current = name; await import(`../../functions/${name}/index.ts?${name}`); }
+for (const name of ['lifecycle', 'nudges', 'razorpay-webhook', 'dodo-webhook', 'create-dodo-checkout', 'cancel-dodo-subscription', 'check-coupon', 'transcribe', 'create-subscription', 'cancel-subscription', 'delete-account']) { current = name; await import(`../../functions/${name}/index.ts?${name}`); }
 const { db, resetDb } = await import('./stub_supabase.ts');
 const { sent } = await import('./stub_webpush.ts');
 
 const calls: { url: string; init?: RequestInit }[] = [];
 const realFetch = globalThis.fetch;
 let razorpayOk = true;
+const DISCOUNTS: Record<string, any> = {
+  PYAAR: { code: 'PYAAR', type: 'flat', amount: 1, restricted_to: ['pdt_m'], times_used: 0, currency_options: [{ currency: 'INR', max_amount_possible: 6000 }], metadata: { region: 'in' } },
+  PYAARY: { code: 'PYAARY', type: 'flat', amount: 1, restricted_to: ['pdt_y'], times_used: 0, currency_options: [{ currency: 'INR', max_amount_possible: 10000 }], metadata: { region: 'in' } },
+  LOVE50: { code: 'LOVE50', type: 'percentage', amount: 5000, restricted_to: ['pdt_m', 'pdt_y'], times_used: 0, currency_options: [], metadata: { region: 'intl' } },
+  OLD: { code: 'OLD', type: 'percentage', amount: 1000, restricted_to: [], times_used: 0, expires_at: '2020-01-01T00:00:00Z', metadata: {} },
+};
 globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
   const u = String(url); calls.push({ url: u, init });
   if (u.includes('api.resend.com')) return new Response('{}', { status: 200 });
   if (u.includes('api.openai.com/v1/audio/transcriptions')) return new Response(JSON.stringify({ text: ' Hello there ' }), { status: 200 });
   if (u.includes('dodopayments.com/checkouts')) return new Response(JSON.stringify({ checkout_url: 'https://test.checkout.dodopayments.com/session/cks_1' }), { status: 200 });
+  if (u.includes('dodopayments.com/discounts/code/')) { const d = DISCOUNTS[decodeURIComponent(u.split('/discounts/code/')[1])]; return new Response(JSON.stringify(d ?? { code: 'NOT_FOUND' }), { status: d ? 200 : 404 }); }
   if (u.includes('dodopayments.com/subscriptions/sub_gone')) return new Response('{}', { status: 404 });
   if (u.includes('dodopayments.com/subscriptions/')) return new Response('{}', { status: 200 });
   if (u.includes('api.razorpay.com/v1/subscriptions') && u.endsWith('/cancel')) return new Response(JSON.stringify(razorpayOk ? { id: 'sub_1' } : { error: { description: 'nope' } }), { status: razorpayOk ? 200 : 400 });
@@ -226,12 +233,27 @@ Deno.test('dodo checkout: says "opening soon" until keys exist, then returns the
   assert(c.url.startsWith('https://test.dodopayments.com'));
   assertEquals(sent.discount_codes, undefined);                                                  // no coupon, none sent
 });
-Deno.test('dodo checkout: passes a tidy coupon code on to Dodo and rejects a malformed one', async () => {
+Deno.test('dodo checkout: applies the right Dodo code for the plan and refuses codes that do not fit', async () => {
   resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' }; Deno.env.set('DODO_API_KEY', 'k');
   assertEquals((await post('create-dodo-checkout', { plan: 'monthly', coupon: 'no spaces!' })).status, 400);
-  const r = await post('create-dodo-checkout', { plan: 'monthly', coupon: ' family50 ' }); assertEquals(r.status, 200);
-  const sent = JSON.parse(String(calls.find((x) => x.url.endsWith('/checkouts'))!.init!.body));
-  assertEquals(sent.discount_codes, ['FAMILY50']); assertEquals(sent.metadata.coupon, 'FAMILY50');
+  assertEquals((await post('create-dodo-checkout', { plan: 'monthly', coupon: 'NOPE', region: 'in' })).status, 400);
+  assertEquals((await post('create-dodo-checkout', { plan: 'monthly', coupon: 'LOVE50', region: 'in' })).status, 400);   // abroad code in India
+  const sentFor = async (body: any) => { calls.length = 0; const r = await post('create-dodo-checkout', body); assertEquals(r.status, 200); return JSON.parse(String(calls.find((x) => x.url.endsWith('/checkouts'))!.init!.body)); };
+  let sent = await sentFor({ plan: 'monthly', coupon: ' pyaar ', region: 'in' });
+  assertEquals(sent.discount_codes, ['PYAAR']); assertEquals(sent.metadata.coupon, 'PYAAR'); assertEquals(sent.feature_flags.allow_discount_code, false);
+  sent = await sentFor({ plan: 'yearly', coupon: 'PYAAR', region: 'in' }); assertEquals(sent.discount_codes, ['PYAARY']);
+  sent = await sentFor({ plan: 'yearly', coupon: 'LOVE50', region: 'intl' }); assertEquals(sent.discount_codes, ['LOVE50']);
+});
+Deno.test('check-coupon: says how much a member saves, in their own prices', async () => {
+  resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' }; Deno.env.set('DODO_API_KEY', 'k');
+  const check = async (body: any) => { const r = await post('check-coupon', body); return { status: r.status, ...(await r.json()) }; };
+  assertEquals((await check({ plan: 'monthly', coupon: 'PYAAR' }, )).status, 400);                       // no region given = abroad
+  assertEquals(await check({ plan: 'monthly', coupon: 'pyaar', region: 'in' }), { status: 200, code: 'PYAAR', saving: 6000, price: 14900, total: 8900, currency: 'INR' });
+  assertEquals((await check({ plan: 'yearly', coupon: 'PYAAR', region: 'in' })).total, 134000);
+  assertEquals(await check({ plan: 'yearly', coupon: 'LOVE50', region: 'intl' }), { status: 200, code: 'LOVE50', saving: 3000, price: 6000, total: 3000, currency: 'USD' });
+  assertEquals((await check({ plan: 'monthly', coupon: 'NOPE', region: 'in' })).status, 404);
+  assertEquals((await check({ plan: 'monthly', coupon: 'OLD', region: 'in' })).error, 'This code has expired.');
+  assertEquals((await post('check-coupon', { plan: 'monthly', coupon: 'PYAAR' }, 'bad')).status, 401);
 });
 Deno.test('dodo cancel: stops renewals at the end of the period', async () => {
   resetDb(); calls.length = 0; db.user = { id: 'u1', email: 'a@x.y' };

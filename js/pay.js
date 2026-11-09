@@ -12,8 +12,8 @@ const loadScript = () => new Promise((res, rej) => {
 });
 
 // Resolves 'paid' when the member is subscribed, 'closed' if they closed the window, or throws a readable error.
-export async function payOnline(planId, coupon = '') {
-  if (PAYMENT_PROVIDER === 'dodo') return payDodo(planId, coupon);
+export async function payOnline(planId, coupon = '', region = '') {
+  if (PAYMENT_PROVIDER === 'dodo') return payDodo(planId, coupon, region);
   const c = await client();
   const { data, error } = await c.functions.invoke('create-subscription', { body: { plan: planId } });
   if (error || !data?.subscription_id) throw new Error(data?.error || 'We couldn’t start the payment. Please try again in a moment.');
@@ -46,10 +46,20 @@ export async function cancelOnline() {
   return data;
 }
 
-// Dodo Payments: the member pays on Dodo's own page and comes back to /?paid=1; the webhook then marks them subscribed.
-async function payDodo(planId, coupon) {
+// The Apply button: asks our server what a coupon code is worth for this plan. Amounts come back in paise or cents.
+export async function checkCoupon(planId, coupon, region) {
   const c = await client();
-  const { data, error } = await c.functions.invoke('create-dodo-checkout', { body: coupon ? { plan: planId, coupon } : { plan: planId } });
+  const { data, error } = await c.functions.invoke('check-coupon', { body: { plan: planId, coupon, region } });
+  let msg = data?.error;
+  if (!msg && error?.context?.json) { const b = await error.context.json().catch(() => null); msg = b?.error; }
+  if (error || !data?.code) throw new Error(msg || 'We couldn’t check that code right now. Please try again.');
+  return data;
+}
+
+// Dodo Payments: the member pays on Dodo's own page and comes back to /?paid=1; the webhook then marks them subscribed.
+async function payDodo(planId, coupon, region) {
+  const c = await client();
+  const { data, error } = await c.functions.invoke('create-dodo-checkout', { body: coupon ? { plan: planId, coupon, region } : { plan: planId } });
   let msg = data?.error, code = data?.code;
   if (!msg && error?.context?.json) { const b = await error.context.json().catch(() => null); msg = b?.error; code = b?.code; }
   if (error || !data?.checkout_url) throw new Error((msg || 'We couldn’t start the payment. Please try again in a moment.') + (code ? ` (${code})` : ''));

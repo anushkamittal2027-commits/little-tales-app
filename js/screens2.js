@@ -9,7 +9,7 @@ import { account, saveAccount, patchAccount, startTrial, trialInfo, subscribe, c
 import { subscribePush } from './push.js';
 import { confetti } from './delight.js';
 import { deleteAccountOnline, pendingCount } from './sync.js';
-import { payOnline, cancelOnline } from './pay.js';
+import { payOnline, cancelOnline, checkCoupon } from './pay.js';
 import { addToHomeScreen, canOfferInstall } from './install.js';
 import { CODE_LENGTH } from './config.js';
 import { auth, signInWithGoogle, sendEmailCode, verifyEmailCode, signOut, DEMO_CODE, authLogText, googleButtonAvailable, signInWithGoogleToken } from './auth.js';
@@ -276,19 +276,53 @@ register('paywall', (p) => {
 
 register('checkout', (p) => {
   const plan = PLANS[p.plan] || PLANS.yearly;
-  const total = withGst(plan.price), gst = Math.round((total - plan.price) * 100) / 100;
+  let applied = null;                    // { code, saving, total } once a coupon is applied (in rupees or dollars)
+  const priceNow = () => (applied ? applied.total : plan.price);
+  const totalNow = () => withGst(priceNow());
   let method = 'upi';
   const fields = h('div.pay-fields');
   const err = h('p.pay-err');
-  const coupon = h('input.coupon', { type: 'text', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', maxlength: '32', placeholder: 'Coupon code (optional)', 'aria-label': 'Coupon code' });
-  const payBtn = primary(`Pay ${money(total)}`, async () => {
+  const summary = h('div.summary.glass-card');
+  const drawSummary = () => {
+    const total = totalNow(), gst = Math.round((total - priceNow()) * 100) / 100;
+    summary.replaceChildren(...[
+      h('div.srow', h('span', `Little Tales ${plan.name}`), h('b', money(plan.price))),
+      applied ? h('div.srow.sub.save', h('span', `Coupon ${applied.code}`), h('span', '−' + money(applied.saving))) : null,
+      account.settings.gst && region() === 'in' ? h('div.srow.sub', h('span', 'GST (18%)'), h('span', money(gst))) : null,
+      h('div.srow.total', h('span', 'Total today'), h('b', money(total)))].filter(Boolean));
+    payBtn.textContent = `Pay ${money(total)}`;
+  };
+  // Coupon: type a code, tap Apply, see the saving straight away.
+  const coupon = h('input.coupon', { type: 'text', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', maxlength: '32', placeholder: 'Enter code', 'aria-label': 'Coupon code',
+    onKeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); applyBtn.click(); } } });
+  const couponMsg = h('p.coupon-msg', { role: 'status', 'aria-live': 'polite' });
+  const win = h('div.coupon-win', { hidden: true, role: 'status', 'aria-live': 'polite' });
+  const applyBtn = h('button.coupon-apply', { type: 'button', onClick: async () => {
+    const code = coupon.value.trim().toUpperCase();
+    couponMsg.textContent = ''; couponMsg.className = 'coupon-msg';
+    if (!code) { couponMsg.textContent = 'Type your code first.'; return; }
+    if (!/^[A-Z0-9_-]{3,32}$/.test(code)) { couponMsg.textContent = 'That code doesn’t look right. Check it and try again.'; return; }
+    applyBtn.disabled = true; applyBtn.textContent = 'Checking…';
+    try {
+      const r = await checkCoupon(plan.id, code, region());
+      applied = { code: r.code, saving: r.saving / 100, total: r.total / 100 };
+      coupon.disabled = true; applyBtn.hidden = true;
+      const every = plan.id === 'monthly' ? 'every month' : 'every year';
+      win.replaceChildren(
+        h('span.cw-burst', { 'aria-hidden': 'true' }, '🎉'),
+        h('div.cw-text', h('b', 'Congratulations!'), h('span', `You’re saving ${money(applied.saving)} ${every}. You pay just ${money(applied.total)}.`)),
+        h('button.cw-remove', { type: 'button', onClick: () => { applied = null; coupon.disabled = false; coupon.value = ''; applyBtn.hidden = false; win.hidden = true; drawSummary(); coupon.focus(); } }, 'Remove'));
+      win.hidden = false; drawSummary(); confetti();
+    } catch (e) { couponMsg.textContent = e.message; couponMsg.className = 'coupon-msg bad'; }
+    applyBtn.disabled = false; applyBtn.textContent = 'Apply';
+  } }, 'Apply');
+  const payBtn = primary('', async () => {
     if (real) {
-      const code = coupon.value.trim().toUpperCase();
-      if (code && !/^[A-Z0-9_-]{3,32}$/.test(code)) { err.textContent = 'That coupon code doesn’t look right. Check it and try again.'; return; }
+      if (coupon.value.trim() && !applied) { couponMsg.textContent = 'Tap Apply to use your code, or clear it to pay the full price.'; couponMsg.className = 'coupon-msg bad'; return; }
       payBtn.disabled = true; payBtn.textContent = 'Opening…'; err.textContent = '';
-      try { const r = await payOnline(plan.id, code); if (r === 'paid') go('success', { plan: plan.id }, { replace: true }); }
+      try { const r = await payOnline(plan.id, applied?.code || '', region()); if (r === 'paid') go('success', { plan: plan.id }, { replace: true }); }
       catch (e) { err.textContent = e.message; }
-      payBtn.disabled = false; payBtn.textContent = `Pay ${money(total)}`; return;
+      payBtn.disabled = false; drawSummary(); return;
     }
     const f = fields.querySelectorAll('input');
     if (method === 'upi') { if (!/^[\w.\-]{2,}@[a-z]{2,}$/i.test(f[0].value.trim())) { err.textContent = 'Enter a UPI ID like name@bank'; return; } }
@@ -304,7 +338,13 @@ register('checkout', (p) => {
   });
   const real = auth.provider === 'supabase';
   const draw = () => {
-    if (real) { fields.replaceChildren(h('label', 'Coupon code', coupon), h('p.fine', 'Got a code from us? Add it here and the discount shows on the next page. You’ll pay on a secure page and we never see or store your payment details. The final price is shown in your currency there.')); return; }
+    if (real) {
+      fields.replaceChildren(
+        h('label', { for: 'coupon-code' }, 'Have a coupon code?'),
+        h('div.coupon-row', Object.assign(coupon, { id: 'coupon-code' }), applyBtn), couponMsg, win,
+        h('p.fine', 'You’ll pay on a secure page by card, UPI or wallet. We never see or store your payment details.'));
+      return;
+    }
     fields.replaceChildren(...(method === 'upi'
       ? [h('label', 'UPI ID', h('input', { type: 'text', inputmode: 'email', autocomplete: 'off', placeholder: 'name@bank', 'aria-label': 'UPI ID' })), h('p.fine', 'You’ll approve the monthly or yearly auto-pay in your UPI app.')]
       : [h('label', 'Card number', h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: '1234 5678 9012 3456', 'aria-label': 'Card number' })),
@@ -313,14 +353,11 @@ register('checkout', (p) => {
   const tabs = h('div.paytabs');
   const drawTabs = () => tabs.replaceChildren(...[['upi', 'UPI AutoPay'], ['card', 'Card']].map(([k, l]) => h('button.paytab' + (method === k ? '.on' : ''), { onClick: () => { method = k; err.textContent = ''; drawTabs(); draw(); } }, l)));
   if (real) tabs.hidden = true; else drawTabs();
-  draw();
+  draw(); drawSummary();
   return h('div.checkout',
     topBar(),
     h('h1', 'Almost ', h('em', 'there')),
-    h('div.summary.glass-card',
-      h('div.srow', h('span', `Little Tales ${plan.name}`), h('b', money(plan.price))),
-      account.settings.gst ? h('div.srow.sub', h('span', 'GST (18%)'), h('span', money(gst))) : null,
-      h('div.srow.total', h('span', 'Total today'), h('b', money(total)))),
+    summary,
     real ? null : h('div.practice', h('b', 'Practice mode.'), ' Nothing is charged, and nothing you type here is saved.'),
     tabs, fields, err,
     h('div.bottom', payBtn));
